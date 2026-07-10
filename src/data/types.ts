@@ -46,6 +46,31 @@ export type SafeZoneId =
 
 export type TextAlign = 'left' | 'center'
 
+export type CardId =
+  | 'do-now'
+  | 'reminders'
+  | 'materials'
+  | 'ready'
+  | 'timer'
+  | 'lesson'
+  | 'cleanup'
+  | 'routine'
+  | 'phase-timer'
+  | 'compact-cue'
+  | 'focus'
+  | 'agenda'
+
+export type ScreenCardVisibility = Record<
+  ScreenId,
+  Partial<Record<CardId, boolean>>
+>
+
+export interface CardVisibilityOption {
+  id: CardId
+  label: string
+  helperText?: string
+}
+
 export interface MaterialsLists {
   haveOut: string[]
   putAway: string[]
@@ -149,6 +174,7 @@ export interface BoardState {
   backgroundId: BackgroundAssetId
   contents: ScreenContents
   teacherNotes: TeacherNote[]
+  cardVisibility: ScreenCardVisibility
 }
 
 export interface ScreenMeta {

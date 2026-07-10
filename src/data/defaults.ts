@@ -1,5 +1,7 @@
 import type {
+  CardVisibilityOption,
   ReadyPositionContent,
+  ScreenCardVisibility,
   ScreenContents,
   ScreenMeta,
   TeacherNote,
@@ -21,6 +23,99 @@ export const SCREEN_META: ScreenMeta[] = [
   { id: 'snack-lunch', label: 'Snack / Lunch' },
   { id: 'ready-position', label: 'Ready Position' },
 ]
+
+
+export const CARD_VISIBILITY_OPTIONS: Record<string, CardVisibilityOption[]> = {
+  homeroom: [
+    { id: 'do-now', label: 'Do Now', helperText: 'Student opening task' },
+    { id: 'reminders', label: 'Reminders' },
+    { id: 'materials', label: 'Materials' },
+    { id: 'ready', label: 'Ready Position' },
+    { id: 'timer', label: 'Timer' },
+  ],
+  math: [
+    { id: 'lesson', label: 'Lesson' },
+    { id: 'materials', label: 'Materials' },
+    { id: 'timer', label: 'Timer' },
+  ],
+  reading: [
+    { id: 'lesson', label: 'Reading focus' },
+    { id: 'materials', label: 'Materials' },
+    { id: 'ready', label: 'Ready Position' },
+    { id: 'timer', label: 'Timer' },
+  ],
+  writing: [
+    { id: 'focus', label: 'Focus task' },
+    { id: 'agenda', label: 'Agenda' },
+    { id: 'materials', label: 'Materials' },
+  ],
+  science: [
+    { id: 'focus', label: 'Focus task' },
+    { id: 'agenda', label: 'Agenda' },
+    { id: 'materials', label: 'Materials' },
+  ],
+  'social-studies': [
+    { id: 'focus', label: 'Focus task' },
+    { id: 'agenda', label: 'Agenda' },
+    { id: 'materials', label: 'Materials' },
+  ],
+  intervention: [
+    { id: 'focus', label: 'Focus task' },
+    { id: 'agenda', label: 'Agenda' },
+    { id: 'materials', label: 'Materials' },
+  ],
+  assessment: [
+    { id: 'focus', label: 'Focus task' },
+    { id: 'agenda', label: 'Agenda' },
+    { id: 'materials', label: 'Materials' },
+  ],
+  'flexible-groups': [
+    { id: 'focus', label: 'Focus task' },
+    { id: 'agenda', label: 'Agenda' },
+    { id: 'materials', label: 'Materials' },
+  ],
+  centers: [
+    { id: 'focus', label: 'Focus task' },
+    { id: 'agenda', label: 'Agenda' },
+    { id: 'materials', label: 'Materials' },
+  ],
+  'homework-packup': [
+    { id: 'focus', label: 'Focus task' },
+    { id: 'agenda', label: 'Agenda' },
+    { id: 'materials', label: 'Materials' },
+  ],
+  'snack-lunch': [
+    { id: 'cleanup', label: 'Cleanup reminders' },
+    { id: 'routine', label: 'Routine' },
+    { id: 'phase-timer', label: 'Phase timer' },
+  ],
+  'ready-position': [
+    { id: 'ready', label: 'Ready Position checklist' },
+    { id: 'compact-cue', label: 'Compact cue' },
+  ],
+}
+
+export const DEFAULT_CARD_VISIBILITY: ScreenCardVisibility = {
+  homeroom: {
+    'do-now': true,
+    reminders: true,
+    materials: true,
+    ready: true,
+    timer: true,
+  },
+  math: { lesson: true, materials: true, timer: true },
+  reading: { lesson: true, materials: true, ready: true, timer: true },
+  writing: { focus: true, agenda: true, materials: true },
+  science: { focus: true, agenda: true, materials: true },
+  'social-studies': { focus: true, agenda: true, materials: true },
+  intervention: { focus: true, agenda: true, materials: true },
+  assessment: { focus: true, agenda: true, materials: true },
+  'flexible-groups': { focus: true, agenda: true, materials: true },
+  centers: { focus: true, agenda: true, materials: true },
+  'homework-packup': { focus: true, agenda: true, materials: true },
+  'snack-lunch': { cleanup: true, routine: true, 'phase-timer': true },
+  'ready-position': { ready: true, 'compact-cue': true },
+}
 
 export const DEFAULT_READY_POSITION: ReadyPositionContent = {
   title: 'Ready Position',

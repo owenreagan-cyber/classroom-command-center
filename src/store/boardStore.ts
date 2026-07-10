@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import {
   DEFAULT_BACKGROUND_ID,
+  DEFAULT_CARD_VISIBILITY,
   DEFAULT_CONTENTS,
   DEFAULT_MODE,
   DEFAULT_SCREEN_ID,
@@ -12,6 +13,8 @@ import type {
   AppMode,
   BackgroundAssetId,
   BoardState,
+  CardId,
+  ScreenCardVisibility,
   ScreenContents,
   ScreenId,
 } from '../data/types'
@@ -30,6 +33,7 @@ interface BoardStore extends BoardState {
   setActiveScreen: (screen: ScreenId) => void
   setBackgroundId: (backgroundId: BackgroundAssetId) => void
   updateContents: (contents: ScreenContents) => void
+  setCardVisible: (screenId: ScreenId, cardId: CardId, visible: boolean) => void
   beautifyActiveScreen: () => void
   undoBeautify: () => void
   resetToDefaults: () => void
@@ -41,12 +45,33 @@ const initialState: BoardState = {
   backgroundId: DEFAULT_BACKGROUND_ID,
   contents: structuredClone(DEFAULT_CONTENTS),
   teacherNotes: structuredClone(DEFAULT_TEACHER_NOTES),
+  cardVisibility: structuredClone(DEFAULT_CARD_VISIBILITY),
 }
 
 /**
  * Card-type-preserving, conservative beautify.
  * Cleans formatting without aggressive rewrite or phrase splitting.
  */
+function mergeCardVisibility(
+  persisted: ScreenCardVisibility | undefined,
+): ScreenCardVisibility {
+  const next = structuredClone(DEFAULT_CARD_VISIBILITY)
+
+  if (!persisted) {
+    return next
+  }
+
+  for (const [screenId, cards] of Object.entries(persisted)) {
+    if (!cards) continue
+    next[screenId as ScreenId] = {
+      ...(next[screenId as ScreenId] ?? {}),
+      ...cards,
+    }
+  }
+
+  return next
+}
+
 function beautifyScreenContents(
   screenId: ScreenId,
   contents: ScreenContents,
@@ -136,6 +161,16 @@ export const useBoardStore = create<BoardStore>()(
       },
       setBackgroundId: (backgroundId) => set({ backgroundId }),
       updateContents: (contents) => set({ contents, beautifyUndo: null }),
+      setCardVisible: (screenId, cardId, visible) =>
+        set((state) => ({
+          cardVisibility: {
+            ...state.cardVisibility,
+            [screenId]: {
+              ...(state.cardVisibility[screenId] ?? {}),
+              [cardId]: visible,
+            },
+          },
+        })),
       beautifyActiveScreen: () => {
         const { activeScreen, contents } = get()
         set({
@@ -159,13 +194,14 @@ export const useBoardStore = create<BoardStore>()(
           backgroundId: DEFAULT_BACKGROUND_ID,
           contents: structuredClone(DEFAULT_CONTENTS),
           teacherNotes: structuredClone(DEFAULT_TEACHER_NOTES),
+          cardVisibility: structuredClone(DEFAULT_CARD_VISIBILITY),
           beautifyUndo: null,
         })
       },
     }),
     {
       name: 'classroom-command-center-lite',
-      version: 4,
+      version: 5,
       migrate: (persisted, version) => {
         const state = (persisted ?? {}) as Partial<BoardState> & {
           themeId?: string
@@ -182,12 +218,17 @@ export const useBoardStore = create<BoardStore>()(
             ? structuredClone(DEFAULT_TEACHER_NOTES)
             : (state.teacherNotes ?? structuredClone(DEFAULT_TEACHER_NOTES))
 
+        const cardVisibility = mergeCardVisibility(
+          version < 5 ? undefined : state.cardVisibility,
+        )
+
         return {
           mode: state.mode ?? DEFAULT_MODE,
           activeScreen: state.activeScreen ?? DEFAULT_SCREEN_ID,
           backgroundId: state.backgroundId ?? DEFAULT_BACKGROUND_ID,
           contents,
           teacherNotes,
+          cardVisibility,
         }
       },
       partialize: (state) => ({
@@ -196,6 +237,7 @@ export const useBoardStore = create<BoardStore>()(
         backgroundId: state.backgroundId,
         contents: state.contents,
         teacherNotes: state.teacherNotes,
+        cardVisibility: state.cardVisibility,
       }),
     },
   ),
