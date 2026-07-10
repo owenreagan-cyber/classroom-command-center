@@ -36,8 +36,20 @@ export function screenGridClass(screenId: ScreenId, mode: AppMode): string {
       return `${base} board-screen-grid--snack-lunch`
     case 'ready-position':
       return `${base} board-screen-grid--ready-position`
+    case 'writing':
+    case 'science':
+    case 'social-studies':
+    case 'intervention':
+    case 'assessment':
+    case 'flexible-groups':
+    case 'centers':
+    case 'homework-packup':
+      return `${base} board-screen-grid--subject`
+    default:
+      return `${base} board-screen-grid--subject`
   }
 }
+
 
 /** Area placement helpers for screen-specific grid cells. */
 export const gridArea = {
