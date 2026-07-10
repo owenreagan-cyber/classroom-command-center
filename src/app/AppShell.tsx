@@ -10,6 +10,7 @@ export function AppShell() {
   const contents = useBoardStore((state) => state.contents)
   const teacherNotes = useBoardStore((state) => state.teacherNotes)
   const cardVisibility = useBoardStore((state) => state.cardVisibility)
+  const customPresets = useBoardStore((state) => state.customPresets)
   const beautifyUndo = useBoardStore((state) => state.beautifyUndo)
   const setMode = useBoardStore((state) => state.setMode)
   const setActiveScreen = useBoardStore((state) => state.setActiveScreen)
@@ -17,9 +18,23 @@ export function AppShell() {
   const setCardVisible = useBoardStore((state) => state.setCardVisible)
   const updateContents = useBoardStore((state) => state.updateContents)
   const applyBoardPreset = useBoardStore((state) => state.applyBoardPreset)
+  const saveCustomPreset = useBoardStore((state) => state.saveCustomPreset)
+  const applyCustomPreset = useBoardStore((state) => state.applyCustomPreset)
+  const deleteCustomPreset = useBoardStore((state) => state.deleteCustomPreset)
+  const importBoardState = useBoardStore((state) => state.importBoardState)
   const beautifyActiveScreen = useBoardStore((state) => state.beautifyActiveScreen)
   const undoBeautify = useBoardStore((state) => state.undoBeautify)
   const resetToDefaults = useBoardStore((state) => state.resetToDefaults)
+
+  const boardState = {
+    mode,
+    activeScreen,
+    backgroundId,
+    contents,
+    teacherNotes,
+    cardVisibility,
+    customPresets,
+  }
 
   return (
     <div className="flex h-dvh w-dvw overflow-hidden bg-slate-950">
@@ -28,12 +43,17 @@ export function AppShell() {
         activeScreen={activeScreen}
         backgroundId={backgroundId}
         teacherNotes={teacherNotes}
+        boardState={boardState}
         cardVisibility={cardVisibility}
         canUndoBeautify={beautifyUndo !== null}
         onModeChange={setMode}
         onScreenChange={setActiveScreen}
         onBackgroundChange={setBackgroundId}
         onApplyPreset={applyBoardPreset}
+        onSaveCustomPreset={saveCustomPreset}
+        onApplyCustomPreset={applyCustomPreset}
+        onDeleteCustomPreset={deleteCustomPreset}
+        onImportBoardState={importBoardState}
         onCardVisibleChange={setCardVisible}
         onBeautify={beautifyActiveScreen}
         onUndoBeautify={undoBeautify}

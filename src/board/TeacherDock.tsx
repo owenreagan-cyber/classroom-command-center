@@ -3,12 +3,15 @@ import { SCREEN_META } from '../data/defaults'
 import type {
   AppMode,
   BackgroundAssetId,
+  BoardExportPayload,
   BoardPresetId,
+  BoardState,
   CardId,
   ScreenCardVisibility,
   ScreenId,
   TeacherNote,
 } from '../data/types'
+import { BoardBackupPanel } from './BoardBackupPanel'
 import { BoardPresetPanel } from './BoardPresetPanel'
 import { CardVisibilityPanel } from './CardVisibilityPanel'
 import { TeacherNotesPanel } from './TeacherNotesPanel'
@@ -18,12 +21,17 @@ interface TeacherDockProps {
   activeScreen: ScreenId
   backgroundId: BackgroundAssetId
   teacherNotes: TeacherNote[]
+  boardState: BoardState
   cardVisibility: ScreenCardVisibility
   canUndoBeautify: boolean
   onModeChange: (mode: AppMode) => void
   onScreenChange: (screen: ScreenId) => void
   onBackgroundChange: (backgroundId: BackgroundAssetId) => void
   onApplyPreset: (presetId: BoardPresetId) => void
+  onSaveCustomPreset: (label: string) => void
+  onApplyCustomPreset: (presetId: string) => void
+  onDeleteCustomPreset: (presetId: string) => void
+  onImportBoardState: (payload: BoardExportPayload) => void
   onCardVisibleChange: (
     screenId: ScreenId,
     cardId: CardId,
@@ -39,12 +47,17 @@ export function TeacherDock({
   activeScreen,
   backgroundId,
   teacherNotes,
+  boardState,
   cardVisibility,
   canUndoBeautify,
   onModeChange,
   onScreenChange,
   onBackgroundChange,
   onApplyPreset,
+  onSaveCustomPreset,
+  onApplyCustomPreset,
+  onDeleteCustomPreset,
+  onImportBoardState,
   onCardVisibleChange,
   onBeautify,
   onUndoBeautify,
@@ -132,7 +145,16 @@ export function TeacherDock({
 
       <BoardPresetPanel
         activeScreen={activeScreen}
+        customPresets={boardState.customPresets}
         onApplyPreset={onApplyPreset}
+        onSaveCustomPreset={onSaveCustomPreset}
+        onApplyCustomPreset={onApplyCustomPreset}
+        onDeleteCustomPreset={onDeleteCustomPreset}
+      />
+
+      <BoardBackupPanel
+        boardState={boardState}
+        onImportBoardState={onImportBoardState}
       />
 
       <CardVisibilityPanel
