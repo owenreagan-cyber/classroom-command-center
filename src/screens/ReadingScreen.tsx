@@ -1,6 +1,6 @@
 import { EditableText } from '../components/editing/EditableText'
 import type { AppMode, NoiseTrackerState, ReadingContent, ScreenCardVisibility } from '../data/types'
-import { gridArea, screenGridClass } from '../lib/displayLayout'
+import { gridArea, noiseCardOverlayClass, screenGridClass } from '../lib/displayLayout'
 import { MaterialsCard } from '../widgets/MaterialsCard'
 import { ReadyPositionCard } from '../widgets/ReadyPositionCard'
 import { SmartTextCard } from '../widgets/SmartTextCard'
@@ -83,7 +83,7 @@ export function ReadingScreen({
         <NoiseStatusCard
           tracker={noiseTracker}
           mode={mode}
-          className="absolute bottom-4 right-4 z-20 h-[18rem] w-[min(28rem,34vw)]"
+          className={noiseCardOverlayClass(mode)}
         />
       )}
     </div>

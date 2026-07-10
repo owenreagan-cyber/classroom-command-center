@@ -28,6 +28,12 @@ import type {
   ScreenId,
 } from '../data/types'
 import {
+  applyNoisyPointToTracker,
+  applyRepairTickToTracker,
+  normalizeNoiseTrackerMap,
+  resetNoiseTrackerState,
+} from '../lib/noiseTowers'
+import {
   beautifyBulletList,
   beautifyMaterialsLists,
   beautifySingleInstruction,
@@ -49,9 +55,11 @@ interface BoardStore extends BoardState {
   importBoardState: (payload: BoardExportPayload) => void
   setNoiseVoiceLevel: (trackerId: NoiseTrackerId, voiceLevel: BoardState['noiseTrackers'][NoiseTrackerId]['voiceLevel']) => void
   addNoisyPoint: (trackerId: NoiseTrackerId) => void
+  repairNoiseTick: (trackerId: NoiseTrackerId) => void
   adjustNoiseLapMinutes: (trackerId: NoiseTrackerId, delta: number) => void
   setNoiseMeterLevel: (trackerId: NoiseTrackerId, meterLevel: number) => void
   resetNoiseLapMinutes: (trackerId: NoiseTrackerId) => void
+  resetNoiseTracker: (trackerId: NoiseTrackerId) => void
   setCardVisible: (screenId: ScreenId, cardId: CardId, visible: boolean) => void
   beautifyActiveScreen: () => void
   undoBeautify: () => void
@@ -223,8 +231,7 @@ export const useBoardStore = create<BoardStore>()(
           teacherNotes: structuredClone(imported.teacherNotes),
           cardVisibility: mergeCardVisibility(imported.cardVisibility),
           customPresets: structuredClone(imported.customPresets ?? []),
-          noiseTrackers:
-            structuredClone(imported.noiseTrackers ?? DEFAULT_NOISE_TRACKERS) as BoardState['noiseTrackers'],
+          noiseTrackers: normalizeNoiseTrackerMap(imported.noiseTrackers),
           beautifyUndo: null,
         })
       },
@@ -236,19 +243,21 @@ export const useBoardStore = create<BoardStore>()(
               ...state.noiseTrackers[trackerId],
               voiceLevel,
               isPaused: voiceLevel === 'off',
-            },
+              },
           },
         })),
       addNoisyPoint: (trackerId) =>
         set((state) => ({
           noiseTrackers: {
             ...state.noiseTrackers,
-            [trackerId]: {
-              ...state.noiseTrackers[trackerId],
-              noisyPoints: state.noiseTrackers[trackerId].noisyPoints + 1,
-              lapMinutes: state.noiseTrackers[trackerId].lapMinutes + 2,
-              meterLevel: 100,
-            },
+            [trackerId]: applyNoisyPointToTracker(state.noiseTrackers[trackerId]),
+          },
+        })),
+      repairNoiseTick: (trackerId) =>
+        set((state) => ({
+          noiseTrackers: {
+            ...state.noiseTrackers,
+            [trackerId]: applyRepairTickToTracker(state.noiseTrackers[trackerId]),
           },
         })),
       adjustNoiseLapMinutes: (trackerId, delta) =>
@@ -282,6 +291,13 @@ export const useBoardStore = create<BoardStore>()(
               ...state.noiseTrackers[trackerId],
               lapMinutes: 0,
             },
+          },
+        })),
+      resetNoiseTracker: (trackerId) =>
+        set((state) => ({
+          noiseTrackers: {
+            ...state.noiseTrackers,
+            [trackerId]: resetNoiseTrackerState(trackerId),
           },
         })),
       setCardVisible: (screenId, cardId, visible) =>
@@ -326,7 +342,7 @@ export const useBoardStore = create<BoardStore>()(
     }),
     {
       name: 'classroom-command-center-lite',
-      version: 5,
+      version: 6,
       migrate: (persisted, version) => {
         const state = (persisted ?? {}) as Partial<BoardState> & {
           themeId?: string
@@ -355,8 +371,7 @@ export const useBoardStore = create<BoardStore>()(
           teacherNotes,
           cardVisibility,
           customPresets: state.customPresets ?? [],
-          noiseTrackers:
-            structuredClone(state.noiseTrackers ?? DEFAULT_NOISE_TRACKERS) as BoardState['noiseTrackers'],
+          noiseTrackers: normalizeNoiseTrackerMap(state.noiseTrackers),
         }
       },
       partialize: (state) => ({

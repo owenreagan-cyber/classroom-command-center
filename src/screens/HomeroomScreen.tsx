@@ -6,7 +6,7 @@ import type {
   NoiseTrackerState,
   ScreenCardVisibility,
 } from '../data/types'
-import { gridArea, screenGridClass } from '../lib/displayLayout'
+import { gridArea, noiseCardOverlayClass, screenGridClass } from '../lib/displayLayout'
 import { DoNowCard } from '../widgets/DoNowCard'
 import { MaterialsCard } from '../widgets/MaterialsCard'
 import { ReadyPositionCard } from '../widgets/ReadyPositionCard'
@@ -105,7 +105,7 @@ export function HomeroomScreen({
         <NoiseStatusCard
           tracker={noiseTracker}
           mode={mode}
-          className="absolute bottom-4 right-4 z-20 h-[18rem] w-[min(28rem,34vw)]"
+          className={noiseCardOverlayClass(mode)}
         />
       )}
     </div>

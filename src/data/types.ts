@@ -207,6 +207,14 @@ export type NoiseTrackerId = 'homeroom' | 'math' | 'reading'
 
 export type VoiceLevel = 'silent' | 'whisper' | 'normal' | 'off'
 
+export type NoiseTowerLetter = 'N' | 'O' | 'I' | 'S' | 'E'
+
+export interface NoiseTowerState {
+  letter: NoiseTowerLetter
+  hp: number
+  maxHp: number
+}
+
 export interface NoiseTrackerState {
   id: NoiseTrackerId
   label: string
@@ -215,6 +223,7 @@ export interface NoiseTrackerState {
   lapMinutes: number
   meterLevel: number
   isPaused: boolean
+  towers: NoiseTowerState[]
 }
 
 export interface BoardState {

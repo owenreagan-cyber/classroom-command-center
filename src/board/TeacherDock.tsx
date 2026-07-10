@@ -40,9 +40,11 @@ interface TeacherDockProps {
     voiceLevel: VoiceLevel,
   ) => void
   onAddNoisyPoint: (trackerId: NoiseTrackerId) => void
+  onRepairNoiseTick: (trackerId: NoiseTrackerId) => void
   onAdjustNoiseLapMinutes: (trackerId: NoiseTrackerId, delta: number) => void
   onSetNoiseMeterLevel: (trackerId: NoiseTrackerId, meterLevel: number) => void
   onResetNoiseLapMinutes: (trackerId: NoiseTrackerId) => void
+  onResetNoiseTracker: (trackerId: NoiseTrackerId) => void
   onCardVisibleChange: (
     screenId: ScreenId,
     cardId: CardId,
@@ -71,9 +73,11 @@ export function TeacherDock({
   onImportBoardState,
   onNoiseVoiceLevelChange,
   onAddNoisyPoint,
+  onRepairNoiseTick,
   onAdjustNoiseLapMinutes,
   onSetNoiseMeterLevel,
   onResetNoiseLapMinutes,
+  onResetNoiseTracker,
   onCardVisibleChange,
   onBeautify,
   onUndoBeautify,
@@ -177,9 +181,11 @@ export function TeacherDock({
         noiseTrackers={boardState.noiseTrackers}
         onVoiceLevelChange={onNoiseVoiceLevelChange}
         onAddNoisyPoint={onAddNoisyPoint}
+        onRepairNoiseTick={onRepairNoiseTick}
         onAdjustLapMinutes={onAdjustNoiseLapMinutes}
         onSetMeterLevel={onSetNoiseMeterLevel}
         onResetLapMinutes={onResetNoiseLapMinutes}
+        onResetTracker={onResetNoiseTracker}
       />
 
       <CardVisibilityPanel

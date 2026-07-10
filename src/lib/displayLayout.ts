@@ -50,6 +50,13 @@ export function screenGridClass(screenId: ScreenId, mode: AppMode): string {
   }
 }
 
+export function noiseCardOverlayClass(mode: AppMode): string {
+  if (mode === 'display') {
+    return 'absolute bottom-4 right-4 z-20 h-[22rem] w-[min(35rem,38vw)] md:h-[23.5rem]'
+  }
+
+  return 'absolute bottom-4 right-4 z-20 h-[20rem] w-[min(31rem,35vw)] md:h-[21.5rem]'
+}
 
 /** Area placement helpers for screen-specific grid cells. */
 export const gridArea = {
