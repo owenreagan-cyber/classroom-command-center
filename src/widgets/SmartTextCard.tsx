@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState, type ReactNode } from 'react'
 import type { AppMode, SmartCardModel, SmartTextBlock, TextAlign } from '../data/types'
 import { boardCardShell, displayFontRange } from '../lib/displayLayout'
+import { shouldRenderForMode } from '../lib/visibility'
 import { AutoFitText } from './AutoFitText'
 
 interface SmartTextCardProps {
@@ -73,17 +74,27 @@ export function SmartTextCard({
   const [overflows, setOverflows] = useState(false)
   const [forceCompact, setForceCompact] = useState(false)
 
-  const bulletCount = countBulletItems(model.blocks)
+  const visibleBlocks = useMemo(
+    () => model.blocks.filter((block) => shouldRenderForMode(block.visibility, mode)),
+    [model.blocks, mode],
+  )
+
+  const visibleModel = useMemo(
+    () => ({ ...model, blocks: visibleBlocks }),
+    [model, visibleBlocks],
+  )
+
+  const bulletCount = countBulletItems(visibleModel.blocks)
   const shouldCompact =
     forceCompact || dense || overflows || bulletCount > 5
 
   const { displayModel, hiddenCount } = useMemo(() => {
     if (!shouldCompact || bulletCount <= 5) {
-      return { displayModel: model, hiddenCount: 0 }
+      return { displayModel: visibleModel, hiddenCount: 0 }
     }
-    const compacted = compactModel(model, dense || overflows ? 4 : 5)
+    const compacted = compactModel(visibleModel, dense || overflows ? 4 : 5)
     return { displayModel: compacted.model, hiddenCount: compacted.hiddenCount }
-  }, [model, shouldCompact, bulletCount, dense, overflows])
+  }, [visibleModel, shouldCompact, bulletCount, dense, overflows])
 
   const handleOverflow = useCallback((nextOverflows: boolean) => {
     setOverflows(nextOverflows)
@@ -161,12 +172,22 @@ export function SmartTextCard({
               }
 
               if (block.kind === 'note' && block.text) {
+                const isTeacherNote = block.visibility === 'teacherOnly'
                 return (
                   <p
                     key={`n-${index}`}
-                    className="text-slate-600"
+                    className={
+                      isTeacherNote
+                        ? 'rounded-lg border border-amber-300/50 bg-amber-50/90 px-2 py-1.5 text-amber-900'
+                        : 'text-slate-600'
+                    }
                     style={{ fontSize: '0.58em', lineHeight: 1.3 }}
                   >
+                    {isTeacherNote && mode === 'edit' && (
+                      <span className="mr-1 text-[0.85em] font-semibold uppercase tracking-wide">
+                        Teacher only:
+                      </span>
+                    )}
                     {block.text}
                   </p>
                 )

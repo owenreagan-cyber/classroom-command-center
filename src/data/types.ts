@@ -1,5 +1,12 @@
 export type AppMode = 'edit' | 'display'
 
+/** Who may see a piece of board content. */
+export type Visibility = 'student' | 'teacherOnly' | 'hidden'
+
+export interface WithVisibility {
+  visibility?: Visibility
+}
+
 export type ScreenId =
   | 'homeroom'
   | 'math'
@@ -88,11 +95,25 @@ export interface BackgroundAsset {
   notes: string
 }
 
+export interface TeacherNote extends WithVisibility {
+  id: string
+  text: string
+  /** When set, note is scoped to a screen; omitted notes appear on all screens. */
+  screenId?: ScreenId
+}
+
+export interface TeacherResourceLink extends WithVisibility {
+  id: string
+  label: string
+  url: string
+}
+
 export interface BoardState {
   mode: AppMode
   activeScreen: ScreenId
   backgroundId: BackgroundAssetId
   contents: ScreenContents
+  teacherNotes: TeacherNote[]
 }
 
 export interface ScreenMeta {
@@ -100,7 +121,7 @@ export interface ScreenMeta {
   label: string
 }
 
-export interface SmartTextBlock {
+export interface SmartTextBlock extends WithVisibility {
   kind: 'paragraph' | 'bullets' | 'note'
   text?: string
   items?: string[]

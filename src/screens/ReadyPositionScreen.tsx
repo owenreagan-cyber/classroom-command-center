@@ -41,6 +41,7 @@ export function ReadyPositionScreen({
               ? [
                   {
                     kind: 'note' as const,
+                    visibility: 'teacherOnly' as const,
                     text: 'Use the compact line for quick redirects. Full checklist stays on the left.',
                   },
                 ]

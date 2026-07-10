@@ -5,6 +5,7 @@ import {
   DEFAULT_CONTENTS,
   DEFAULT_MODE,
   DEFAULT_SCREEN_ID,
+  DEFAULT_TEACHER_NOTES,
 } from '../data/defaults'
 import { getBackgroundForScreen } from '../data/backgroundAssets'
 import type {
@@ -39,6 +40,7 @@ const initialState: BoardState = {
   activeScreen: DEFAULT_SCREEN_ID,
   backgroundId: DEFAULT_BACKGROUND_ID,
   contents: structuredClone(DEFAULT_CONTENTS),
+  teacherNotes: structuredClone(DEFAULT_TEACHER_NOTES),
 }
 
 /**
@@ -156,13 +158,14 @@ export const useBoardStore = create<BoardStore>()(
           activeScreen: DEFAULT_SCREEN_ID,
           backgroundId: DEFAULT_BACKGROUND_ID,
           contents: structuredClone(DEFAULT_CONTENTS),
+          teacherNotes: structuredClone(DEFAULT_TEACHER_NOTES),
           beautifyUndo: null,
         })
       },
     }),
     {
       name: 'classroom-command-center-lite',
-      version: 3,
+      version: 4,
       migrate: (persisted, version) => {
         const state = (persisted ?? {}) as Partial<BoardState> & {
           themeId?: string
@@ -174,11 +177,17 @@ export const useBoardStore = create<BoardStore>()(
             ? structuredClone(DEFAULT_CONTENTS)
             : (state.contents ?? structuredClone(DEFAULT_CONTENTS))
 
+        const teacherNotes =
+          version < 4
+            ? structuredClone(DEFAULT_TEACHER_NOTES)
+            : (state.teacherNotes ?? structuredClone(DEFAULT_TEACHER_NOTES))
+
         return {
           mode: state.mode ?? DEFAULT_MODE,
           activeScreen: state.activeScreen ?? DEFAULT_SCREEN_ID,
           backgroundId: state.backgroundId ?? DEFAULT_BACKGROUND_ID,
           contents,
+          teacherNotes,
         }
       },
       partialize: (state) => ({
@@ -186,6 +195,7 @@ export const useBoardStore = create<BoardStore>()(
         activeScreen: state.activeScreen,
         backgroundId: state.backgroundId,
         contents: state.contents,
+        teacherNotes: state.teacherNotes,
       }),
     },
   ),

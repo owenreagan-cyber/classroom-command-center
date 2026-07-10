@@ -37,6 +37,7 @@ export function SnackLunchScreen({
       />
       <PhaseTimerCard
         mode={mode}
+        teacherHint={content.phaseNote}
         className={`min-h-0 ${gridArea.snackLunch.timer}`}
       />
     </div>

@@ -2,6 +2,7 @@ import type {
   ReadyPositionContent,
   ScreenContents,
   ScreenMeta,
+  TeacherNote,
 } from './types'
 import { DEFAULT_BACKGROUND_ID } from './backgroundAssets'
 
@@ -89,6 +90,33 @@ export const DEFAULT_CONTENTS: ScreenContents = {
   },
   'ready-position': { ...DEFAULT_READY_POSITION },
 }
+
+export const DEFAULT_TEACHER_NOTES: TeacherNote[] = [
+  {
+    id: 'prep-homeroom',
+    screenId: 'homeroom',
+    visibility: 'teacherOnly',
+    text: 'Check attendance folder and morning announcements before display mode.',
+  },
+  {
+    id: 'prep-math',
+    screenId: 'math',
+    visibility: 'teacherOnly',
+    text: 'Power Up answer key stays on teacher screen — never project solutions.',
+  },
+  {
+    id: 'prep-reading',
+    screenId: 'reading',
+    visibility: 'teacherOnly',
+    text: 'Confirm small-group rotation list before starting the timer.',
+  },
+  {
+    id: 'prep-snack',
+    screenId: 'snack-lunch',
+    visibility: 'teacherOnly',
+    text: 'Phase durations are editable presets — not bell schedule times.',
+  },
+]
 
 export const DEFAULT_SCREEN_ID = SCREEN_META[0].id
 export const DEFAULT_MODE = 'edit' as const

@@ -8,6 +8,7 @@ export function AppShell() {
   const activeScreen = useBoardStore((state) => state.activeScreen)
   const backgroundId = useBoardStore((state) => state.backgroundId)
   const contents = useBoardStore((state) => state.contents)
+  const teacherNotes = useBoardStore((state) => state.teacherNotes)
   const beautifyUndo = useBoardStore((state) => state.beautifyUndo)
   const setMode = useBoardStore((state) => state.setMode)
   const setActiveScreen = useBoardStore((state) => state.setActiveScreen)
@@ -22,6 +23,7 @@ export function AppShell() {
         mode={mode}
         activeScreen={activeScreen}
         backgroundId={backgroundId}
+        teacherNotes={teacherNotes}
         canUndoBeautify={beautifyUndo !== null}
         onModeChange={setMode}
         onScreenChange={setActiveScreen}
