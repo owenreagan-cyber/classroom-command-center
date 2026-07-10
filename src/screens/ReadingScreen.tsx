@@ -1,15 +1,17 @@
 import { EditableText } from '../components/editing/EditableText'
-import type { AppMode, ReadingContent, ScreenCardVisibility } from '../data/types'
+import type { AppMode, NoiseTrackerState, ReadingContent, ScreenCardVisibility } from '../data/types'
 import { gridArea, screenGridClass } from '../lib/displayLayout'
 import { MaterialsCard } from '../widgets/MaterialsCard'
 import { ReadyPositionCard } from '../widgets/ReadyPositionCard'
 import { SmartTextCard } from '../widgets/SmartTextCard'
+import { NoiseStatusCard } from '../widgets/NoiseStatusCard'
 import { TimerWidget } from '../widgets/TimerWidget'
 
 interface ReadingScreenProps {
   content: ReadingContent
   mode: AppMode
   cardVisibility: ScreenCardVisibility['reading']
+  noiseTracker: NoiseTrackerState
   onContentChange: (content: ReadingContent) => void
   onBeautify?: () => void
 }
@@ -18,11 +20,12 @@ export function ReadingScreen({
   content,
   mode,
   cardVisibility,
+  noiseTracker,
   onContentChange,
   onBeautify,
 }: ReadingScreenProps) {
   return (
-    <div className={screenGridClass('reading', mode)}>
+    <div className={`${screenGridClass('reading', mode)} relative`}>
       {(cardVisibility.lesson ?? true) && (
         <SmartTextCard
           mode={mode}
@@ -74,6 +77,13 @@ export function ReadingScreen({
           mode={mode}
           teacherHint={content.timerNote}
           className={`min-h-0 ${gridArea.reading.timer}`}
+        />
+      )}
+      {(cardVisibility.noise ?? true) && (
+        <NoiseStatusCard
+          tracker={noiseTracker}
+          mode={mode}
+          className="absolute bottom-4 right-4 z-20 h-[18rem] w-[min(28rem,34vw)]"
         />
       )}
     </div>

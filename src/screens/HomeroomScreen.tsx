@@ -1,17 +1,24 @@
 import { EditableList } from '../components/editing/EditableList'
 import { EditableText } from '../components/editing/EditableText'
-import type { AppMode, HomeroomContent, ScreenCardVisibility } from '../data/types'
+import type {
+  AppMode,
+  HomeroomContent,
+  NoiseTrackerState,
+  ScreenCardVisibility,
+} from '../data/types'
 import { gridArea, screenGridClass } from '../lib/displayLayout'
 import { DoNowCard } from '../widgets/DoNowCard'
 import { MaterialsCard } from '../widgets/MaterialsCard'
 import { ReadyPositionCard } from '../widgets/ReadyPositionCard'
 import { ReminderCard } from '../widgets/ReminderCard'
+import { NoiseStatusCard } from '../widgets/NoiseStatusCard'
 import { TimerWidget } from '../widgets/TimerWidget'
 
 interface HomeroomScreenProps {
   content: HomeroomContent
   mode: AppMode
   cardVisibility: ScreenCardVisibility['homeroom']
+  noiseTracker: NoiseTrackerState
   onContentChange: (content: HomeroomContent) => void
   onBeautify?: () => void
 }
@@ -20,11 +27,12 @@ export function HomeroomScreen({
   content,
   mode,
   cardVisibility,
+  noiseTracker,
   onContentChange,
   onBeautify,
 }: HomeroomScreenProps) {
   return (
-    <div className={screenGridClass('homeroom', mode)}>
+    <div className={`${screenGridClass('homeroom', mode)} relative`}>
       {(cardVisibility['do-now'] ?? true) && (
         <DoNowCard
           title={content.doNowTitle}
@@ -91,6 +99,13 @@ export function HomeroomScreen({
           screenId="homeroom"
           mode={mode}
           className={`min-h-0 ${gridArea.homeroom.timer}`}
+        />
+      )}
+      {(cardVisibility.noise ?? true) && (
+        <NoiseStatusCard
+          tracker={noiseTracker}
+          mode={mode}
+          className="absolute bottom-4 right-4 z-20 h-[18rem] w-[min(28rem,34vw)]"
         />
       )}
     </div>

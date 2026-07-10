@@ -11,6 +11,7 @@ export function AppShell() {
   const teacherNotes = useBoardStore((state) => state.teacherNotes)
   const cardVisibility = useBoardStore((state) => state.cardVisibility)
   const customPresets = useBoardStore((state) => state.customPresets)
+  const noiseTrackers = useBoardStore((state) => state.noiseTrackers)
   const beautifyUndo = useBoardStore((state) => state.beautifyUndo)
   const setMode = useBoardStore((state) => state.setMode)
   const setActiveScreen = useBoardStore((state) => state.setActiveScreen)
@@ -22,6 +23,15 @@ export function AppShell() {
   const applyCustomPreset = useBoardStore((state) => state.applyCustomPreset)
   const deleteCustomPreset = useBoardStore((state) => state.deleteCustomPreset)
   const importBoardState = useBoardStore((state) => state.importBoardState)
+  const setNoiseVoiceLevel = useBoardStore((state) => state.setNoiseVoiceLevel)
+  const addNoisyPoint = useBoardStore((state) => state.addNoisyPoint)
+  const adjustNoiseLapMinutes = useBoardStore(
+    (state) => state.adjustNoiseLapMinutes,
+  )
+  const setNoiseMeterLevel = useBoardStore((state) => state.setNoiseMeterLevel)
+  const resetNoiseLapMinutes = useBoardStore(
+    (state) => state.resetNoiseLapMinutes,
+  )
   const beautifyActiveScreen = useBoardStore((state) => state.beautifyActiveScreen)
   const undoBeautify = useBoardStore((state) => state.undoBeautify)
   const resetToDefaults = useBoardStore((state) => state.resetToDefaults)
@@ -34,6 +44,7 @@ export function AppShell() {
     teacherNotes,
     cardVisibility,
     customPresets,
+    noiseTrackers,
   }
 
   return (
@@ -54,6 +65,11 @@ export function AppShell() {
         onApplyCustomPreset={applyCustomPreset}
         onDeleteCustomPreset={deleteCustomPreset}
         onImportBoardState={importBoardState}
+        onNoiseVoiceLevelChange={setNoiseVoiceLevel}
+        onAddNoisyPoint={addNoisyPoint}
+        onAdjustNoiseLapMinutes={adjustNoiseLapMinutes}
+        onSetNoiseMeterLevel={setNoiseMeterLevel}
+        onResetNoiseLapMinutes={resetNoiseLapMinutes}
         onCardVisibleChange={setCardVisible}
         onBeautify={beautifyActiveScreen}
         onUndoBeautify={undoBeautify}
@@ -70,6 +86,7 @@ export function AppShell() {
           mode={mode}
           contents={contents}
           cardVisibility={cardVisibility}
+          noiseTrackers={noiseTrackers}
           onContentsChange={updateContents}
           onBeautify={mode === 'edit' ? beautifyActiveScreen : undefined}
         />

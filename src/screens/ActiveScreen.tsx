@@ -1,5 +1,7 @@
 import type {
   AppMode,
+  NoiseTrackerId,
+  NoiseTrackerState,
   ScreenCardVisibility,
   ScreenContents,
   ScreenId,
@@ -16,6 +18,7 @@ interface ActiveScreenProps {
   mode: AppMode
   contents: ScreenContents
   cardVisibility: ScreenCardVisibility
+  noiseTrackers: Record<NoiseTrackerId, NoiseTrackerState>
   onContentsChange: (contents: ScreenContents) => void
   onBeautify?: () => void
 }
@@ -25,6 +28,7 @@ export function ActiveScreen({
   mode,
   contents,
   cardVisibility,
+  noiseTrackers,
   onContentsChange,
   onBeautify,
 }: ActiveScreenProps) {
@@ -35,6 +39,7 @@ export function ActiveScreen({
           content={contents.homeroom}
           mode={mode}
           cardVisibility={cardVisibility.homeroom}
+          noiseTracker={noiseTrackers.homeroom}
           onContentChange={(homeroom) =>
             onContentsChange({ ...contents, homeroom })
           }
@@ -47,6 +52,7 @@ export function ActiveScreen({
           content={contents.math}
           mode={mode}
           cardVisibility={cardVisibility.math}
+          noiseTracker={noiseTrackers.math}
           onContentChange={(math) => onContentsChange({ ...contents, math })}
           onBeautify={onBeautify}
         />
@@ -57,6 +63,7 @@ export function ActiveScreen({
           content={contents.reading}
           mode={mode}
           cardVisibility={cardVisibility.reading}
+          noiseTracker={noiseTrackers.reading}
           onContentChange={(reading) =>
             onContentsChange({ ...contents, reading })
           }

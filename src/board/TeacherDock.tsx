@@ -7,6 +7,8 @@ import type {
   BoardPresetId,
   BoardState,
   CardId,
+  NoiseTrackerId,
+  VoiceLevel,
   ScreenCardVisibility,
   ScreenId,
   TeacherNote,
@@ -14,6 +16,7 @@ import type {
 import { BoardBackupPanel } from './BoardBackupPanel'
 import { BoardPresetPanel } from './BoardPresetPanel'
 import { CardVisibilityPanel } from './CardVisibilityPanel'
+import { NoiseControlPanel } from './NoiseControlPanel'
 import { TeacherNotesPanel } from './TeacherNotesPanel'
 
 interface TeacherDockProps {
@@ -32,6 +35,14 @@ interface TeacherDockProps {
   onApplyCustomPreset: (presetId: string) => void
   onDeleteCustomPreset: (presetId: string) => void
   onImportBoardState: (payload: BoardExportPayload) => void
+  onNoiseVoiceLevelChange: (
+    trackerId: NoiseTrackerId,
+    voiceLevel: VoiceLevel,
+  ) => void
+  onAddNoisyPoint: (trackerId: NoiseTrackerId) => void
+  onAdjustNoiseLapMinutes: (trackerId: NoiseTrackerId, delta: number) => void
+  onSetNoiseMeterLevel: (trackerId: NoiseTrackerId, meterLevel: number) => void
+  onResetNoiseLapMinutes: (trackerId: NoiseTrackerId) => void
   onCardVisibleChange: (
     screenId: ScreenId,
     cardId: CardId,
@@ -58,6 +69,11 @@ export function TeacherDock({
   onApplyCustomPreset,
   onDeleteCustomPreset,
   onImportBoardState,
+  onNoiseVoiceLevelChange,
+  onAddNoisyPoint,
+  onAdjustNoiseLapMinutes,
+  onSetNoiseMeterLevel,
+  onResetNoiseLapMinutes,
   onCardVisibleChange,
   onBeautify,
   onUndoBeautify,
@@ -155,6 +171,15 @@ export function TeacherDock({
       <BoardBackupPanel
         boardState={boardState}
         onImportBoardState={onImportBoardState}
+      />
+
+      <NoiseControlPanel
+        noiseTrackers={boardState.noiseTrackers}
+        onVoiceLevelChange={onNoiseVoiceLevelChange}
+        onAddNoisyPoint={onAddNoisyPoint}
+        onAdjustLapMinutes={onAdjustNoiseLapMinutes}
+        onSetMeterLevel={onSetNoiseMeterLevel}
+        onResetLapMinutes={onResetNoiseLapMinutes}
       />
 
       <CardVisibilityPanel
