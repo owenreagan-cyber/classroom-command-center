@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { applyBoardPresetToContents } from '../data/boardPresets'
 import {
   DEFAULT_BACKGROUND_ID,
   DEFAULT_CARD_VISIBILITY,
@@ -12,6 +13,7 @@ import { getBackgroundForScreen } from '../data/backgroundAssets'
 import type {
   AppMode,
   BackgroundAssetId,
+  BoardPresetId,
   BoardState,
   CardId,
   ScreenCardVisibility,
@@ -33,6 +35,7 @@ interface BoardStore extends BoardState {
   setActiveScreen: (screen: ScreenId) => void
   setBackgroundId: (backgroundId: BackgroundAssetId) => void
   updateContents: (contents: ScreenContents) => void
+  applyBoardPreset: (presetId: BoardPresetId) => void
   setCardVisible: (screenId: ScreenId, cardId: CardId, visible: boolean) => void
   beautifyActiveScreen: () => void
   undoBeautify: () => void
@@ -161,6 +164,11 @@ export const useBoardStore = create<BoardStore>()(
       },
       setBackgroundId: (backgroundId) => set({ backgroundId }),
       updateContents: (contents) => set({ contents, beautifyUndo: null }),
+      applyBoardPreset: (presetId) =>
+        set((state) => ({
+          contents: applyBoardPresetToContents(state.contents, presetId),
+          beautifyUndo: null,
+        })),
       setCardVisible: (screenId, cardId, visible) =>
         set((state) => ({
           cardVisibility: {

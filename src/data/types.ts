@@ -168,6 +168,23 @@ export interface TeacherResourceLink extends WithVisibility {
   url: string
 }
 
+
+export type BoardPresetId =
+  | 'morning-arrival'
+  | 'math-warm-up'
+  | 'reading-rotation'
+  | 'pack-up'
+  | 'assessment-mode'
+  | 'snack-lunch-routine'
+  | 'ready-position-reset'
+
+export interface BoardPreset {
+  id: BoardPresetId
+  label: string
+  helperText: string
+  screenId: ScreenId
+}
+
 export interface BoardState {
   mode: AppMode
   activeScreen: ScreenId
