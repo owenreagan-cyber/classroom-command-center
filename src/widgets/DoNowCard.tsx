@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import type { AppMode } from '../data/types'
 import { displayFontRange } from '../lib/displayLayout'
 import { SmartTextCard } from './SmartTextCard'
@@ -8,6 +9,7 @@ interface DoNowCardProps {
   mode: AppMode
   className?: string
   onBeautify?: () => void
+  editSlot?: ReactNode
   /** Hero sizing for homeroom Do Now — larger type in display mode. */
   hero?: boolean
 }
@@ -18,6 +20,7 @@ export function DoNowCard({
   mode,
   className,
   onBeautify,
+  editSlot,
   hero = false,
 }: DoNowCardProps) {
   const baseMax = hero ? 46 : 40
@@ -28,6 +31,7 @@ export function DoNowCard({
       mode={mode}
       className={className}
       onBeautify={onBeautify}
+      editSlot={editSlot}
       minFontSize={fonts.minFontSize}
       maxFontSize={fonts.maxFontSize}
       model={{

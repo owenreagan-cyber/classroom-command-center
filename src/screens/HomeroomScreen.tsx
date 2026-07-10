@@ -1,3 +1,5 @@
+import { EditableList } from '../components/editing/EditableList'
+import { EditableText } from '../components/editing/EditableText'
 import type { AppMode, HomeroomContent, ScreenCardVisibility } from '../data/types'
 import { gridArea, screenGridClass } from '../lib/displayLayout'
 import { DoNowCard } from '../widgets/DoNowCard'
@@ -10,6 +12,7 @@ interface HomeroomScreenProps {
   content: HomeroomContent
   mode: AppMode
   cardVisibility: ScreenCardVisibility['homeroom']
+  onContentChange: (content: HomeroomContent) => void
   onBeautify?: () => void
 }
 
@@ -17,6 +20,7 @@ export function HomeroomScreen({
   content,
   mode,
   cardVisibility,
+  onContentChange,
   onBeautify,
 }: HomeroomScreenProps) {
   return (
@@ -27,6 +31,15 @@ export function HomeroomScreen({
           prompt={content.doNow}
           mode={mode}
           onBeautify={onBeautify}
+          editSlot={
+            <EditableText
+              mode={mode}
+              label="Do Now prompt"
+              value={content.doNow}
+              onChange={(doNow) => onContentChange({ ...content, doNow })}
+              multiline
+            />
+          }
           className={`min-h-0 ${gridArea.homeroom.doNow}`}
           hero
         />
@@ -37,6 +50,16 @@ export function HomeroomScreen({
           reminders={content.reminders}
           mode={mode}
           onBeautify={onBeautify}
+          editSlot={
+            <EditableList
+              mode={mode}
+              label="Reminders"
+              items={content.reminders}
+              onChange={(reminders) =>
+                onContentChange({ ...content, reminders })
+              }
+            />
+          }
           className={`min-h-0 ${gridArea.homeroom.reminders}`}
         />
       )}
@@ -46,6 +69,9 @@ export function HomeroomScreen({
           materials={content.materials}
           mode={mode}
           onBeautify={onBeautify}
+          onMaterialsChange={(materials) =>
+            onContentChange({ ...content, materials })
+          }
           className={`min-h-0 ${gridArea.homeroom.materials}`}
         />
       )}

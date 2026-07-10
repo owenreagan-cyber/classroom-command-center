@@ -16,6 +16,7 @@ interface ActiveScreenProps {
   mode: AppMode
   contents: ScreenContents
   cardVisibility: ScreenCardVisibility
+  onContentsChange: (contents: ScreenContents) => void
   onBeautify?: () => void
 }
 
@@ -24,6 +25,7 @@ export function ActiveScreen({
   mode,
   contents,
   cardVisibility,
+  onContentsChange,
   onBeautify,
 }: ActiveScreenProps) {
   switch (screenId) {
@@ -33,6 +35,9 @@ export function ActiveScreen({
           content={contents.homeroom}
           mode={mode}
           cardVisibility={cardVisibility.homeroom}
+          onContentChange={(homeroom) =>
+            onContentsChange({ ...contents, homeroom })
+          }
           onBeautify={onBeautify}
         />
       )
@@ -42,6 +47,7 @@ export function ActiveScreen({
           content={contents.math}
           mode={mode}
           cardVisibility={cardVisibility.math}
+          onContentChange={(math) => onContentsChange({ ...contents, math })}
           onBeautify={onBeautify}
         />
       )
@@ -51,6 +57,9 @@ export function ActiveScreen({
           content={contents.reading}
           mode={mode}
           cardVisibility={cardVisibility.reading}
+          onContentChange={(reading) =>
+            onContentsChange({ ...contents, reading })
+          }
           onBeautify={onBeautify}
         />
       )
@@ -60,6 +69,9 @@ export function ActiveScreen({
           content={contents.writing}
           mode={mode}
           cardVisibility={cardVisibility.writing}
+          onContentChange={(writing) =>
+            onContentsChange({ ...contents, writing })
+          }
           onBeautify={onBeautify}
         />
       )
@@ -69,6 +81,9 @@ export function ActiveScreen({
           content={contents.science}
           mode={mode}
           cardVisibility={cardVisibility.science}
+          onContentChange={(science) =>
+            onContentsChange({ ...contents, science })
+          }
           onBeautify={onBeautify}
         />
       )
@@ -78,6 +93,9 @@ export function ActiveScreen({
           content={contents['social-studies']}
           mode={mode}
           cardVisibility={cardVisibility['social-studies']}
+          onContentChange={(socialStudies) =>
+            onContentsChange({ ...contents, 'social-studies': socialStudies })
+          }
           onBeautify={onBeautify}
         />
       )
@@ -87,6 +105,9 @@ export function ActiveScreen({
           content={contents.intervention}
           mode={mode}
           cardVisibility={cardVisibility.intervention}
+          onContentChange={(intervention) =>
+            onContentsChange({ ...contents, intervention })
+          }
           onBeautify={onBeautify}
         />
       )
@@ -96,6 +117,9 @@ export function ActiveScreen({
           content={contents.assessment}
           mode={mode}
           cardVisibility={cardVisibility.assessment}
+          onContentChange={(assessment) =>
+            onContentsChange({ ...contents, assessment })
+          }
           onBeautify={onBeautify}
         />
       )
@@ -105,6 +129,9 @@ export function ActiveScreen({
           content={contents['flexible-groups']}
           mode={mode}
           cardVisibility={cardVisibility['flexible-groups']}
+          onContentChange={(flexibleGroups) =>
+            onContentsChange({ ...contents, 'flexible-groups': flexibleGroups })
+          }
           onBeautify={onBeautify}
         />
       )
@@ -114,6 +141,9 @@ export function ActiveScreen({
           content={contents.centers}
           mode={mode}
           cardVisibility={cardVisibility.centers}
+          onContentChange={(centers) =>
+            onContentsChange({ ...contents, centers })
+          }
           onBeautify={onBeautify}
         />
       )
@@ -123,6 +153,9 @@ export function ActiveScreen({
           content={contents['homework-packup']}
           mode={mode}
           cardVisibility={cardVisibility['homework-packup']}
+          onContentChange={(homeworkPackup) =>
+            onContentsChange({ ...contents, 'homework-packup': homeworkPackup })
+          }
           onBeautify={onBeautify}
         />
       )
@@ -132,6 +165,9 @@ export function ActiveScreen({
           content={contents['snack-lunch']}
           mode={mode}
           cardVisibility={cardVisibility['snack-lunch']}
+          onContentChange={(snackLunch) =>
+            onContentsChange({ ...contents, 'snack-lunch': snackLunch })
+          }
           onBeautify={onBeautify}
         />
       )
@@ -141,6 +177,9 @@ export function ActiveScreen({
           content={contents['ready-position']}
           mode={mode}
           cardVisibility={cardVisibility['ready-position']}
+          onContentChange={(readyPosition) =>
+            onContentsChange({ ...contents, 'ready-position': readyPosition })
+          }
           onBeautify={onBeautify}
         />
       )

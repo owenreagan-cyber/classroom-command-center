@@ -1,3 +1,4 @@
+import { EditableText } from '../components/editing/EditableText'
 import type { AppMode, ReadingContent, ScreenCardVisibility } from '../data/types'
 import { gridArea, screenGridClass } from '../lib/displayLayout'
 import { MaterialsCard } from '../widgets/MaterialsCard'
@@ -9,6 +10,7 @@ interface ReadingScreenProps {
   content: ReadingContent
   mode: AppMode
   cardVisibility: ScreenCardVisibility['reading']
+  onContentChange: (content: ReadingContent) => void
   onBeautify?: () => void
 }
 
@@ -16,6 +18,7 @@ export function ReadingScreen({
   content,
   mode,
   cardVisibility,
+  onContentChange,
   onBeautify,
 }: ReadingScreenProps) {
   return (
@@ -24,6 +27,16 @@ export function ReadingScreen({
         <SmartTextCard
           mode={mode}
           onBeautify={onBeautify}
+          editSlot={
+            <EditableText
+              mode={mode}
+              label="Reading lesson"
+              value={content.lessonTitle}
+              onChange={(lessonTitle) =>
+                onContentChange({ ...content, lessonTitle })
+              }
+            />
+          }
           className={`min-h-0 ${gridArea.reading.lesson}`}
           model={{
             title: 'Reading',
@@ -40,6 +53,9 @@ export function ReadingScreen({
           materials={content.materials}
           mode={mode}
           onBeautify={onBeautify}
+          onMaterialsChange={(materials) =>
+            onContentChange({ ...content, materials })
+          }
           className={`min-h-0 ${gridArea.reading.materials}`}
         />
       )}

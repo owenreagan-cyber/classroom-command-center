@@ -1,3 +1,5 @@
+import { EditableList } from '../components/editing/EditableList'
+import { EditableText } from '../components/editing/EditableText'
 import type { AppMode, CardId, SubjectContent } from '../data/types'
 import { MaterialsCard } from '../widgets/MaterialsCard'
 import { SmartTextCard } from '../widgets/SmartTextCard'
@@ -9,6 +11,7 @@ interface SubjectScreenProps {
   content: SubjectContent
   mode: AppMode
   cardVisibility: SubjectCardVisibility
+  onContentChange: (content: SubjectContent) => void
   onBeautify?: () => void
 }
 
@@ -16,6 +19,7 @@ export function SubjectScreen({
   content,
   mode,
   cardVisibility,
+  onContentChange,
   onBeautify,
 }: SubjectScreenProps) {
   return (
@@ -36,6 +40,15 @@ export function SubjectScreen({
             ],
             footer: mode === 'edit' ? 'Student-facing focus task' : undefined,
           }}
+          editSlot={
+            <EditableText
+              mode={mode}
+              label="Focus task"
+              value={content.focusTask}
+              onChange={(focusTask) => onContentChange({ ...content, focusTask })}
+              multiline
+            />
+          }
           onBeautify={onBeautify}
         />
       )}
@@ -57,6 +70,14 @@ export function SubjectScreen({
               },
             ],
           }}
+          editSlot={
+            <EditableList
+              mode={mode}
+              label="Agenda"
+              items={content.agenda}
+              onChange={(agenda) => onContentChange({ ...content, agenda })}
+            />
+          }
         />
       )}
 
@@ -66,6 +87,9 @@ export function SubjectScreen({
             title={content.materialsTitle}
             materials={content.materials}
             mode={mode}
+            onMaterialsChange={(materials) =>
+              onContentChange({ ...content, materials })
+            }
           />
           <TeacherHint mode={mode} text={content.teacherHint} />
         </div>

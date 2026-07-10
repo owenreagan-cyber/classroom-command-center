@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { AppMode, MaterialsLists } from '../data/types'
+import { EditableMaterials } from '../components/editing/EditableMaterials'
 import { boardCardShell, displayFontRange } from '../lib/displayLayout'
 import { AutoFitText } from './AutoFitText'
 
@@ -9,6 +10,7 @@ interface MaterialsCardProps {
   mode: AppMode
   className?: string
   onBeautify?: () => void
+  onMaterialsChange?: (materials: MaterialsLists) => void
 }
 
 interface SectionProps {
@@ -63,6 +65,7 @@ export function MaterialsCard({
   mode,
   className = '',
   onBeautify,
+  onMaterialsChange,
 }: MaterialsCardProps) {
   const shellRef = useRef<HTMLElement>(null)
   const [wide, setWide] = useState(false)
@@ -90,15 +93,24 @@ export function MaterialsCard({
 
   return (
     <article ref={shellRef} className={`${boardCardShell(mode)} ${className}`}>
-      {mode === 'edit' && onBeautify && (
-        <div className="mb-2">
-          <button
-            type="button"
-            onClick={onBeautify}
-            className="rounded-lg border border-slate-300 bg-slate-900 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-white"
-          >
-            Beautify
-          </button>
+      {mode === 'edit' && (onBeautify || onMaterialsChange) && (
+        <div className="mb-3 flex flex-col gap-3">
+          {onBeautify && (
+            <button
+              type="button"
+              onClick={onBeautify}
+              className="w-fit rounded-lg border border-slate-300 bg-slate-900 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-white"
+            >
+              Beautify
+            </button>
+          )}
+          {onMaterialsChange && (
+            <EditableMaterials
+              mode={mode}
+              materials={materials}
+              onChange={onMaterialsChange}
+            />
+          )}
         </div>
       )}
 
