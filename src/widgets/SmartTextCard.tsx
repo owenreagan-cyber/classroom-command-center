@@ -20,6 +20,16 @@ function countBulletItems(blocks: SmartTextBlock[]): number {
   return blocks.reduce((count, block) => count + (block.items?.length ?? 0), 0)
 }
 
+function hasStudentFacingContent(blocks: SmartTextBlock[]): boolean {
+  return blocks.some((block) => {
+    if (block.kind === 'bullets') {
+      return (block.items?.length ?? 0) > 0
+    }
+
+    return Boolean(block.text?.trim())
+  })
+}
+
 function compactModel(model: SmartCardModel, maxVisibleBullets = 4): {
   model: SmartCardModel
   hiddenCount: number
@@ -101,12 +111,19 @@ export function SmartTextCard({
     if (nextOverflows) setForceCompact(true)
   }, [])
 
-  const fitKey = `${displayModel.title}|${displayModel.subtitle ?? ''}|${JSON.stringify(displayModel.blocks)}|${displayModel.footer ?? ''}|${align}|${shouldCompact}|${hiddenCount}`
+  const hasContent = hasStudentFacingContent(displayModel.blocks)
+  const fitKey = `${displayModel.title}|${displayModel.subtitle ?? ''}|${JSON.stringify(displayModel.blocks)}|${displayModel.footer ?? ''}|${align}|${shouldCompact}|${hiddenCount}|${hasContent}`
 
   return (
     <article className={`${boardCardShell(mode)} ${className}`}>
       {mode === 'edit' && (onBeautify || editSlot) && (
-        <div className="mb-2 flex flex-wrap items-center gap-2">
+        <div className="mb-3 rounded-xl border border-cyan-200/70 bg-cyan-50/80 p-3 shadow-sm">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <p className="text-[0.68rem] font-bold uppercase tracking-[0.14em] text-cyan-900">
+              Edit student-facing text
+            </p>
+          </div>
+          <div className="flex flex-wrap items-start gap-3">
           {onBeautify && (
             <button
               type="button"
@@ -117,6 +134,7 @@ export function SmartTextCard({
             </button>
           )}
           {editSlot}
+          </div>
         </div>
       )}
 
@@ -148,6 +166,14 @@ export function SmartTextCard({
                 style={{ fontSize: '0.52em' }}
               >
                 {displayModel.subtitle}
+              </p>
+            )}
+            {!hasContent && (
+              <p
+                className="rounded-lg border border-dashed border-slate-300 bg-slate-50/80 px-3 py-2 font-semibold text-slate-500"
+                style={{ fontSize: '0.72em' }}
+              >
+                Add details in edit mode.
               </p>
             )}
             {displayModel.blocks.map((block, index) => {

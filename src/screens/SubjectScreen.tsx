@@ -47,6 +47,7 @@ export function SubjectScreen({
               value={content.focusTask}
               onChange={(focusTask) => onContentChange({ ...content, focusTask })}
               multiline
+              helperText="This appears on the student board as the main focus task."
             />
           }
           onBeautify={onBeautify}
@@ -76,6 +77,7 @@ export function SubjectScreen({
               label="Agenda"
               items={content.agenda}
               onChange={(agenda) => onContentChange({ ...content, agenda })}
+              helperText="One agenda step per line. Keep it short for projector readability."
             />
           }
         />

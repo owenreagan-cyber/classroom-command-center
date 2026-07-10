@@ -35,6 +35,7 @@ export function ReadingScreen({
               onChange={(lessonTitle) =>
                 onContentChange({ ...content, lessonTitle })
               }
+              helperText="Keep this concise so it stays readable from across the room."
             />
           }
           className={`min-h-0 ${gridArea.reading.lesson}`}

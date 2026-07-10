@@ -162,9 +162,13 @@ export function TeacherDock({
         >
           Reset to defaults
         </button>
+        <p className="rounded-xl border border-rose-400/20 bg-rose-950/20 px-3 py-2 text-xs leading-relaxed text-rose-100/90">
+          Reset restores the starter classroom board, clears inline edits, and
+          resets timers. Use it only when you want a fresh board.
+        </p>
         <p className="text-xs leading-relaxed text-slate-400">
-          Beautify is conservative and reversible. Display mode hides this dock
-          and all teacher-only notes.
+          Beautify is conservative and reversible. Display mode hides this dock,
+          edit controls, and all teacher-only notes.
         </p>
       </section>
     </aside>
