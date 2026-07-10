@@ -60,6 +60,94 @@ export const BACKGROUND_ASSETS: BackgroundAsset[] = [
     notes:
       'Canva page 6 export. Large center area for ReadyPositionCard. Decorative art only at edges.',
   },
+  {
+    id: 'writing-workshop',
+    screenId: 'writing',
+    label: 'Writing Workshop',
+    path: '/assets/backgrounds/reading-sky-book-world.png',
+    fallbackGradient:
+      'linear-gradient(135deg, #312e81 0%, #7c3aed 45%, #f5d0fe 100%)',
+    safeZones: ['left-main', 'center-card', 'right-utility'],
+    mood: 'calm writing workshop',
+    notes: 'Phase 4A lightweight alias. Replace with custom background later.',
+  },
+  {
+    id: 'science-lab',
+    screenId: 'science',
+    label: 'Science Lab',
+    path: '/assets/backgrounds/math-training-lab.png',
+    fallbackGradient:
+      'linear-gradient(135deg, #064e3b 0%, #0f766e 45%, #a7f3d0 100%)',
+    safeZones: ['left-main', 'center-card', 'right-utility'],
+    mood: 'science investigation lab',
+    notes: 'Phase 4A lightweight alias. Replace with custom background later.',
+  },
+  {
+    id: 'social-studies-map',
+    screenId: 'social-studies',
+    label: 'Social Studies Map',
+    path: '/assets/backgrounds/reading-sky-book-world.png',
+    fallbackGradient:
+      'linear-gradient(135deg, #78350f 0%, #b45309 45%, #fde68a 100%)',
+    safeZones: ['left-main', 'center-card', 'right-utility'],
+    mood: 'history and map study',
+    notes: 'Phase 4A lightweight alias. Replace with custom background later.',
+  },
+  {
+    id: 'intervention-focus',
+    screenId: 'intervention',
+    label: 'Intervention Focus',
+    path: '/assets/backgrounds/ready-position-expectations.png',
+    fallbackGradient:
+      'linear-gradient(135deg, #1e1b4b 0%, #4338ca 45%, #bfdbfe 100%)',
+    safeZones: ['left-main', 'center-card', 'right-utility'],
+    mood: 'small group focus',
+    notes: 'Phase 4A lightweight alias. Replace with custom background later.',
+  },
+  {
+    id: 'assessment-mode',
+    screenId: 'assessment',
+    label: 'Assessment Mode',
+    path: '/assets/backgrounds/ready-position-expectations.png',
+    fallbackGradient:
+      'linear-gradient(135deg, #111827 0%, #374151 45%, #d1d5db 100%)',
+    safeZones: ['left-main', 'center-card', 'right-utility'],
+    mood: 'quiet assessment mode',
+    notes: 'Phase 4A lightweight alias. Replace with custom background later.',
+  },
+  {
+    id: 'flexible-groups',
+    screenId: 'flexible-groups',
+    label: 'Flexible Groups',
+    path: '/assets/backgrounds/homeroom-morning-briefing.png',
+    fallbackGradient:
+      'linear-gradient(135deg, #164e63 0%, #0891b2 45%, #cffafe 100%)',
+    safeZones: ['left-main', 'center-card', 'right-utility'],
+    mood: 'collaborative group work',
+    notes: 'Phase 4A lightweight alias. Replace with custom background later.',
+  },
+  {
+    id: 'centers-rotations',
+    screenId: 'centers',
+    label: 'Centers / Rotations',
+    path: '/assets/backgrounds/snack-lunch-flow-control.png',
+    fallbackGradient:
+      'linear-gradient(135deg, #14532d 0%, #16a34a 45%, #bbf7d0 100%)',
+    safeZones: ['left-main', 'center-card', 'right-utility'],
+    mood: 'centers and rotation flow',
+    notes: 'Phase 4A lightweight alias. Replace with custom background later.',
+  },
+  {
+    id: 'homework-packup',
+    screenId: 'homework-packup',
+    label: 'Homework / Pack-Up',
+    path: '/assets/backgrounds/homeroom-morning-briefing.png',
+    fallbackGradient:
+      'linear-gradient(135deg, #0f172a 0%, #475569 45%, #e2e8f0 100%)',
+    safeZones: ['left-main', 'center-card', 'right-utility'],
+    mood: 'end of day pack-up',
+    notes: 'Phase 4A lightweight alias. Replace with custom background later.',
+  },
 ]
 
 export const DEFAULT_BACKGROUND_ID: BackgroundAssetId =

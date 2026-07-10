@@ -13,6 +13,14 @@ export type ScreenId =
   | 'reading'
   | 'snack-lunch'
   | 'ready-position'
+  | 'writing'
+  | 'science'
+  | 'social-studies'
+  | 'intervention'
+  | 'assessment'
+  | 'flexible-groups'
+  | 'centers'
+  | 'homework-packup'
 
 export type BackgroundAssetId =
   | 'homeroom-morning-briefing'
@@ -20,6 +28,14 @@ export type BackgroundAssetId =
   | 'reading-sky-book-world'
   | 'snack-lunch-flow-control'
   | 'ready-position-expectations'
+  | 'writing-workshop'
+  | 'science-lab'
+  | 'social-studies-map'
+  | 'intervention-focus'
+  | 'assessment-mode'
+  | 'flexible-groups'
+  | 'centers-rotations'
+  | 'homework-packup'
 
 export type SafeZoneId =
   | 'left-main'
@@ -76,12 +92,31 @@ export interface SnackLunchContent {
   phaseNote: string
 }
 
+export interface SubjectContent {
+  title: string
+  focusTitle: string
+  focusTask: string
+  agendaTitle: string
+  agenda: string[]
+  materialsTitle: string
+  materials: MaterialsLists
+  teacherHint: string
+}
+
 export interface ScreenContents {
   homeroom: HomeroomContent
   math: MathContent
   reading: ReadingContent
   'snack-lunch': SnackLunchContent
   'ready-position': ReadyPositionContent
+  writing: SubjectContent
+  science: SubjectContent
+  'social-studies': SubjectContent
+  intervention: SubjectContent
+  assessment: SubjectContent
+  'flexible-groups': SubjectContent
+  centers: SubjectContent
+  'homework-packup': SubjectContent
 }
 
 export interface BackgroundAsset {
