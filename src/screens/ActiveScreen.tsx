@@ -1,4 +1,9 @@
-import type { AppMode, ScreenContents, ScreenId } from '../data/types'
+import type {
+  AppMode,
+  ScreenCardVisibility,
+  ScreenContents,
+  ScreenId,
+} from '../data/types'
 import { HomeroomScreen } from './HomeroomScreen'
 import { MathScreen } from './MathScreen'
 import { ReadingScreen } from './ReadingScreen'
@@ -10,6 +15,7 @@ interface ActiveScreenProps {
   screenId: ScreenId
   mode: AppMode
   contents: ScreenContents
+  cardVisibility: ScreenCardVisibility
   onBeautify?: () => void
 }
 
@@ -17,6 +23,7 @@ export function ActiveScreen({
   screenId,
   mode,
   contents,
+  cardVisibility,
   onBeautify,
 }: ActiveScreenProps) {
   switch (screenId) {
@@ -25,26 +32,25 @@ export function ActiveScreen({
         <HomeroomScreen
           content={contents.homeroom}
           mode={mode}
+          cardVisibility={cardVisibility.homeroom}
           onBeautify={onBeautify}
         />
       )
     case 'math':
       return (
-        <MathScreen content={contents.math} mode={mode} onBeautify={onBeautify} />
+        <MathScreen
+          content={contents.math}
+          mode={mode}
+          cardVisibility={cardVisibility.math}
+          onBeautify={onBeautify}
+        />
       )
     case 'reading':
       return (
         <ReadingScreen
           content={contents.reading}
           mode={mode}
-          onBeautify={onBeautify}
-        />
-      )
-    case 'snack-lunch':
-      return (
-        <SnackLunchScreen
-          content={contents['snack-lunch']}
-          mode={mode}
+          cardVisibility={cardVisibility.reading}
           onBeautify={onBeautify}
         />
       )
@@ -53,6 +59,7 @@ export function ActiveScreen({
         <SubjectScreen
           content={contents.writing}
           mode={mode}
+          cardVisibility={cardVisibility.writing}
           onBeautify={onBeautify}
         />
       )
@@ -61,6 +68,7 @@ export function ActiveScreen({
         <SubjectScreen
           content={contents.science}
           mode={mode}
+          cardVisibility={cardVisibility.science}
           onBeautify={onBeautify}
         />
       )
@@ -69,6 +77,7 @@ export function ActiveScreen({
         <SubjectScreen
           content={contents['social-studies']}
           mode={mode}
+          cardVisibility={cardVisibility['social-studies']}
           onBeautify={onBeautify}
         />
       )
@@ -77,6 +86,7 @@ export function ActiveScreen({
         <SubjectScreen
           content={contents.intervention}
           mode={mode}
+          cardVisibility={cardVisibility.intervention}
           onBeautify={onBeautify}
         />
       )
@@ -85,6 +95,7 @@ export function ActiveScreen({
         <SubjectScreen
           content={contents.assessment}
           mode={mode}
+          cardVisibility={cardVisibility.assessment}
           onBeautify={onBeautify}
         />
       )
@@ -93,6 +104,7 @@ export function ActiveScreen({
         <SubjectScreen
           content={contents['flexible-groups']}
           mode={mode}
+          cardVisibility={cardVisibility['flexible-groups']}
           onBeautify={onBeautify}
         />
       )
@@ -101,6 +113,7 @@ export function ActiveScreen({
         <SubjectScreen
           content={contents.centers}
           mode={mode}
+          cardVisibility={cardVisibility.centers}
           onBeautify={onBeautify}
         />
       )
@@ -109,6 +122,16 @@ export function ActiveScreen({
         <SubjectScreen
           content={contents['homework-packup']}
           mode={mode}
+          cardVisibility={cardVisibility['homework-packup']}
+          onBeautify={onBeautify}
+        />
+      )
+    case 'snack-lunch':
+      return (
+        <SnackLunchScreen
+          content={contents['snack-lunch']}
+          mode={mode}
+          cardVisibility={cardVisibility['snack-lunch']}
           onBeautify={onBeautify}
         />
       )
@@ -117,6 +140,7 @@ export function ActiveScreen({
         <ReadyPositionScreen
           content={contents['ready-position']}
           mode={mode}
+          cardVisibility={cardVisibility['ready-position']}
           onBeautify={onBeautify}
         />
       )

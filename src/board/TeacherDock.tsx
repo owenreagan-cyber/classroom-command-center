@@ -1,6 +1,14 @@
 import { BACKGROUND_ASSETS } from '../data/backgroundAssets'
 import { SCREEN_META } from '../data/defaults'
-import type { AppMode, BackgroundAssetId, ScreenId, TeacherNote } from '../data/types'
+import type {
+  AppMode,
+  BackgroundAssetId,
+  CardId,
+  ScreenCardVisibility,
+  ScreenId,
+  TeacherNote,
+} from '../data/types'
+import { CardVisibilityPanel } from './CardVisibilityPanel'
 import { TeacherNotesPanel } from './TeacherNotesPanel'
 
 interface TeacherDockProps {
@@ -8,10 +16,16 @@ interface TeacherDockProps {
   activeScreen: ScreenId
   backgroundId: BackgroundAssetId
   teacherNotes: TeacherNote[]
+  cardVisibility: ScreenCardVisibility
   canUndoBeautify: boolean
   onModeChange: (mode: AppMode) => void
   onScreenChange: (screen: ScreenId) => void
   onBackgroundChange: (backgroundId: BackgroundAssetId) => void
+  onCardVisibleChange: (
+    screenId: ScreenId,
+    cardId: CardId,
+    visible: boolean,
+  ) => void
   onBeautify: () => void
   onUndoBeautify: () => void
   onReset: () => void
@@ -22,10 +36,12 @@ export function TeacherDock({
   activeScreen,
   backgroundId,
   teacherNotes,
+  cardVisibility,
   canUndoBeautify,
   onModeChange,
   onScreenChange,
   onBackgroundChange,
+  onCardVisibleChange,
   onBeautify,
   onUndoBeautify,
   onReset,
@@ -109,6 +125,12 @@ export function TeacherDock({
           ))}
         </div>
       </section>
+
+      <CardVisibilityPanel
+        activeScreen={activeScreen}
+        cardVisibility={cardVisibility}
+        onCardVisibleChange={onCardVisibleChange}
+      />
 
       <TeacherNotesPanel
         mode={mode}
