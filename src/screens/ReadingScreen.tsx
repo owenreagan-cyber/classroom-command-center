@@ -40,6 +40,7 @@ export function ReadingScreen({ content, mode, onBeautify }: ReadingScreenProps)
       <TimerWidget
         screenId="reading"
         mode={mode}
+        teacherHint={content.timerNote}
         className={`min-h-0 ${gridArea.reading.timer}`}
       />
     </div>

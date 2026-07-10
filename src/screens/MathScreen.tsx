@@ -33,6 +33,7 @@ export function MathScreen({ content, mode, onBeautify }: MathScreenProps) {
       <TimerWidget
         screenId="math"
         mode={mode}
+        teacherHint={content.timerNote}
         className={`min-h-0 ${gridArea.math.timer}`}
       />
     </div>

@@ -4,10 +4,13 @@ import { formatTimerMs } from '../lib/timerFormat'
 import { boardCardShell } from '../lib/displayLayout'
 import { usePhaseTimerTick } from '../hooks/useTimerTick'
 import { useTimerStore } from '../store/timerStore'
+import { TeacherHint } from './TeacherHint'
 
 interface PhaseTimerCardProps {
   mode: AppMode
   className?: string
+  /** Teacher-only hint — never shown in display mode. */
+  teacherHint?: string
 }
 
 const controlBtn =
@@ -27,7 +30,11 @@ const styleAccent: Record<PhaseStyleToken, string> = {
   default: 'border-slate-300/70 bg-slate-50/80',
 }
 
-export function PhaseTimerCard({ mode, className = '' }: PhaseTimerCardProps) {
+export function PhaseTimerCard({
+  mode,
+  className = '',
+  teacherHint,
+}: PhaseTimerCardProps) {
   usePhaseTimerTick()
 
   const timer = useTimerStore((state) => state.phaseTimer)
@@ -245,6 +252,8 @@ export function PhaseTimerCard({ mode, className = '' }: PhaseTimerCardProps) {
           </p>
         </div>
       )}
+
+      <TeacherHint mode={mode} text={teacherHint ?? ''} />
     </article>
   )
 }

@@ -1,11 +1,13 @@
 import { BACKGROUND_ASSETS } from '../data/backgroundAssets'
 import { SCREEN_META } from '../data/defaults'
-import type { AppMode, BackgroundAssetId, ScreenId } from '../data/types'
+import type { AppMode, BackgroundAssetId, ScreenId, TeacherNote } from '../data/types'
+import { TeacherNotesPanel } from './TeacherNotesPanel'
 
 interface TeacherDockProps {
   mode: AppMode
   activeScreen: ScreenId
   backgroundId: BackgroundAssetId
+  teacherNotes: TeacherNote[]
   canUndoBeautify: boolean
   onModeChange: (mode: AppMode) => void
   onScreenChange: (screen: ScreenId) => void
@@ -19,6 +21,7 @@ export function TeacherDock({
   mode,
   activeScreen,
   backgroundId,
+  teacherNotes,
   canUndoBeautify,
   onModeChange,
   onScreenChange,
@@ -107,6 +110,12 @@ export function TeacherDock({
         </div>
       </section>
 
+      <TeacherNotesPanel
+        mode={mode}
+        activeScreen={activeScreen}
+        notes={teacherNotes}
+      />
+
       <section className="mt-auto space-y-2 pt-2">
         <button
           type="button"
@@ -132,7 +141,8 @@ export function TeacherDock({
           Reset to defaults
         </button>
         <p className="text-xs leading-relaxed text-slate-400">
-          Beautify is conservative and reversible. Display mode hides this dock.
+          Beautify is conservative and reversible. Display mode hides this dock
+          and all teacher-only notes.
         </p>
       </section>
     </aside>

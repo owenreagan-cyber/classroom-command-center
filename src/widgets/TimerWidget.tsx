@@ -5,6 +5,7 @@ import { formatTimerMs, msToWholeMinutes } from '../lib/timerFormat'
 import { boardCardShell } from '../lib/displayLayout'
 import { useSimpleTimerTick } from '../hooks/useTimerTick'
 import { useTimerStore } from '../store/timerStore'
+import { TeacherHint } from './TeacherHint'
 
 interface TimerWidgetProps {
   screenId: SimpleTimerScreenId
@@ -12,6 +13,8 @@ interface TimerWidgetProps {
   className?: string
   /** Larger type for display-mode classroom projection. */
   large?: boolean
+  /** Teacher-only hint — never shown in display mode. */
+  teacherHint?: string
 }
 
 const controlBtn =
@@ -28,6 +31,7 @@ export function TimerWidget({
   mode,
   className = '',
   large = true,
+  teacherHint,
 }: TimerWidgetProps) {
   useSimpleTimerTick(screenId)
 
@@ -217,6 +221,8 @@ export function TimerWidget({
           </p>
         </div>
       )}
+
+      <TeacherHint mode={mode} text={teacherHint ?? ''} />
     </article>
   )
 }
