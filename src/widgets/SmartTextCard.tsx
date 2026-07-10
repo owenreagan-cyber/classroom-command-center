@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState, type ReactNode } from 'react'
 import type { AppMode, SmartCardModel, SmartTextBlock, TextAlign } from '../data/types'
+import { boardCardShell, displayFontRange } from '../lib/displayLayout'
 import { AutoFitText } from './AutoFitText'
 
 interface SmartTextCardProps {
@@ -67,6 +68,7 @@ export function SmartTextCard({
   onBeautify,
   editSlot,
 }: SmartTextCardProps) {
+  const fonts = displayFontRange(mode, minFontSize, maxFontSize)
   const align: TextAlign = model.align ?? 'left'
   const [overflows, setOverflows] = useState(false)
   const [forceCompact, setForceCompact] = useState(false)
@@ -91,9 +93,7 @@ export function SmartTextCard({
   const fitKey = `${displayModel.title}|${displayModel.subtitle ?? ''}|${JSON.stringify(displayModel.blocks)}|${displayModel.footer ?? ''}|${align}|${shouldCompact}|${hiddenCount}`
 
   return (
-    <article
-      className={`relative flex min-h-0 flex-col overflow-hidden rounded-3xl border border-white/55 bg-white/92 p-4 shadow-lg backdrop-blur-sm md:p-5 ${className}`}
-    >
+    <article className={`${boardCardShell(mode)} ${className}`}>
       {mode === 'edit' && (onBeautify || editSlot) && (
         <div className="mb-2 flex flex-wrap items-center gap-2">
           {onBeautify && (
@@ -111,8 +111,12 @@ export function SmartTextCard({
 
       <div className="min-h-0 flex-1">
         <AutoFitText
-          minFontSize={minFontSize}
-          maxFontSize={shouldCompact ? Math.min(maxFontSize, 34) : maxFontSize}
+          minFontSize={fonts.minFontSize}
+          maxFontSize={
+            shouldCompact
+              ? Math.min(fonts.maxFontSize, mode === 'display' ? 38 : 34)
+              : fonts.maxFontSize
+          }
           align={align}
           fitKey={fitKey}
           compact={shouldCompact}

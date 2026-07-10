@@ -35,11 +35,13 @@ export function BoardFrame({
   const background = getBackgroundAsset(backgroundId)
   const screenLabel =
     SCREEN_META.find((screen) => screen.id === activeScreen)?.label ?? 'Board'
+  const isDisplay = mode === 'display'
 
   return (
-    <div className="relative flex min-h-0 min-w-0 flex-1 items-center justify-center overflow-hidden bg-slate-950 p-3 md:p-4">
+    <div className="relative flex min-h-0 min-w-0 flex-1 items-center justify-center overflow-hidden bg-slate-950 p-2 md:p-3">
       <div
-        className="relative w-full max-w-[min(100%,calc((100dvh-1.5rem)*16/9))] overflow-hidden rounded-2xl shadow-2xl"
+        className="board-canvas relative w-full max-w-[min(100%,calc((100dvh-1rem)*16/9))] overflow-hidden rounded-2xl shadow-2xl"
+        data-mode={mode}
         style={{
           aspectRatio: '16 / 9',
           background: background.fallbackGradient,
@@ -47,24 +49,46 @@ export function BoardFrame({
       >
         <BackgroundImage key={background.path} path={background.path} />
         <div
-          className="absolute inset-0 bg-gradient-to-b from-slate-950/35 via-transparent to-slate-950/20"
+          className={`absolute inset-0 bg-gradient-to-b from-slate-950/35 via-transparent to-slate-950/20 ${
+            isDisplay ? 'from-slate-950/28' : ''
+          }`}
           aria-hidden="true"
         />
 
-        <header className="relative z-10 flex items-start justify-between gap-4 px-8 pb-2 pt-6 md:px-10 md:pt-8">
-          <div className="rounded-2xl bg-slate-950/55 px-4 py-3 backdrop-blur-sm">
-            <p className="text-sm font-semibold uppercase tracking-[0.25em] text-cyan-100/90 md:text-base">
+        <header
+          className={`relative z-20 flex items-start justify-between gap-4 px-[var(--board-safe-x)] pb-1 pt-5 md:pt-6 ${
+            isDisplay ? 'md:pt-7' : ''
+          }`}
+        >
+          <div
+            className={`board-header-brand rounded-2xl bg-slate-950/55 backdrop-blur-sm ${
+              isDisplay ? 'px-5 py-3 md:px-6 md:py-3.5' : 'px-4 py-3 md:px-5'
+            }`}
+          >
+            <p
+              className={`font-semibold uppercase tracking-[0.25em] text-cyan-100/90 ${
+                isDisplay
+                  ? 'text-xs md:text-sm'
+                  : 'text-sm md:text-base'
+              }`}
+            >
               Classroom Command Center
             </p>
-            <h1 className="mt-1 text-4xl font-bold text-white drop-shadow md:text-5xl lg:text-6xl">
+            <h1
+              className={`board-screen-title mt-1 font-bold text-white drop-shadow ${
+                isDisplay
+                  ? 'text-4xl md:text-5xl lg:text-[3.75rem] lg:leading-none'
+                  : 'text-4xl md:text-5xl lg:text-6xl'
+              }`}
+            >
               {screenLabel}
             </h1>
           </div>
-          {mode === 'display' && (
+          {isDisplay && (
             <button
               type="button"
               onClick={onEnterEdit}
-              className="rounded-xl bg-slate-950/60 px-4 py-2 text-sm font-semibold text-white backdrop-blur transition hover:bg-slate-950/80"
+              className="board-edit-entry mt-1 rounded-xl bg-slate-950/50 px-3 py-1.5 text-xs font-semibold text-white/90 backdrop-blur transition hover:bg-slate-950/75 md:px-4 md:py-2 md:text-sm"
               aria-label="Enter edit mode"
             >
               Edit
@@ -72,9 +96,7 @@ export function BoardFrame({
           )}
         </header>
 
-        <main className="absolute inset-x-0 bottom-0 top-[7.5rem] z-10 px-6 pb-6 md:top-[8.5rem] md:px-8 md:pb-8">
-          {children}
-        </main>
+        <main className="board-main-safe">{children}</main>
       </div>
     </div>
   )

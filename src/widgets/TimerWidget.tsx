@@ -2,6 +2,7 @@ import type { AppMode } from '../data/types'
 import { TIMER_PRESETS } from '../data/timerDefaults'
 import type { SimpleTimerScreenId, TimerPresetId } from '../data/timerTypes'
 import { formatTimerMs, msToWholeMinutes } from '../lib/timerFormat'
+import { boardCardShell } from '../lib/displayLayout'
 import { useSimpleTimerTick } from '../hooks/useTimerTick'
 import { useTimerStore } from '../store/timerStore'
 
@@ -18,6 +19,9 @@ const controlBtn =
 
 const primaryBtn =
   'rounded-lg border border-slate-800 bg-slate-900 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40'
+
+const displayPrimaryBtn =
+  'board-timer-display-btn rounded-xl border border-slate-800 bg-slate-900 font-semibold uppercase tracking-wide text-white shadow-md transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40'
 
 export function TimerWidget({
   screenId,
@@ -38,6 +42,7 @@ export function TimerWidget({
   const setPreset = useTimerStore((state) => state.setSimplePreset)
   const setCustomMinutes = useTimerStore((state) => state.setSimpleCustomMinutes)
 
+  const isDisplay = mode === 'display'
   const isFinished = timer.status === 'finished'
   const isRunning = timer.status === 'running'
   const isPaused = timer.status === 'paused'
@@ -52,12 +57,20 @@ export function TimerWidget({
           ? 'Finished'
           : 'Ready'
 
+  const primaryButtonClass = isDisplay ? displayPrimaryBtn : primaryBtn
+
   return (
-    <article
-      className={`relative flex min-h-0 flex-col overflow-hidden rounded-3xl border border-white/55 bg-white/92 p-4 shadow-lg backdrop-blur-sm md:p-5 ${className}`}
-    >
-      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 text-center">
-        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500 md:text-base">
+    <article className={`${boardCardShell(mode)} ${className}`}>
+      <div
+        className={`flex min-h-0 flex-1 flex-col items-center justify-center text-center ${
+          isDisplay ? 'gap-4' : 'gap-3'
+        }`}
+      >
+        <p
+          className={`font-semibold uppercase tracking-[0.18em] text-slate-500 ${
+            isDisplay ? 'text-base md:text-lg' : 'text-sm md:text-base'
+          }`}
+        >
           {timer.label}
         </p>
 
@@ -71,8 +84,12 @@ export function TimerWidget({
           } ${
             large
               ? isFinished
-                ? 'text-4xl md:text-5xl lg:text-6xl'
-                : 'text-6xl md:text-7xl lg:text-8xl'
+                ? isDisplay
+                  ? 'text-5xl md:text-6xl lg:text-7xl'
+                  : 'text-4xl md:text-5xl lg:text-6xl'
+                : isDisplay
+                  ? 'text-7xl md:text-8xl lg:text-[6.5rem] lg:leading-none'
+                  : 'text-6xl md:text-7xl lg:text-8xl'
               : isFinished
                 ? 'text-3xl md:text-4xl'
                 : 'text-5xl md:text-6xl'
@@ -82,7 +99,11 @@ export function TimerWidget({
           {displayTime}
         </p>
 
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+        <p
+          className={`font-semibold uppercase tracking-[0.16em] text-slate-500 ${
+            isDisplay ? 'text-sm' : 'text-xs'
+          }`}
+        >
           {statusLabel}
         </p>
 
@@ -90,7 +111,7 @@ export function TimerWidget({
           {!isRunning && !isPaused && (
             <button
               type="button"
-              className={primaryBtn}
+              className={primaryButtonClass}
               onClick={() => start(screenId)}
             >
               Start
@@ -99,7 +120,7 @@ export function TimerWidget({
           {isRunning && (
             <button
               type="button"
-              className={primaryBtn}
+              className={primaryButtonClass}
               onClick={() => pause(screenId)}
             >
               Pause
@@ -108,34 +129,38 @@ export function TimerWidget({
           {isPaused && (
             <button
               type="button"
-              className={primaryBtn}
+              className={primaryButtonClass}
               onClick={() => resume(screenId)}
             >
               Resume
             </button>
           )}
-          <button
-            type="button"
-            className={controlBtn}
-            onClick={() => reset(screenId)}
-          >
-            Reset
-          </button>
-          <button
-            type="button"
-            className={controlBtn}
-            onClick={() => addMinute(screenId)}
-          >
-            +1 min
-          </button>
-          <button
-            type="button"
-            className={controlBtn}
-            onClick={() => subtractMinute(screenId)}
-            disabled={timer.remainingMs <= 0 && !isFinished}
-          >
-            −1 min
-          </button>
+          {!isDisplay && (
+            <>
+              <button
+                type="button"
+                className={controlBtn}
+                onClick={() => reset(screenId)}
+              >
+                Reset
+              </button>
+              <button
+                type="button"
+                className={controlBtn}
+                onClick={() => addMinute(screenId)}
+              >
+                +1 min
+              </button>
+              <button
+                type="button"
+                className={controlBtn}
+                onClick={() => subtractMinute(screenId)}
+                disabled={timer.remainingMs <= 0 && !isFinished}
+              >
+                −1 min
+              </button>
+            </>
+          )}
         </div>
       </div>
 

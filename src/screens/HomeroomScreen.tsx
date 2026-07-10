@@ -1,4 +1,5 @@
 import type { AppMode, HomeroomContent } from '../data/types'
+import { gridArea, screenGridClass } from '../lib/displayLayout'
 import { DoNowCard } from '../widgets/DoNowCard'
 import { MaterialsCard } from '../widgets/MaterialsCard'
 import { ReadyPositionCard } from '../widgets/ReadyPositionCard'
@@ -13,36 +14,41 @@ interface HomeroomScreenProps {
 
 export function HomeroomScreen({ content, mode, onBeautify }: HomeroomScreenProps) {
   return (
-    <div className="grid h-full min-h-0 grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
-      <ReminderCard
-        title={content.remindersTitle}
-        reminders={content.reminders}
-        mode={mode}
-        onBeautify={onBeautify}
-        className="min-h-0"
-      />
+    <div className={screenGridClass('homeroom', mode)}>
       <DoNowCard
         title={content.doNowTitle}
         prompt={content.doNow}
         mode={mode}
         onBeautify={onBeautify}
-        className="min-h-0"
+        className={`min-h-0 ${gridArea.homeroom.doNow}`}
+        hero
+      />
+      <ReminderCard
+        title={content.remindersTitle}
+        reminders={content.reminders}
+        mode={mode}
+        onBeautify={onBeautify}
+        className={`min-h-0 ${gridArea.homeroom.reminders}`}
       />
       <MaterialsCard
         title={content.materialsTitle}
         materials={content.materials}
         mode={mode}
         onBeautify={onBeautify}
-        className="min-h-0"
+        className={`min-h-0 ${gridArea.homeroom.materials}`}
       />
       <ReadyPositionCard
         content={content.readyPosition}
         mode={mode}
         compact
         onBeautify={onBeautify}
-        className="min-h-0"
+        className={`min-h-0 ${gridArea.homeroom.ready}`}
       />
-      <TimerWidget screenId="homeroom" mode={mode} className="min-h-0" />
+      <TimerWidget
+        screenId="homeroom"
+        mode={mode}
+        className={`min-h-0 ${gridArea.homeroom.timer}`}
+      />
     </div>
   )
 }

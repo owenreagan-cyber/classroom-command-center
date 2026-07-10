@@ -1,4 +1,5 @@
 import type { AppMode } from '../data/types'
+import { displayFontRange } from '../lib/displayLayout'
 import { SmartTextCard } from './SmartTextCard'
 
 interface DoNowCardProps {
@@ -7,6 +8,8 @@ interface DoNowCardProps {
   mode: AppMode
   className?: string
   onBeautify?: () => void
+  /** Hero sizing for homeroom Do Now — larger type in display mode. */
+  hero?: boolean
 }
 
 export function DoNowCard({
@@ -15,13 +18,18 @@ export function DoNowCard({
   mode,
   className,
   onBeautify,
+  hero = false,
 }: DoNowCardProps) {
+  const baseMax = hero ? 46 : 40
+  const fonts = displayFontRange(mode, 16, baseMax)
+
   return (
     <SmartTextCard
       mode={mode}
       className={className}
       onBeautify={onBeautify}
-      maxFontSize={40}
+      minFontSize={fonts.minFontSize}
+      maxFontSize={fonts.maxFontSize}
       model={{
         title,
         blocks: [{ kind: 'paragraph', text: prompt, emphasis: true }],

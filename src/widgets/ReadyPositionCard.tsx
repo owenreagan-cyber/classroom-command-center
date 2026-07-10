@@ -1,4 +1,5 @@
 import type { AppMode, ReadyPositionContent } from '../data/types'
+import { displayFontRange } from '../lib/displayLayout'
 import { SmartTextCard } from './SmartTextCard'
 
 interface ReadyPositionCardProps {
@@ -17,13 +18,15 @@ export function ReadyPositionCard({
   onBeautify,
 }: ReadyPositionCardProps) {
   const useCompact = compact ?? content.useCompact
+  const fonts = displayFontRange(mode, 14, useCompact ? 36 : 48)
 
   return (
     <SmartTextCard
       mode={mode}
       className={className}
       onBeautify={onBeautify}
-      maxFontSize={useCompact ? 36 : 48}
+      minFontSize={fonts.minFontSize}
+      maxFontSize={fonts.maxFontSize}
       model={
         useCompact
           ? {

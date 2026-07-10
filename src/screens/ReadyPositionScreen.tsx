@@ -1,4 +1,5 @@
 import type { AppMode, ReadyPositionContent } from '../data/types'
+import { displayFontRange, gridArea, screenGridClass } from '../lib/displayLayout'
 import { ReadyPositionCard } from '../widgets/ReadyPositionCard'
 import { SmartTextCard } from '../widgets/SmartTextCard'
 
@@ -13,30 +14,37 @@ export function ReadyPositionScreen({
   mode,
   onBeautify,
 }: ReadyPositionScreenProps) {
+  const cueFonts = displayFontRange(mode, 16, 44)
+
   return (
-    <div className="grid h-full min-h-0 grid-cols-1 gap-4 md:grid-cols-[1.4fr_1fr]">
+    <div className={screenGridClass('ready-position', mode)}>
       <ReadyPositionCard
         content={content}
         mode={mode}
         onBeautify={onBeautify}
-        className="min-h-0"
+        className={`min-h-0 ${gridArea.readyPosition.main}`}
       />
       <SmartTextCard
         mode={mode}
-        className="min-h-0"
-        maxFontSize={44}
+        className={`min-h-0 ${gridArea.readyPosition.cue}`}
+        minFontSize={cueFonts.minFontSize}
+        maxFontSize={cueFonts.maxFontSize}
         model={{
-          title: 'Compact Cue',
+          title: mode === 'display' ? 'Quick Cue' : 'Compact Cue',
           blocks: [
             {
               kind: 'paragraph',
               text: content.compactLine,
               emphasis: true,
             },
-            {
-              kind: 'note',
-              text: 'Use the compact line for quick redirects. Full checklist stays on the left.',
-            },
+            ...(mode === 'edit'
+              ? [
+                  {
+                    kind: 'note' as const,
+                    text: 'Use the compact line for quick redirects. Full checklist stays on the left.',
+                  },
+                ]
+              : []),
           ],
           align: 'center',
         }}
