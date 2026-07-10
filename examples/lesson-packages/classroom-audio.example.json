@@ -1,0 +1,41 @@
+{
+  "id": "classroom-audio-example",
+  "date": "2026-07-09",
+  "subjectId": "homeroom",
+  "lessonTitle": "Classroom Audio Example",
+  "lessonNumber": "Audio",
+  "active": true,
+  "studentWidgets": [
+    "music-widget"
+  ],
+  "teacherNotes": [
+    {
+      "id": "audio-note-1",
+      "subjectId": "homeroom",
+      "lessonId": "classroom-audio-example",
+      "text": "Use only curated school-appropriate playlists.",
+      "visibility": "teacherOnly"
+    }
+  ],
+  "resources": [
+    {
+      "id": "calm-morning-playlist",
+      "subjectId": "homeroom",
+      "lessonId": "classroom-audio-example",
+      "title": "Calm Morning Playlist",
+      "kind": "spotifyPlaylist",
+      "url": "",
+      "localPath": "",
+      "required": false,
+      "visibleToStudents": false,
+      "openWith": ["spotifyEmbed", "newTab", "copyLink"],
+      "focusQuestions": [],
+      "notes": "Paste approved Spotify playlist URL here. Student display can show compact music card if desired."
+    }
+  ],
+  "focusQuestions": [],
+  "routines": [
+    "Arrival Routine",
+    "Quiet Work"
+  ]
+}

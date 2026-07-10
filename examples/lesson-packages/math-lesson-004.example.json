@@ -1,0 +1,79 @@
+{
+  "id": "math-lesson-004",
+  "date": "2026-07-09",
+  "subjectId": "math",
+  "lessonTitle": "Math Lesson 4",
+  "lessonNumber": "4",
+  "active": true,
+  "studentWidgets": [
+    "math-materials",
+    "math-do-now",
+    "math-timer"
+  ],
+  "teacherNotes": [
+    {
+      "id": "math-note-1",
+      "subjectId": "math",
+      "lessonId": "math-lesson-004",
+      "text": "Check homework before students switch. Keep answer key teacher-only.",
+      "visibility": "teacherOnly"
+    }
+  ],
+  "resources": [
+    {
+      "id": "math-004-slides",
+      "subjectId": "math",
+      "lessonId": "math-lesson-004",
+      "title": "Math Lesson 4 Slides",
+      "kind": "presentation",
+      "url": "",
+      "localPath": "",
+      "required": true,
+      "visibleToStudents": false,
+      "openWith": ["newTab", "googleSlides", "omninote"],
+      "focusQuestions": [
+        "What strategy will help solve today's problem?",
+        "How can you explain your answer clearly?"
+      ],
+      "notes": "Teacher adds Google Slides or PDF link here."
+    },
+    {
+      "id": "math-004-student-notes",
+      "subjectId": "math",
+      "lessonId": "math-lesson-004",
+      "title": "Math Lesson 4 Student Notes",
+      "kind": "studentNotes",
+      "url": "",
+      "localPath": "",
+      "required": true,
+      "visibleToStudents": false,
+      "openWith": ["newTab", "pdfViewer", "omninote"],
+      "focusQuestions": [],
+      "notes": "Could open in OmniNote for Apple Pencil modeling."
+    },
+    {
+      "id": "math-004-teacher-key",
+      "subjectId": "math",
+      "lessonId": "math-lesson-004",
+      "title": "Math Lesson 4 Teacher Key",
+      "kind": "teacherKey",
+      "url": "",
+      "localPath": "",
+      "required": false,
+      "visibleToStudents": false,
+      "openWith": ["newTab", "pdfViewer"],
+      "focusQuestions": [],
+      "notes": "Never student-visible."
+    }
+  ],
+  "focusQuestions": [
+    "What do we already know?",
+    "What tool or strategy should we use?",
+    "How can we check our work?"
+  ],
+  "routines": [
+    "Get Ready to Switch",
+    "Transition Ready",
+    "Star Student Watch"
+  ]
+}

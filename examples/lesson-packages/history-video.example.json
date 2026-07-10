@@ -1,0 +1,69 @@
+{
+  "id": "history-video-example",
+  "date": "2026-07-09",
+  "subjectId": "history",
+  "lessonTitle": "History Video and Focus Questions",
+  "lessonNumber": "Example",
+  "active": true,
+  "studentWidgets": [
+    "history-essential-question",
+    "history-media-page",
+    "history-timer"
+  ],
+  "teacherNotes": [
+    {
+      "id": "history-note-1",
+      "subjectId": "history",
+      "lessonId": "history-video-example",
+      "text": "Pause video at planned discussion points. Keep teacher answer notes private.",
+      "visibility": "teacherOnly"
+    }
+  ],
+  "resources": [
+    {
+      "id": "history-video",
+      "subjectId": "history",
+      "lessonId": "history-video-example",
+      "title": "History Video",
+      "kind": "youtube",
+      "url": "",
+      "localPath": "",
+      "required": true,
+      "visibleToStudents": true,
+      "openWith": ["youtubeEmbed", "newTab", "copyLink"],
+      "focusQuestions": [
+        "What is the main event or idea?",
+        "What evidence did you notice?",
+        "What question do you still have?"
+      ],
+      "notes": "Paste approved YouTube URL here. Include fallback open-in-new-tab."
+    },
+    {
+      "id": "history-source",
+      "subjectId": "history",
+      "lessonId": "history-video-example",
+      "title": "Primary Source or Map",
+      "kind": "reference",
+      "url": "",
+      "localPath": "",
+      "required": false,
+      "visibleToStudents": true,
+      "openWith": ["newTab", "pdfViewer", "omninote"],
+      "focusQuestions": [
+        "What do you notice first?",
+        "What details support your thinking?"
+      ],
+      "notes": "Optional source/map for OmniNote annotation."
+    }
+  ],
+  "focusQuestions": [
+    "What happened?",
+    "Why did it matter?",
+    "What evidence supports your answer?"
+  ],
+  "routines": [
+    "Video Watch",
+    "Pause and Discuss",
+    "Written Response"
+  ]
+}

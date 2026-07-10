@@ -1,0 +1,48 @@
+import { ActiveScreen } from '../screens/ActiveScreen'
+import { useBoardStore } from '../store/boardStore'
+import { BoardFrame } from '../board/BoardFrame'
+import { TeacherDock } from '../board/TeacherDock'
+
+export function AppShell() {
+  const mode = useBoardStore((state) => state.mode)
+  const activeScreen = useBoardStore((state) => state.activeScreen)
+  const backgroundId = useBoardStore((state) => state.backgroundId)
+  const contents = useBoardStore((state) => state.contents)
+  const beautifyUndo = useBoardStore((state) => state.beautifyUndo)
+  const setMode = useBoardStore((state) => state.setMode)
+  const setActiveScreen = useBoardStore((state) => state.setActiveScreen)
+  const setBackgroundId = useBoardStore((state) => state.setBackgroundId)
+  const beautifyActiveScreen = useBoardStore((state) => state.beautifyActiveScreen)
+  const undoBeautify = useBoardStore((state) => state.undoBeautify)
+  const resetToDefaults = useBoardStore((state) => state.resetToDefaults)
+
+  return (
+    <div className="flex h-dvh w-dvw overflow-hidden bg-slate-950">
+      <TeacherDock
+        mode={mode}
+        activeScreen={activeScreen}
+        backgroundId={backgroundId}
+        canUndoBeautify={beautifyUndo !== null}
+        onModeChange={setMode}
+        onScreenChange={setActiveScreen}
+        onBackgroundChange={setBackgroundId}
+        onBeautify={beautifyActiveScreen}
+        onUndoBeautify={undoBeautify}
+        onReset={resetToDefaults}
+      />
+      <BoardFrame
+        mode={mode}
+        activeScreen={activeScreen}
+        backgroundId={backgroundId}
+        onEnterEdit={() => setMode('edit')}
+      >
+        <ActiveScreen
+          screenId={activeScreen}
+          mode={mode}
+          contents={contents}
+          onBeautify={mode === 'edit' ? beautifyActiveScreen : undefined}
+        />
+      </BoardFrame>
+    </div>
+  )
+}

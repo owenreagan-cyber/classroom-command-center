@@ -1,0 +1,63 @@
+{
+  "id": "spelling-week-example",
+  "date": "2026-07-09",
+  "subjectId": "spelling",
+  "lessonTitle": "Spelling Weekly Pattern",
+  "lessonNumber": "Week Example",
+  "active": true,
+  "studentWidgets": [
+    "spelling-word-list",
+    "spelling-pattern-focus",
+    "spelling-timer"
+  ],
+  "teacherNotes": [
+    {
+      "id": "spelling-note-1",
+      "subjectId": "spelling",
+      "lessonId": "spelling-week-example",
+      "text": "Keep dictation sentences and test sheet teacher-only.",
+      "visibility": "teacherOnly"
+    }
+  ],
+  "resources": [
+    {
+      "id": "spelling-word-list",
+      "subjectId": "spelling",
+      "lessonId": "spelling-week-example",
+      "title": "Weekly Word List",
+      "kind": "handout",
+      "url": "",
+      "localPath": "",
+      "required": true,
+      "visibleToStudents": true,
+      "openWith": ["newTab", "pdfViewer", "omninote"],
+      "focusQuestions": [
+        "What spelling pattern do you notice?",
+        "Which words follow the same rule?"
+      ],
+      "notes": "Can be shown to students."
+    },
+    {
+      "id": "spelling-dictation",
+      "subjectId": "spelling",
+      "lessonId": "spelling-week-example",
+      "title": "Dictation Sentences",
+      "kind": "teacherKey",
+      "url": "",
+      "localPath": "",
+      "required": true,
+      "visibleToStudents": false,
+      "openWith": ["newTab", "pdfViewer"],
+      "focusQuestions": [],
+      "notes": "Teacher-only."
+    }
+  ],
+  "focusQuestions": [
+    "What pattern do these words share?",
+    "How can we sort the words?"
+  ],
+  "routines": [
+    "Transition Ready",
+    "Independent Practice"
+  ]
+}
