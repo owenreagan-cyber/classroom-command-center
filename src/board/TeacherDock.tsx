@@ -3,11 +3,13 @@ import { SCREEN_META } from '../data/defaults'
 import type {
   AppMode,
   BackgroundAssetId,
+  BoardPresetId,
   CardId,
   ScreenCardVisibility,
   ScreenId,
   TeacherNote,
 } from '../data/types'
+import { BoardPresetPanel } from './BoardPresetPanel'
 import { CardVisibilityPanel } from './CardVisibilityPanel'
 import { TeacherNotesPanel } from './TeacherNotesPanel'
 
@@ -21,6 +23,7 @@ interface TeacherDockProps {
   onModeChange: (mode: AppMode) => void
   onScreenChange: (screen: ScreenId) => void
   onBackgroundChange: (backgroundId: BackgroundAssetId) => void
+  onApplyPreset: (presetId: BoardPresetId) => void
   onCardVisibleChange: (
     screenId: ScreenId,
     cardId: CardId,
@@ -41,6 +44,7 @@ export function TeacherDock({
   onModeChange,
   onScreenChange,
   onBackgroundChange,
+  onApplyPreset,
   onCardVisibleChange,
   onBeautify,
   onUndoBeautify,
@@ -125,6 +129,11 @@ export function TeacherDock({
           ))}
         </div>
       </section>
+
+      <BoardPresetPanel
+        activeScreen={activeScreen}
+        onApplyPreset={onApplyPreset}
+      />
 
       <CardVisibilityPanel
         activeScreen={activeScreen}
