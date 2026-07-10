@@ -1,5 +1,6 @@
 import type {
   CardVisibilityOption,
+  NoiseTrackerState,
   ReadyPositionContent,
   ScreenCardVisibility,
   ScreenContents,
@@ -32,17 +33,20 @@ export const CARD_VISIBILITY_OPTIONS: Record<string, CardVisibilityOption[]> = {
     { id: 'materials', label: 'Materials' },
     { id: 'ready', label: 'Ready Position' },
     { id: 'timer', label: 'Timer' },
+    { id: 'noise', label: 'Noise tracker', helperText: 'Manual voice level tracker' },
   ],
   math: [
     { id: 'lesson', label: 'Lesson' },
     { id: 'materials', label: 'Materials' },
     { id: 'timer', label: 'Timer' },
+    { id: 'noise', label: 'Noise tracker', helperText: 'Math voice level tracker' },
   ],
   reading: [
     { id: 'lesson', label: 'Reading focus' },
     { id: 'materials', label: 'Materials' },
     { id: 'ready', label: 'Ready Position' },
     { id: 'timer', label: 'Timer' },
+    { id: 'noise', label: 'Noise tracker', helperText: 'Reading voice level tracker' },
   ],
   writing: [
     { id: 'focus', label: 'Focus task' },
@@ -115,6 +119,37 @@ export const DEFAULT_CARD_VISIBILITY: ScreenCardVisibility = {
   'homework-packup': { focus: true, agenda: true, materials: true },
   'snack-lunch': { cleanup: true, routine: true, 'phase-timer': true },
   'ready-position': { ready: true, 'compact-cue': true },
+}
+
+
+export const DEFAULT_NOISE_TRACKERS: Record<string, NoiseTrackerState> = {
+  homeroom: {
+    id: 'homeroom',
+    label: 'Homeroom Noise',
+    voiceLevel: 'whisper',
+    noisyPoints: 0,
+    lapMinutes: 0,
+    meterLevel: 0,
+    isPaused: false,
+  },
+  math: {
+    id: 'math',
+    label: 'Math Noise',
+    voiceLevel: 'normal',
+    noisyPoints: 0,
+    lapMinutes: 0,
+    meterLevel: 0,
+    isPaused: false,
+  },
+  reading: {
+    id: 'reading',
+    label: 'Reading Noise',
+    voiceLevel: 'whisper',
+    noisyPoints: 0,
+    lapMinutes: 0,
+    meterLevel: 0,
+    isPaused: false,
+  },
 }
 
 export const DEFAULT_READY_POSITION: ReadyPositionContent = {

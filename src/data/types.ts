@@ -59,6 +59,7 @@ export type CardId =
   | 'compact-cue'
   | 'focus'
   | 'agenda'
+  | 'noise'
 
 export type ScreenCardVisibility = Record<
   ScreenId,
@@ -201,6 +202,21 @@ export interface BoardExportPayload {
   state: BoardState
 }
 
+
+export type NoiseTrackerId = 'homeroom' | 'math' | 'reading'
+
+export type VoiceLevel = 'silent' | 'whisper' | 'normal' | 'off'
+
+export interface NoiseTrackerState {
+  id: NoiseTrackerId
+  label: string
+  voiceLevel: VoiceLevel
+  noisyPoints: number
+  lapMinutes: number
+  meterLevel: number
+  isPaused: boolean
+}
+
 export interface BoardState {
   mode: AppMode
   activeScreen: ScreenId
@@ -209,6 +225,7 @@ export interface BoardState {
   teacherNotes: TeacherNote[]
   cardVisibility: ScreenCardVisibility
   customPresets: CustomBoardPreset[]
+  noiseTrackers: Record<NoiseTrackerId, NoiseTrackerState>
 }
 
 export interface ScreenMeta {
