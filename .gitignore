@@ -25,3 +25,4 @@ dist-ssr
 .local/visual-qa/
 .local/screenshots/
 .local/playwright/
+.cursor/mcp.json
