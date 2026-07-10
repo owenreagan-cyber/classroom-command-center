@@ -1,5 +1,6 @@
 import type {
   CardVisibilityOption,
+  NoiseTrackerId,
   NoiseTrackerState,
   ReadyPositionContent,
   ScreenCardVisibility,
@@ -8,6 +9,7 @@ import type {
   TeacherNote,
 } from './types'
 import { DEFAULT_BACKGROUND_ID } from './backgroundAssets'
+import { createDefaultNoiseTrackers } from '../lib/noiseTowers'
 
 export const SCREEN_META: ScreenMeta[] = [
   { id: 'homeroom', label: 'Homeroom' },
@@ -122,35 +124,8 @@ export const DEFAULT_CARD_VISIBILITY: ScreenCardVisibility = {
 }
 
 
-export const DEFAULT_NOISE_TRACKERS: Record<string, NoiseTrackerState> = {
-  homeroom: {
-    id: 'homeroom',
-    label: 'Homeroom Noise',
-    voiceLevel: 'whisper',
-    noisyPoints: 0,
-    lapMinutes: 0,
-    meterLevel: 0,
-    isPaused: false,
-  },
-  math: {
-    id: 'math',
-    label: 'Math Noise',
-    voiceLevel: 'normal',
-    noisyPoints: 0,
-    lapMinutes: 0,
-    meterLevel: 0,
-    isPaused: false,
-  },
-  reading: {
-    id: 'reading',
-    label: 'Reading Noise',
-    voiceLevel: 'whisper',
-    noisyPoints: 0,
-    lapMinutes: 0,
-    meterLevel: 0,
-    isPaused: false,
-  },
-}
+export const DEFAULT_NOISE_TRACKERS: Record<NoiseTrackerId, NoiseTrackerState> =
+  createDefaultNoiseTrackers()
 
 export const DEFAULT_READY_POSITION: ReadyPositionContent = {
   title: 'Ready Position',

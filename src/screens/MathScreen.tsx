@@ -1,6 +1,6 @@
 import { EditableText } from '../components/editing/EditableText'
 import type { AppMode, NoiseTrackerState, MathContent, ScreenCardVisibility } from '../data/types'
-import { gridArea, screenGridClass } from '../lib/displayLayout'
+import { gridArea, noiseCardOverlayClass, screenGridClass } from '../lib/displayLayout'
 import { MaterialsCard } from '../widgets/MaterialsCard'
 import { SmartTextCard } from '../widgets/SmartTextCard'
 import { NoiseStatusCard } from '../widgets/NoiseStatusCard'
@@ -74,7 +74,7 @@ export function MathScreen({
         <NoiseStatusCard
           tracker={noiseTracker}
           mode={mode}
-          className="absolute bottom-4 right-4 z-20 h-[18rem] w-[min(28rem,34vw)]"
+          className={noiseCardOverlayClass(mode)}
         />
       )}
     </div>

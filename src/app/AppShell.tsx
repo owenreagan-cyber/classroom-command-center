@@ -25,6 +25,7 @@ export function AppShell() {
   const importBoardState = useBoardStore((state) => state.importBoardState)
   const setNoiseVoiceLevel = useBoardStore((state) => state.setNoiseVoiceLevel)
   const addNoisyPoint = useBoardStore((state) => state.addNoisyPoint)
+  const repairNoiseTick = useBoardStore((state) => state.repairNoiseTick)
   const adjustNoiseLapMinutes = useBoardStore(
     (state) => state.adjustNoiseLapMinutes,
   )
@@ -32,6 +33,7 @@ export function AppShell() {
   const resetNoiseLapMinutes = useBoardStore(
     (state) => state.resetNoiseLapMinutes,
   )
+  const resetNoiseTracker = useBoardStore((state) => state.resetNoiseTracker)
   const beautifyActiveScreen = useBoardStore((state) => state.beautifyActiveScreen)
   const undoBeautify = useBoardStore((state) => state.undoBeautify)
   const resetToDefaults = useBoardStore((state) => state.resetToDefaults)
@@ -67,9 +69,11 @@ export function AppShell() {
         onImportBoardState={importBoardState}
         onNoiseVoiceLevelChange={setNoiseVoiceLevel}
         onAddNoisyPoint={addNoisyPoint}
+        onRepairNoiseTick={repairNoiseTick}
         onAdjustNoiseLapMinutes={adjustNoiseLapMinutes}
         onSetNoiseMeterLevel={setNoiseMeterLevel}
         onResetNoiseLapMinutes={resetNoiseLapMinutes}
+        onResetNoiseTracker={resetNoiseTracker}
         onCardVisibleChange={setCardVisible}
         onBeautify={beautifyActiveScreen}
         onUndoBeautify={undoBeautify}
