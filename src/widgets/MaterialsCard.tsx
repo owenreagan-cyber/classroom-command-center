@@ -23,6 +23,7 @@ interface SectionProps {
 function MaterialSection({ heading, items, compact, maxVisible }: SectionProps) {
   const visible = items.slice(0, maxVisible)
   const hidden = Math.max(0, items.length - visible.length)
+  const hasItems = visible.length > 0
 
   return (
     <div className="min-w-0">
@@ -32,20 +33,29 @@ function MaterialSection({ heading, items, compact, maxVisible }: SectionProps) 
       >
         {heading}
       </h3>
-      <ul
-        className={compact ? 'mt-[0.25em] space-y-[0.18em]' : 'mt-[0.3em] space-y-[0.25em]'}
-        style={{ fontSize: '0.88em' }}
-      >
-        {visible.map((item) => (
-          <li key={item} className="flex gap-[0.4em] text-slate-800">
-            <span
-              className="mt-[0.35em] inline-block h-[0.3em] w-[0.3em] shrink-0 rounded-full bg-slate-800"
-              aria-hidden="true"
-            />
-            <span className="min-w-0 break-words">{item}</span>
-          </li>
-        ))}
-      </ul>
+      {hasItems ? (
+        <ul
+          className={compact ? 'mt-[0.25em] space-y-[0.18em]' : 'mt-[0.3em] space-y-[0.25em]'}
+          style={{ fontSize: '0.88em' }}
+        >
+          {visible.map((item) => (
+            <li key={item} className="flex gap-[0.4em] text-slate-800">
+              <span
+                className="mt-[0.35em] inline-block h-[0.3em] w-[0.3em] shrink-0 rounded-full bg-slate-800"
+                aria-hidden="true"
+              />
+              <span className="min-w-0 break-words">{item}</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p
+          className="mt-[0.3em] rounded-lg border border-dashed border-slate-300 bg-slate-50/80 px-[0.7em] py-[0.45em] font-semibold text-slate-500"
+          style={{ fontSize: '0.72em' }}
+        >
+          Add items in edit mode.
+        </p>
+      )}
       {hidden > 0 && (
         <p className="mt-[0.2em] font-semibold text-slate-700" style={{ fontSize: '0.68em' }}>
           + {hidden} more
@@ -94,7 +104,11 @@ export function MaterialsCard({
   return (
     <article ref={shellRef} className={`${boardCardShell(mode)} ${className}`}>
       {mode === 'edit' && (onBeautify || onMaterialsChange) && (
-        <div className="mb-3 flex flex-col gap-3">
+        <div className="mb-3 rounded-xl border border-cyan-200/70 bg-cyan-50/80 p-3 shadow-sm">
+          <p className="mb-2 text-[0.68rem] font-bold uppercase tracking-[0.14em] text-cyan-900">
+            Edit student-facing materials
+          </p>
+          <div className="flex flex-col gap-3">
           {onBeautify && (
             <button
               type="button"
@@ -111,6 +125,7 @@ export function MaterialsCard({
               onChange={onMaterialsChange}
             />
           )}
+          </div>
         </div>
       )}
 

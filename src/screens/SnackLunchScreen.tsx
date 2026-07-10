@@ -40,6 +40,7 @@ export function SnackLunchScreen({
               onChange={(cleanupReminders) =>
                 onContentChange({ ...content, cleanupReminders })
               }
+              helperText="One cleanup reminder per line."
             />
           }
           className={`min-h-0 ${gridArea.snackLunch.cleanup}`}
@@ -55,6 +56,7 @@ export function SnackLunchScreen({
               label="Routine"
               items={content.routine}
               onChange={(routine) => onContentChange({ ...content, routine })}
+              helperText="One routine step per line."
             />
           }
           className={`min-h-0 ${gridArea.snackLunch.routine}`}

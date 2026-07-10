@@ -38,6 +38,7 @@ export function HomeroomScreen({
               value={content.doNow}
               onChange={(doNow) => onContentChange({ ...content, doNow })}
               multiline
+              helperText="This is the large student-facing arrival task."
             />
           }
           className={`min-h-0 ${gridArea.homeroom.doNow}`}
@@ -58,6 +59,7 @@ export function HomeroomScreen({
               onChange={(reminders) =>
                 onContentChange({ ...content, reminders })
               }
+              helperText="One reminder per line. Blank lines are ignored."
             />
           }
           className={`min-h-0 ${gridArea.homeroom.reminders}`}

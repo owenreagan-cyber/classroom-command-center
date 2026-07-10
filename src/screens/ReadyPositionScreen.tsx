@@ -39,6 +39,7 @@ export function ReadyPositionScreen({
               label="Checklist steps"
               items={content.steps}
               onChange={(steps) => onContentChange({ ...content, steps })}
+              helperText="One checklist cue per line."
             />
           }
           className={`min-h-0 ${gridArea.readyPosition.main}`}
@@ -59,6 +60,7 @@ export function ReadyPositionScreen({
                 onContentChange({ ...content, compactLine })
               }
               multiline
+              helperText="This quick cue is useful for redirects and transitions."
             />
           }
           model={{

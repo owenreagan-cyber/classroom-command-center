@@ -21,12 +21,14 @@ export function EditableMaterials({
         label="Have Out"
         items={materials.haveOut}
         onChange={(haveOut) => onChange({ ...materials, haveOut })}
+        helperText="Student-facing list of materials to keep on the desk."
       />
       <EditableList
         mode={mode}
         label="Put Away"
         items={materials.putAway}
         onChange={(putAway) => onChange({ ...materials, putAway })}
+        helperText="Student-facing list of materials to clear from the desk."
       />
     </div>
   )
