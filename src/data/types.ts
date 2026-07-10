@@ -185,6 +185,22 @@ export interface BoardPreset {
   screenId: ScreenId
 }
 
+export interface CustomBoardPreset {
+  id: string
+  label: string
+  helperText: string
+  screenId: ScreenId
+  content: ScreenContents[ScreenId]
+  createdAt: string
+}
+
+export interface BoardExportPayload {
+  app: 'classroom-command-center'
+  version: 1
+  exportedAt: string
+  state: BoardState
+}
+
 export interface BoardState {
   mode: AppMode
   activeScreen: ScreenId
@@ -192,6 +208,7 @@ export interface BoardState {
   contents: ScreenContents
   teacherNotes: TeacherNote[]
   cardVisibility: ScreenCardVisibility
+  customPresets: CustomBoardPreset[]
 }
 
 export interface ScreenMeta {

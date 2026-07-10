@@ -2,6 +2,10 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { applyBoardPresetToContents } from '../data/boardPresets'
 import {
+  applyCustomPresetToContents,
+  makeCustomPreset,
+} from '../data/customPresets'
+import {
   DEFAULT_BACKGROUND_ID,
   DEFAULT_CARD_VISIBILITY,
   DEFAULT_CONTENTS,
@@ -13,6 +17,7 @@ import { getBackgroundForScreen } from '../data/backgroundAssets'
 import type {
   AppMode,
   BackgroundAssetId,
+  BoardExportPayload,
   BoardPresetId,
   BoardState,
   CardId,
@@ -36,6 +41,10 @@ interface BoardStore extends BoardState {
   setBackgroundId: (backgroundId: BackgroundAssetId) => void
   updateContents: (contents: ScreenContents) => void
   applyBoardPreset: (presetId: BoardPresetId) => void
+  saveCustomPreset: (label: string) => void
+  applyCustomPreset: (presetId: string) => void
+  deleteCustomPreset: (presetId: string) => void
+  importBoardState: (payload: BoardExportPayload) => void
   setCardVisible: (screenId: ScreenId, cardId: CardId, visible: boolean) => void
   beautifyActiveScreen: () => void
   undoBeautify: () => void
@@ -49,6 +58,7 @@ const initialState: BoardState = {
   contents: structuredClone(DEFAULT_CONTENTS),
   teacherNotes: structuredClone(DEFAULT_TEACHER_NOTES),
   cardVisibility: structuredClone(DEFAULT_CARD_VISIBILITY),
+  customPresets: [],
 }
 
 /**
@@ -169,6 +179,45 @@ export const useBoardStore = create<BoardStore>()(
           contents: applyBoardPresetToContents(state.contents, presetId),
           beautifyUndo: null,
         })),
+      saveCustomPreset: (label) =>
+        set((state) => ({
+          customPresets: [
+            makeCustomPreset(state.contents, state.activeScreen, label),
+            ...state.customPresets,
+          ],
+        })),
+      applyCustomPreset: (presetId) =>
+        set((state) => {
+          const preset = state.customPresets.find((item) => item.id === presetId)
+          if (!preset) return state
+
+          return {
+            activeScreen: preset.screenId,
+            backgroundId: getBackgroundForScreen(preset.screenId).id,
+            contents: applyCustomPresetToContents(state.contents, preset),
+            beautifyUndo: null,
+          }
+        }),
+      deleteCustomPreset: (presetId) =>
+        set((state) => ({
+          customPresets: state.customPresets.filter(
+            (preset) => preset.id !== presetId,
+          ),
+        })),
+      importBoardState: (payload) => {
+        const imported = payload.state
+
+        set({
+          mode: imported.mode,
+          activeScreen: imported.activeScreen,
+          backgroundId: imported.backgroundId,
+          contents: structuredClone(imported.contents),
+          teacherNotes: structuredClone(imported.teacherNotes),
+          cardVisibility: mergeCardVisibility(imported.cardVisibility),
+          customPresets: structuredClone(imported.customPresets ?? []),
+          beautifyUndo: null,
+        })
+      },
       setCardVisible: (screenId, cardId, visible) =>
         set((state) => ({
           cardVisibility: {
@@ -203,6 +252,7 @@ export const useBoardStore = create<BoardStore>()(
           contents: structuredClone(DEFAULT_CONTENTS),
           teacherNotes: structuredClone(DEFAULT_TEACHER_NOTES),
           cardVisibility: structuredClone(DEFAULT_CARD_VISIBILITY),
+          customPresets: [],
           beautifyUndo: null,
         })
       },
@@ -237,6 +287,7 @@ export const useBoardStore = create<BoardStore>()(
           contents,
           teacherNotes,
           cardVisibility,
+          customPresets: state.customPresets ?? [],
         }
       },
       partialize: (state) => ({
@@ -246,6 +297,7 @@ export const useBoardStore = create<BoardStore>()(
         contents: state.contents,
         teacherNotes: state.teacherNotes,
         cardVisibility: state.cardVisibility,
+        customPresets: state.customPresets,
       }),
     },
   ),
