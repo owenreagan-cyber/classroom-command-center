@@ -1,3 +1,4 @@
+import { EditableList } from '../components/editing/EditableList'
 import type {
   AppMode,
   ScreenCardVisibility,
@@ -12,6 +13,7 @@ interface SnackLunchScreenProps {
   content: SnackLunchContent
   mode: AppMode
   cardVisibility: ScreenCardVisibility['snack-lunch']
+  onContentChange: (content: SnackLunchContent) => void
   onBeautify?: () => void
 }
 
@@ -19,6 +21,7 @@ export function SnackLunchScreen({
   content,
   mode,
   cardVisibility,
+  onContentChange,
   onBeautify,
 }: SnackLunchScreenProps) {
   return (
@@ -29,6 +32,16 @@ export function SnackLunchScreen({
           reminders={content.cleanupReminders}
           mode={mode}
           onBeautify={onBeautify}
+          editSlot={
+            <EditableList
+              mode={mode}
+              label="Cleanup reminders"
+              items={content.cleanupReminders}
+              onChange={(cleanupReminders) =>
+                onContentChange({ ...content, cleanupReminders })
+              }
+            />
+          }
           className={`min-h-0 ${gridArea.snackLunch.cleanup}`}
         />
       )}
@@ -36,6 +49,14 @@ export function SnackLunchScreen({
         <SmartTextCard
           mode={mode}
           onBeautify={onBeautify}
+          editSlot={
+            <EditableList
+              mode={mode}
+              label="Routine"
+              items={content.routine}
+              onChange={(routine) => onContentChange({ ...content, routine })}
+            />
+          }
           className={`min-h-0 ${gridArea.snackLunch.routine}`}
           model={{
             title: content.routineTitle,

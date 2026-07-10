@@ -1,3 +1,5 @@
+import { EditableList } from '../components/editing/EditableList'
+import { EditableText } from '../components/editing/EditableText'
 import type {
   AppMode,
   ReadyPositionContent,
@@ -11,6 +13,7 @@ interface ReadyPositionScreenProps {
   content: ReadyPositionContent
   mode: AppMode
   cardVisibility: ScreenCardVisibility['ready-position']
+  onContentChange: (content: ReadyPositionContent) => void
   onBeautify?: () => void
 }
 
@@ -18,6 +21,7 @@ export function ReadyPositionScreen({
   content,
   mode,
   cardVisibility,
+  onContentChange,
   onBeautify,
 }: ReadyPositionScreenProps) {
   const cueFonts = displayFontRange(mode, 16, 44)
@@ -29,6 +33,14 @@ export function ReadyPositionScreen({
           content={content}
           mode={mode}
           onBeautify={onBeautify}
+          editSlot={
+            <EditableList
+              mode={mode}
+              label="Checklist steps"
+              items={content.steps}
+              onChange={(steps) => onContentChange({ ...content, steps })}
+            />
+          }
           className={`min-h-0 ${gridArea.readyPosition.main}`}
         />
       )}
@@ -38,6 +50,17 @@ export function ReadyPositionScreen({
           className={`min-h-0 ${gridArea.readyPosition.cue}`}
           minFontSize={cueFonts.minFontSize}
           maxFontSize={cueFonts.maxFontSize}
+          editSlot={
+            <EditableText
+              mode={mode}
+              label="Compact cue"
+              value={content.compactLine}
+              onChange={(compactLine) =>
+                onContentChange({ ...content, compactLine })
+              }
+              multiline
+            />
+          }
           model={{
             title: mode === 'display' ? 'Quick Cue' : 'Compact Cue',
             blocks: [

@@ -15,6 +15,7 @@ export function AppShell() {
   const setActiveScreen = useBoardStore((state) => state.setActiveScreen)
   const setBackgroundId = useBoardStore((state) => state.setBackgroundId)
   const setCardVisible = useBoardStore((state) => state.setCardVisible)
+  const updateContents = useBoardStore((state) => state.updateContents)
   const beautifyActiveScreen = useBoardStore((state) => state.beautifyActiveScreen)
   const undoBeautify = useBoardStore((state) => state.undoBeautify)
   const resetToDefaults = useBoardStore((state) => state.resetToDefaults)
@@ -47,6 +48,7 @@ export function AppShell() {
           mode={mode}
           contents={contents}
           cardVisibility={cardVisibility}
+          onContentsChange={updateContents}
           onBeautify={mode === 'edit' ? beautifyActiveScreen : undefined}
         />
       </BoardFrame>

@@ -1,3 +1,4 @@
+import { EditableText } from '../components/editing/EditableText'
 import type { AppMode, MathContent, ScreenCardVisibility } from '../data/types'
 import { gridArea, screenGridClass } from '../lib/displayLayout'
 import { MaterialsCard } from '../widgets/MaterialsCard'
@@ -8,6 +9,7 @@ interface MathScreenProps {
   content: MathContent
   mode: AppMode
   cardVisibility: ScreenCardVisibility['math']
+  onContentChange: (content: MathContent) => void
   onBeautify?: () => void
 }
 
@@ -15,6 +17,7 @@ export function MathScreen({
   content,
   mode,
   cardVisibility,
+  onContentChange,
   onBeautify,
 }: MathScreenProps) {
   return (
@@ -23,6 +26,16 @@ export function MathScreen({
         <SmartTextCard
           mode={mode}
           onBeautify={onBeautify}
+          editSlot={
+            <EditableText
+              mode={mode}
+              label="Lesson title"
+              value={content.lessonTitle}
+              onChange={(lessonTitle) =>
+                onContentChange({ ...content, lessonTitle })
+              }
+            />
+          }
           className={`min-h-0 ${gridArea.math.lesson}`}
           model={{
             title: 'Lesson',
@@ -39,6 +52,9 @@ export function MathScreen({
           materials={content.materials}
           mode={mode}
           onBeautify={onBeautify}
+          onMaterialsChange={(materials) =>
+            onContentChange({ ...content, materials })
+          }
           className={`min-h-0 ${gridArea.math.materials}`}
         />
       )}
