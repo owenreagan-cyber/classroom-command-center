@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { AppMode, MaterialsLists } from '../data/types'
+import { boardCardShell, displayFontRange } from '../lib/displayLayout'
 import { AutoFitText } from './AutoFitText'
 
 interface MaterialsCardProps {
@@ -85,12 +86,10 @@ export function MaterialsCard({
   }, [])
 
   const fitKey = `${title}|${materials.haveOut.join(',')}|${materials.putAway.join(',')}|${useColumns}|${compact}|${maxVisible}`
+  const fonts = displayFontRange(mode, 13, compact ? 30 : 36)
 
   return (
-    <article
-      ref={shellRef}
-      className={`relative flex min-h-0 flex-col overflow-hidden rounded-3xl border border-white/55 bg-white/92 p-4 shadow-lg backdrop-blur-sm md:p-5 ${className}`}
-    >
+    <article ref={shellRef} className={`${boardCardShell(mode)} ${className}`}>
       {mode === 'edit' && onBeautify && (
         <div className="mb-2">
           <button
@@ -105,8 +104,8 @@ export function MaterialsCard({
 
       <div className="min-h-0 flex-1">
         <AutoFitText
-          minFontSize={13}
-          maxFontSize={compact ? 30 : 36}
+          minFontSize={fonts.minFontSize}
+          maxFontSize={fonts.maxFontSize}
           align="left"
           fitKey={fitKey}
           compact={compact}

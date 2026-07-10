@@ -1,6 +1,7 @@
 import type { AppMode } from '../data/types'
 import type { PhaseStyleToken } from '../data/timerTypes'
 import { formatTimerMs } from '../lib/timerFormat'
+import { boardCardShell } from '../lib/displayLayout'
 import { usePhaseTimerTick } from '../hooks/useTimerTick'
 import { useTimerStore } from '../store/timerStore'
 
@@ -14,6 +15,9 @@ const controlBtn =
 
 const primaryBtn =
   'rounded-lg border border-slate-800 bg-slate-900 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-white shadow-sm transition hover:bg-slate-800'
+
+const displayPrimaryBtn =
+  'board-timer-display-btn rounded-xl border border-slate-800 bg-slate-900 font-semibold uppercase tracking-wide text-white shadow-md transition hover:bg-slate-800'
 
 const styleAccent: Record<PhaseStyleToken, string> = {
   calm: 'border-emerald-300/70 bg-emerald-50/80',
@@ -34,6 +38,7 @@ export function PhaseTimerCard({ mode, className = '' }: PhaseTimerCardProps) {
   const setTitle = useTimerStore((state) => state.setPhaseTitle)
   const updatePhase = useTimerStore((state) => state.updatePhase)
 
+  const isDisplay = mode === 'display'
   const isFinished = timer.status === 'finished'
   const isRunning = timer.status === 'running'
   const isPaused = timer.status === 'paused'
@@ -54,43 +59,69 @@ export function PhaseTimerCard({ mode, className = '' }: PhaseTimerCardProps) {
           ? 'Complete'
           : 'Ready'
 
+  const primaryButtonClass = isDisplay ? displayPrimaryBtn : primaryBtn
+
   return (
-    <article
-      className={`relative flex min-h-0 flex-col overflow-hidden rounded-3xl border border-white/55 bg-white/92 p-4 shadow-lg backdrop-blur-sm md:p-5 ${className}`}
-    >
-      <div className="flex min-h-0 flex-1 flex-col gap-3">
+    <article className={`${boardCardShell(mode)} ${className}`}>
+      <div className={`flex min-h-0 flex-1 flex-col ${isDisplay ? 'gap-4' : 'gap-3'}`}>
         <div className="text-center">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
+          <p
+            className={`font-semibold uppercase tracking-[0.18em] text-slate-500 ${
+              isDisplay ? 'text-base' : 'text-sm'
+            }`}
+          >
             {timer.title}
           </p>
           <p
-            className={`mt-2 font-bold tracking-tight ${
+            className={`mt-2 font-bold tracking-tight tabular-nums ${
               isFinished
-                ? 'text-3xl text-emerald-700 md:text-4xl'
-                : 'text-5xl text-slate-900 tabular-nums md:text-6xl lg:text-7xl'
+                ? isDisplay
+                  ? 'text-4xl text-emerald-700 md:text-5xl'
+                  : 'text-3xl text-emerald-700 md:text-4xl'
+                : isDisplay
+                  ? 'text-6xl text-slate-900 md:text-7xl lg:text-[4.5rem] lg:leading-none'
+                  : 'text-5xl text-slate-900 md:text-6xl lg:text-7xl'
             }`}
             aria-live="polite"
           >
             {displayTime}
           </p>
-          <p className="mt-1 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+          <p
+            className={`mt-1 font-semibold uppercase tracking-[0.16em] text-slate-500 ${
+              isDisplay ? 'text-sm' : 'text-xs'
+            }`}
+          >
             {statusLabel}
           </p>
         </div>
 
         {!isFinished && current && (
-          <div className={`rounded-2xl border p-3 ${accent}`}>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+          <div className={`rounded-2xl border p-3 ${accent} ${isDisplay ? 'p-4' : ''}`}>
+            <p
+              className={`font-semibold uppercase tracking-[0.14em] text-slate-500 ${
+                isDisplay ? 'text-xs' : 'text-[11px]'
+              }`}
+            >
               Current phase
             </p>
-            <p className="mt-1 text-xl font-bold text-slate-900 md:text-2xl">
+            <p
+              className={`mt-1 font-bold text-slate-900 ${
+                isDisplay ? 'text-2xl md:text-3xl' : 'text-xl md:text-2xl'
+              }`}
+            >
               {current.label}
             </p>
-            <p className="mt-1 text-sm text-slate-700">{current.instructions}</p>
+            <p
+              className={`mt-1 text-slate-700 ${
+                isDisplay ? 'text-base md:text-lg' : 'text-sm'
+              }`}
+            >
+              {current.instructions}
+            </p>
           </div>
         )}
 
-        {!isFinished && (
+        {!isFinished && !isDisplay && (
           <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-3">
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
               Next phase
@@ -102,35 +133,47 @@ export function PhaseTimerCard({ mode, className = '' }: PhaseTimerCardProps) {
         )}
 
         {isFinished && (
-          <div className="rounded-2xl border border-emerald-200 bg-emerald-50/80 p-3 text-center">
-            <p className="text-lg font-bold text-emerald-800">
+          <div
+            className={`rounded-2xl border border-emerald-200 bg-emerald-50/80 text-center ${
+              isDisplay ? 'p-4' : 'p-3'
+            }`}
+          >
+            <p
+              className={`font-bold text-emerald-800 ${
+                isDisplay ? 'text-xl md:text-2xl' : 'text-lg'
+              }`}
+            >
               All phases complete
             </p>
-            <p className="mt-1 text-sm text-emerald-700">
-              Reset when you are ready for the next group.
-            </p>
+            {!isDisplay && (
+              <p className="mt-1 text-sm text-emerald-700">
+                Reset when you are ready for the next group.
+              </p>
+            )}
           </div>
         )}
 
         <div className="flex flex-wrap items-center justify-center gap-2">
           {!isRunning && !isPaused && (
-            <button type="button" className={primaryBtn} onClick={start}>
+            <button type="button" className={primaryButtonClass} onClick={start}>
               Start
             </button>
           )}
           {isRunning && (
-            <button type="button" className={primaryBtn} onClick={pause}>
+            <button type="button" className={primaryButtonClass} onClick={pause}>
               Pause
             </button>
           )}
           {isPaused && (
-            <button type="button" className={primaryBtn} onClick={resume}>
+            <button type="button" className={primaryButtonClass} onClick={resume}>
               Resume
             </button>
           )}
-          <button type="button" className={controlBtn} onClick={reset}>
-            Reset
-          </button>
+          {!isDisplay && (
+            <button type="button" className={controlBtn} onClick={reset}>
+              Reset
+            </button>
+          )}
         </div>
       </div>
 

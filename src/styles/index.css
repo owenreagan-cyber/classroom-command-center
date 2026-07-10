@@ -23,3 +23,190 @@ button {
   font: inherit;
   cursor: pointer;
 }
+
+/* ── Board canvas tokens ───────────────────────────────────────────── */
+
+.board-canvas {
+  --board-safe-x: 6%;
+  --board-safe-bottom: 5%;
+  --board-header-top: 6.5rem;
+  --board-header-top-md: 7.5rem;
+  --board-gap: 1rem;
+}
+
+.board-canvas[data-mode='display'] {
+  --board-safe-x: 4.5%;
+  --board-safe-bottom: 4.5%;
+  --board-header-top: 5.75rem;
+  --board-header-top-md: 6.75rem;
+  --board-gap: 1.25rem;
+}
+
+.board-main-safe {
+  position: absolute;
+  inset-inline: var(--board-safe-x);
+  bottom: var(--board-safe-bottom);
+  top: var(--board-header-top);
+  z-index: 10;
+}
+
+@media (min-width: 768px) {
+  .board-main-safe {
+    top: var(--board-header-top-md);
+  }
+}
+
+/* ── Screen grids (safe-zone aligned) ──────────────────────────────── */
+
+.board-screen-grid {
+  display: grid;
+  min-height: 0;
+}
+
+/* Homeroom: hero Do Now left, reminders center stack, timer + ready right */
+.board-screen-grid--homeroom {
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.95fr) minmax(0, 0.72fr);
+  grid-template-rows: minmax(0, 1.05fr) minmax(0, 0.88fr);
+  grid-template-areas:
+    'do-now reminders timer'
+    'materials reminders ready';
+}
+
+/* Math: lesson left, materials center, timer utility column right */
+.board-screen-grid--math {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr) minmax(0, 0.68fr);
+  grid-template-rows: minmax(0, 1fr);
+  grid-template-areas: 'lesson materials timer';
+}
+
+/* Reading: lesson + materials top row, ready spans bottom-left, timer right */
+.board-screen-grid--reading {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 0.68fr);
+  grid-template-rows: minmax(0, 1fr) minmax(0, 0.92fr);
+  grid-template-areas:
+    'lesson materials timer'
+    'ready ready timer';
+}
+
+/* Snack/Lunch: cleanup | routine | phase timer */
+.board-screen-grid--snack-lunch {
+  grid-template-columns: minmax(0, 0.88fr) minmax(0, 1.12fr) minmax(0, 0.72fr);
+  grid-template-rows: minmax(0, 1fr);
+  grid-template-areas: 'cleanup routine timer';
+}
+
+/* Ready Position: full checklist hero + compact cue */
+.board-screen-grid--ready-position {
+  grid-template-columns: minmax(0, 1.55fr) minmax(0, 0.85fr);
+  grid-template-rows: minmax(0, 1fr);
+  grid-template-areas: 'main cue';
+}
+
+/* Grid area assignments */
+.board-area-homeroom-do-now {
+  grid-area: do-now;
+}
+.board-area-homeroom-reminders {
+  grid-area: reminders;
+}
+.board-area-homeroom-materials {
+  grid-area: materials;
+}
+.board-area-homeroom-ready {
+  grid-area: ready;
+}
+.board-area-homeroom-timer {
+  grid-area: timer;
+}
+
+.board-area-math-lesson {
+  grid-area: lesson;
+}
+.board-area-math-materials {
+  grid-area: materials;
+}
+.board-area-math-timer {
+  grid-area: timer;
+}
+
+.board-area-reading-lesson {
+  grid-area: lesson;
+}
+.board-area-reading-materials {
+  grid-area: materials;
+}
+.board-area-reading-ready {
+  grid-area: ready;
+}
+.board-area-reading-timer {
+  grid-area: timer;
+}
+
+.board-area-snack-cleanup {
+  grid-area: cleanup;
+}
+.board-area-snack-routine {
+  grid-area: routine;
+}
+.board-area-snack-timer {
+  grid-area: timer;
+}
+
+.board-area-ready-main {
+  grid-area: main;
+}
+.board-area-ready-cue {
+  grid-area: cue;
+}
+
+/* Collapse to simpler stacks on narrow board widths */
+@media (max-width: 900px) {
+  .board-screen-grid--homeroom,
+  .board-screen-grid--reading {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: auto;
+    grid-template-areas: none;
+  }
+
+  .board-screen-grid--homeroom > *,
+  .board-screen-grid--reading > * {
+    grid-area: auto;
+  }
+
+  .board-screen-grid--math,
+  .board-screen-grid--snack-lunch,
+  .board-screen-grid--ready-position {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto;
+    grid-template-areas: none;
+  }
+
+  .board-screen-grid--math > *,
+  .board-screen-grid--snack-lunch > *,
+  .board-screen-grid--ready-position > * {
+    grid-area: auto;
+  }
+}
+
+/* ── Display mode polish ───────────────────────────────────────────── */
+
+.board-canvas[data-mode='display'] .board-header-brand {
+  opacity: 0.88;
+}
+
+.board-canvas[data-mode='display'] .board-edit-entry {
+  opacity: 0.55;
+  transition: opacity 0.15s ease;
+}
+
+.board-canvas[data-mode='display'] .board-edit-entry:hover,
+.board-canvas[data-mode='display'] .board-edit-entry:focus-visible {
+  opacity: 1;
+}
+
+.board-timer-display-btn {
+  min-width: 5.5rem;
+  padding: 0.65rem 1.25rem;
+  font-size: 0.95rem;
+  letter-spacing: 0.06em;
+}
