@@ -257,3 +257,18 @@ export interface SmartCardModel {
   footer?: string
   align?: TextAlign
 }
+
+export interface DailyBriefTemplate {
+  id: string
+  name: string
+  displayTitle: string
+  voiceLevel: VoiceLevel
+  mainInstruction?: string
+  checklist?: string[]
+  materialsOut?: string[]
+  materialsAway?: string[]
+  smartTvReminder?: string
+  optionalRotationGroups?: string[]
+  optionalTeacherNote?: string
+  optionalTargetScreenSuggestion?: ScreenId
+}

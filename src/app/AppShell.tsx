@@ -58,6 +58,7 @@ export function AppShell() {
         onApplyCustomPreset={applyCustomPreset}
         onDeleteCustomPreset={deleteCustomPreset}
         onImportBoardState={importBoardState}
+        onContentsChange={updateContents}
         onNoiseVoiceLevelChange={setNoiseVoiceLevel}
         onResetNoiseTracker={resetNoiseTracker}
         onCardVisibleChange={setCardVisible}
