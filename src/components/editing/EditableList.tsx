@@ -28,21 +28,23 @@ export function EditableList({
   const value = items.join('\n')
 
   return (
-    <label className="block min-w-[14rem] flex-1">
-      <span className="mb-1 block text-[0.68rem] font-bold uppercase tracking-[0.12em] text-slate-600">
-        {label}
-      </span>
-      <textarea
-        value={value}
-        onChange={(event) => onChange(normalizeList(event.target.value))}
-        onBlur={(event) => onChange(normalizeList(event.target.value))}
-        placeholder={placeholder ?? 'One item per line'}
-        rows={4}
-        className="w-full resize-y rounded-lg border border-slate-300 bg-white/95 px-3 py-2 text-sm font-medium leading-snug text-slate-900 shadow-sm outline-none transition focus:border-cyan-600 focus:ring-2 focus:ring-cyan-200"
-      />
-      <span className="mt-1 block text-[0.7rem] leading-snug text-slate-500">
+    <div className="group block min-w-[16rem] flex-1">
+      <label className="block">
+        <span className="mb-1.5 block text-[0.7rem] font-bold uppercase tracking-[0.14em] text-slate-500 group-focus-within:text-cyan-600 transition-colors">
+          {label}
+        </span>
+        <textarea
+          value={value}
+          onChange={(event) => onChange(normalizeList(event.target.value))}
+          onBlur={(event) => onChange(normalizeList(event.target.value))}
+          placeholder={placeholder ?? 'One item per line'}
+          rows={4}
+          className="w-full resize-y rounded-xl border border-slate-300 bg-white/95 px-3 py-2.5 text-sm font-medium leading-snug text-slate-900 shadow-sm outline-none transition-all placeholder:text-slate-400 focus:border-cyan-500 focus:ring-4 focus:ring-cyan-500/10"
+        />
+      </label>
+      <span className="mt-1.5 block px-1 text-[0.68rem] leading-snug text-slate-400">
         {helperText ?? 'Use one item per line. Blank lines are ignored on the student board.'}
       </span>
-    </label>
+    </div>
   )
 }

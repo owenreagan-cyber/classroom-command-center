@@ -1,5 +1,6 @@
 import type {
   AppMode,
+  CardId,
   NoiseTrackerId,
   NoiseTrackerState,
   ScreenCardVisibility,
@@ -21,6 +22,11 @@ interface ActiveScreenProps {
   cardVisibility: ScreenCardVisibility
   noiseTrackers: Record<NoiseTrackerId, NoiseTrackerState>
   onContentsChange: (contents: ScreenContents) => void
+  onCardVisibleChange: (
+    screenId: ScreenId,
+    cardId: CardId,
+    visible: boolean,
+  ) => void
   onBeautify?: () => void
 }
 
@@ -31,6 +37,7 @@ export function ActiveScreen({
   cardVisibility,
   noiseTrackers,
   onContentsChange,
+  onCardVisibleChange,
   onBeautify,
 }: ActiveScreenProps) {
   const trackerId = getNoiseTrackerIdForScreen(screenId)
@@ -47,6 +54,7 @@ export function ActiveScreen({
           onContentChange={(homeroom) =>
             onContentsChange({ ...contents, homeroom })
           }
+          onCardVisibleChange={onCardVisibleChange}
           onBeautify={onBeautify}
         />
       )
@@ -58,6 +66,7 @@ export function ActiveScreen({
           cardVisibility={cardVisibility.math}
           noiseTracker={noiseTracker || noiseTrackers.math}
           onContentChange={(math) => onContentsChange({ ...contents, math })}
+          onCardVisibleChange={onCardVisibleChange}
           onBeautify={onBeautify}
         />
       )
@@ -71,6 +80,7 @@ export function ActiveScreen({
           onContentChange={(reading) =>
             onContentsChange({ ...contents, reading })
           }
+          onCardVisibleChange={onCardVisibleChange}
           onBeautify={onBeautify}
         />
       )
@@ -78,12 +88,14 @@ export function ActiveScreen({
       return (
         <SubjectScreen
           content={contents.writing}
+          screenId="writing"
           mode={mode}
           cardVisibility={cardVisibility.writing}
           noiseTracker={noiseTracker}
           onContentChange={(writing) =>
             onContentsChange({ ...contents, writing })
           }
+          onCardVisibleChange={onCardVisibleChange}
           onBeautify={onBeautify}
         />
       )
@@ -91,12 +103,14 @@ export function ActiveScreen({
       return (
         <SubjectScreen
           content={contents.science}
+          screenId="science"
           mode={mode}
           cardVisibility={cardVisibility.science}
           noiseTracker={noiseTracker}
           onContentChange={(science) =>
             onContentsChange({ ...contents, science })
           }
+          onCardVisibleChange={onCardVisibleChange}
           onBeautify={onBeautify}
         />
       )
@@ -104,12 +118,14 @@ export function ActiveScreen({
       return (
         <SubjectScreen
           content={contents['social-studies']}
+          screenId="social-studies"
           mode={mode}
           cardVisibility={cardVisibility['social-studies']}
           noiseTracker={noiseTracker}
           onContentChange={(socialStudies) =>
             onContentsChange({ ...contents, 'social-studies': socialStudies })
           }
+          onCardVisibleChange={onCardVisibleChange}
           onBeautify={onBeautify}
         />
       )
@@ -117,12 +133,14 @@ export function ActiveScreen({
       return (
         <SubjectScreen
           content={contents.intervention}
+          screenId="intervention"
           mode={mode}
           cardVisibility={cardVisibility.intervention}
           noiseTracker={noiseTracker}
           onContentChange={(intervention) =>
             onContentsChange({ ...contents, intervention })
           }
+          onCardVisibleChange={onCardVisibleChange}
           onBeautify={onBeautify}
         />
       )
@@ -130,12 +148,14 @@ export function ActiveScreen({
       return (
         <SubjectScreen
           content={contents.assessment}
+          screenId="assessment"
           mode={mode}
           cardVisibility={cardVisibility.assessment}
           noiseTracker={noiseTracker}
           onContentChange={(assessment) =>
             onContentsChange({ ...contents, assessment })
           }
+          onCardVisibleChange={onCardVisibleChange}
           onBeautify={onBeautify}
         />
       )
@@ -143,12 +163,14 @@ export function ActiveScreen({
       return (
         <SubjectScreen
           content={contents['flexible-groups']}
+          screenId="flexible-groups"
           mode={mode}
           cardVisibility={cardVisibility['flexible-groups']}
           noiseTracker={noiseTracker}
           onContentChange={(flexibleGroups) =>
             onContentsChange({ ...contents, 'flexible-groups': flexibleGroups })
           }
+          onCardVisibleChange={onCardVisibleChange}
           onBeautify={onBeautify}
         />
       )
@@ -156,12 +178,14 @@ export function ActiveScreen({
       return (
         <SubjectScreen
           content={contents.centers}
+          screenId="centers"
           mode={mode}
           cardVisibility={cardVisibility.centers}
           noiseTracker={noiseTracker}
           onContentChange={(centers) =>
             onContentsChange({ ...contents, centers })
           }
+          onCardVisibleChange={onCardVisibleChange}
           onBeautify={onBeautify}
         />
       )
@@ -169,12 +193,14 @@ export function ActiveScreen({
       return (
         <SubjectScreen
           content={contents['homework-packup']}
+          screenId="homework-packup"
           mode={mode}
           cardVisibility={cardVisibility['homework-packup']}
           noiseTracker={noiseTracker}
           onContentChange={(homeworkPackup) =>
             onContentsChange({ ...contents, 'homework-packup': homeworkPackup })
           }
+          onCardVisibleChange={onCardVisibleChange}
           onBeautify={onBeautify}
         />
       )
@@ -188,6 +214,7 @@ export function ActiveScreen({
           onContentChange={(snackLunch) =>
             onContentsChange({ ...contents, 'snack-lunch': snackLunch })
           }
+          onCardVisibleChange={onCardVisibleChange}
           onBeautify={onBeautify}
         />
       )
@@ -201,6 +228,7 @@ export function ActiveScreen({
           onContentChange={(readyPosition) =>
             onContentsChange({ ...contents, 'ready-position': readyPosition })
           }
+          onCardVisibleChange={onCardVisibleChange}
           onBeautify={onBeautify}
         />
       )

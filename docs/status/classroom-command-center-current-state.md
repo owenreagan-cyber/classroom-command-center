@@ -1,7 +1,7 @@
 # Classroom Command Center — Current State Audit
 
-Status: PASS  
-Date: 2026-07-09  
+Status: PASS
+Date: 2026-07-11
 Project: `~/Projects/classroom-command-center`
 
 ## Validation
@@ -9,6 +9,7 @@ Project: `~/Projects/classroom-command-center`
 Latest validation:
 - `npm run build` — PASS
 - `npm run lint` — PASS
+- `git diff --check` — PASS
 
 Production build output:
 - `dist/index.html` — 0.47 kB / gzip 0.30 kB
@@ -61,6 +62,13 @@ Core app:
 Board:
 - `src/board/BoardFrame.tsx`
 - `src/board/TeacherDock.tsx`
+
+Components:
+- `src/components/VisibilityGate.tsx`
+- `src/components/editing/EditableList.tsx`
+- `src/components/editing/EditableMaterials.tsx`
+- `src/components/editing/EditableText.tsx`
+- `src/components/editing/HiddenCardPlaceholder.tsx`
 
 Data:
 - `src/data/backgroundAssets.ts`
@@ -127,6 +135,8 @@ Implemented:
 - wall-clock timer reload recovery
 - local persistence with Zustand
 - reset clears timers
+- Widget visibility toggles and placeholders
+- Inline editing polish
 - docs architecture bundle
 - Spotify/Classroom Audio plan
 - widget evolution roadmap
@@ -205,10 +215,10 @@ Shared:
 ## Recommended Next Phase
 
 Next phase:
-Display Layout Polish / Projector Readability
+Voice Level / Traffic Light Widget
 
 Why:
-The app now has enough features to test in a classroom-like way. Before adding Teacher Launcher, Spotify, Today Prep, or OmniNote handoff, the student-facing display should look excellent and be readable from the back of the room.
+The core board configuration and editing experience is now polished. The next logical step is to add classroom management tools that don't require microphone input, starting with a visual traffic light / voice level guide.
 
 ## Recommended Phase Order
 

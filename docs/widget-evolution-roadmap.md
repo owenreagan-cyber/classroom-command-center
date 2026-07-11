@@ -1,6 +1,6 @@
 # Classroom Command Center — Widget Evolution Roadmap
 
-Status: active planning document  
+Status: active planning document
 App: `~/Projects/classroom-command-center`
 
 ## Current Build Foundation
@@ -27,6 +27,8 @@ Completed:
 - TimerWidget
 - PhaseTimerCard / RoutineTimerCard
 - Timer reload recovery using wall-clock `endsAt`
+- Widget visibility toggles and Edit mode placeholders
+- Inline editing polish (labels, focus, placeholders)
 - Build and lint passing
 
 Parked:
@@ -47,24 +49,19 @@ Do not hardcode snack, lunch, dismissal, transition, ClassPass, or job-check clo
 
 ## Level System
 
-Level 1 = basic features / gets the job done  
-Level 2 = more features, appearance changes, better teacher control  
+Level 1 = basic features / gets the job done
+Level 2 = more features, appearance changes, better teacher control
 Level 3 = maxed out / fully decked out / automated or integrated
 
 ---
 
 ## Current Priority Order
 
-1. Display layout polish / projector readability
-2. Homeroom density fix
-3. Timer Polish Phase 2
-4. Widget visibility toggles
-5. Basic inline editing polish
-6. Voice Level / Traffic Light
-7. Daily Brief Intake
-8. Lesson Card
-9. Vocabulary Card
-10. Random Picker
+1. Voice Level / Traffic Light
+2. Daily Brief Intake
+3. Lesson Card
+4. Vocabulary Card
+5. Random Picker
 
 Do not chase Level 3 features until the MVP board els excellent.
 

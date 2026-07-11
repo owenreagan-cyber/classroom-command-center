@@ -92,6 +92,7 @@ export function AppShell() {
           cardVisibility={cardVisibility}
           noiseTrackers={noiseTrackers}
           onContentsChange={updateContents}
+          onCardVisibleChange={setCardVisible}
           onBeautify={mode === 'edit' ? beautifyActiveScreen : undefined}
         />
       </BoardFrame>

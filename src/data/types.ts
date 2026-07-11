@@ -70,6 +70,7 @@ export interface CardVisibilityOption {
   id: CardId
   label: string
   helperText?: string
+  isOptional?: boolean
 }
 
 export interface MaterialsLists {

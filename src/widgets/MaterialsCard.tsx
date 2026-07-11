@@ -105,15 +105,20 @@ export function MaterialsCard({
     <article ref={shellRef} className={`${boardCardShell(mode)} ${className}`}>
       {mode === 'edit' && (onBeautify || onMaterialsChange) && (
         <div className="mb-3 rounded-xl border border-cyan-200/70 bg-cyan-50/80 p-3 shadow-sm">
-          <p className="mb-2 text-[0.68rem] font-bold uppercase tracking-[0.14em] text-cyan-900">
-            Edit student-facing materials
-          </p>
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <p className="text-[0.68rem] font-bold uppercase tracking-[0.14em] text-cyan-900">
+              Edit {title}
+            </p>
+            <span className="rounded-full bg-cyan-200/50 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-cyan-800">
+              Saved Locally
+            </span>
+          </div>
           <div className="flex flex-col gap-3">
           {onBeautify && (
             <button
               type="button"
               onClick={onBeautify}
-              className="w-fit rounded-lg border border-slate-300 bg-slate-900 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-white"
+              className="w-fit rounded-lg border border-slate-300 bg-slate-900 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-white shadow-sm transition hover:bg-slate-800"
             >
               Beautify
             </button>

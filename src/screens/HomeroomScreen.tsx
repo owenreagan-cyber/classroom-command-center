@@ -1,10 +1,13 @@
 import { EditableList } from '../components/editing/EditableList'
 import { EditableText } from '../components/editing/EditableText'
+import { HiddenCardPlaceholder } from '../components/editing/HiddenCardPlaceholder'
 import type {
   AppMode,
+  CardId,
   HomeroomContent,
   NoiseTrackerState,
   ScreenCardVisibility,
+  ScreenId,
 } from '../data/types'
 import { gridArea, noiseCardOverlayClass, screenGridClass } from '../lib/displayLayout'
 import { DoNowCard } from '../widgets/DoNowCard'
@@ -20,6 +23,11 @@ interface HomeroomScreenProps {
   cardVisibility: ScreenCardVisibility['homeroom']
   noiseTracker: NoiseTrackerState
   onContentChange: (content: HomeroomContent) => void
+  onCardVisibleChange: (
+    screenId: ScreenId,
+    cardId: CardId,
+    visible: boolean,
+  ) => void
   onBeautify?: () => void
 }
 
@@ -29,13 +37,22 @@ export function HomeroomScreen({
   cardVisibility,
   noiseTracker,
   onContentChange,
+  onCardVisibleChange,
   onBeautify,
 }: HomeroomScreenProps) {
-  const showDoNow = cardVisibility['do-now'] ?? true
-  const showReminders = cardVisibility.reminders ?? true
-  const showMaterials = cardVisibility.materials ?? true
-  const showReady = cardVisibility.ready ?? true
-  const showTimer = cardVisibility.timer ?? true
+  const isEdit = mode === 'edit'
+  const showDoNow = (cardVisibility['do-now'] ?? true) || isEdit
+  const showReminders = (cardVisibility.reminders ?? true) || isEdit
+  const showMaterials = (cardVisibility.materials ?? true) || isEdit
+  const showReady = (cardVisibility.ready ?? true) || isEdit
+  const showTimer = (cardVisibility.timer ?? true) || isEdit
+
+  const actualDoNowVisible = cardVisibility['do-now'] ?? true
+  const actualRemindersVisible = cardVisibility.reminders ?? true
+  const actualMaterialsVisible = cardVisibility.materials ?? true
+  const actualReadyVisible = cardVisibility.ready ?? true
+  const actualTimerVisible = cardVisibility.timer ?? true
+  const actualNoiseVisible = cardVisibility.noise ?? true
 
   const activeLeft = showDoNow || showMaterials
   const activeMiddle = showReminders
@@ -114,75 +131,140 @@ export function HomeroomScreen({
       className={`${screenGridClass('homeroom', mode)} relative`}
       style={gridStyle}
     >
-      {(cardVisibility['do-now'] ?? true) && (
-        <DoNowCard
-          title={content.doNowTitle}
-          prompt={content.doNow}
-          mode={mode}
-          onBeautify={onBeautify}
-          editSlot={
-            <EditableText
-              mode={mode}
-              label="Do Now prompt"
-              value={content.doNow}
-              onChange={(doNow) => onContentChange({ ...content, doNow })}
-              multiline
-              helperText="This is the large student-facing arrival task."
-            />
-          }
-          className={`min-h-0 ${gridArea.homeroom.doNow}`}
-          hero
-        />
+      {showDoNow && (
+        actualDoNowVisible ? (
+          <DoNowCard
+            title={content.doNowTitle}
+            prompt={content.doNow}
+            mode={mode}
+            onBeautify={onBeautify}
+            editSlot={
+              <EditableText
+                mode={mode}
+                label="Do Now prompt"
+                value={content.doNow}
+                onChange={(doNow) => onContentChange({ ...content, doNow })}
+                multiline
+                helperText="This is the large student-facing arrival task."
+              />
+            }
+            className={`min-h-0 ${gridArea.homeroom.doNow}`}
+            hero
+          />
+        ) : (
+          <HiddenCardPlaceholder
+            screenId="homeroom"
+            cardId="do-now"
+            label="Do Now"
+            onToggle={onCardVisibleChange}
+            className={gridArea.homeroom.doNow}
+          />
+        )
       )}
-      {(cardVisibility.reminders ?? true) && (
-        <ReminderCard
-          title={content.remindersTitle}
-          reminders={content.reminders}
-          mode={mode}
-          onBeautify={onBeautify}
-          editSlot={
-            <EditableList
-              mode={mode}
-              label="Reminders"
-              items={content.reminders}
-              onChange={(reminders) =>
-                onContentChange({ ...content, reminders })
-              }
-              helperText="One reminder per line. Blank lines are ignored."
-            />
-          }
-          className={`min-h-0 ${gridArea.homeroom.reminders}`}
-        />
+      {showReminders && (
+        actualRemindersVisible ? (
+          <ReminderCard
+            title={content.remindersTitle}
+            reminders={content.reminders}
+            mode={mode}
+            onBeautify={onBeautify}
+            editSlot={
+              <EditableList
+                mode={mode}
+                label="Reminders"
+                items={content.reminders}
+                onChange={(reminders) =>
+                  onContentChange({ ...content, reminders })
+                }
+                helperText="One reminder per line. Blank lines are ignored."
+              />
+            }
+            className={`min-h-0 ${gridArea.homeroom.reminders}`}
+          />
+        ) : (
+          <HiddenCardPlaceholder
+            screenId="homeroom"
+            cardId="reminders"
+            label="Reminders"
+            onToggle={onCardVisibleChange}
+            className={gridArea.homeroom.reminders}
+          />
+        )
       )}
-      {(cardVisibility.materials ?? true) && (
-        <MaterialsCard
-          title={content.materialsTitle}
-          materials={content.materials}
-          mode={mode}
-          onBeautify={onBeautify}
-          onMaterialsChange={(materials) =>
-            onContentChange({ ...content, materials })
-          }
-          className={`min-h-0 ${gridArea.homeroom.materials}`}
-        />
+      {showMaterials && (
+        actualMaterialsVisible ? (
+          <MaterialsCard
+            title={content.materialsTitle}
+            materials={content.materials}
+            mode={mode}
+            onBeautify={onBeautify}
+            onMaterialsChange={(materials) =>
+              onContentChange({ ...content, materials })
+            }
+            className={`min-h-0 ${gridArea.homeroom.materials}`}
+          />
+        ) : (
+          <HiddenCardPlaceholder
+            screenId="homeroom"
+            cardId="materials"
+            label="Materials"
+            onToggle={onCardVisibleChange}
+            className={gridArea.homeroom.materials}
+          />
+        )
       )}
-      {(cardVisibility.ready ?? true) && (
-        <ReadyPositionCard
-          content={content.readyPosition}
-          mode={mode}
-          compact
-          onBeautify={onBeautify}
-          className={`min-h-0 ${gridArea.homeroom.ready}`}
-        />
+      {showReady && (
+        actualReadyVisible ? (
+          <ReadyPositionCard
+            content={content.readyPosition}
+            mode={mode}
+            compact
+            onBeautify={onBeautify}
+            editSlot={
+              <EditableText
+                mode={mode}
+                label="Compact cue"
+                value={content.readyPosition.compactLine}
+                onChange={(compactLine) =>
+                  onContentChange({
+                    ...content,
+                    readyPosition: { ...content.readyPosition, compactLine },
+                  })
+                }
+                multiline
+                helperText="A quick one-line reminder for the homeroom board."
+              />
+            }
+            className={`min-h-0 ${gridArea.homeroom.ready}`}
+          />
+        ) : (
+          <HiddenCardPlaceholder
+            screenId="homeroom"
+            cardId="ready"
+            label="Ready Position"
+            onToggle={onCardVisibleChange}
+            className={gridArea.homeroom.ready}
+          />
+        )
       )}
-      {(cardVisibility.timer ?? true) && (
-        <TimerWidget
-          screenId="homeroom"
-          mode={mode}
-          className={`min-h-0 ${gridArea.homeroom.timer}`}
-        />
+      {showTimer && (
+        actualTimerVisible ? (
+          <TimerWidget
+            screenId="homeroom"
+            mode={mode}
+            className={`min-h-0 ${gridArea.homeroom.timer}`}
+          />
+        ) : (
+          <HiddenCardPlaceholder
+            screenId="homeroom"
+            cardId="timer"
+            label="Timer"
+            onToggle={onCardVisibleChange}
+            className={gridArea.homeroom.timer}
+          />
+        )
       )}
-      {(cardVisibility.noise ?? true) && (
+      {actualNoiseVisible && (
         <NoiseStatusCard
           tracker={noiseTracker}
           mode={mode}
