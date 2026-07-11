@@ -11,11 +11,13 @@ import type {
   VoiceLevel,
   ScreenCardVisibility,
   ScreenId,
+  ScreenContents,
   TeacherNote,
 } from '../data/types'
 import { BoardBackupPanel } from './BoardBackupPanel'
 import { BoardPresetPanel } from './BoardPresetPanel'
 import { CardVisibilityPanel } from './CardVisibilityPanel'
+import { DailyBriefPanel } from './DailyBriefPanel'
 import { NoiseControlPanel } from './NoiseControlPanel'
 import { TeacherNotesPanel } from './TeacherNotesPanel'
 
@@ -35,6 +37,7 @@ interface TeacherDockProps {
   onApplyCustomPreset: (presetId: string) => void
   onDeleteCustomPreset: (presetId: string) => void
   onImportBoardState: (payload: BoardExportPayload) => void
+  onContentsChange: (contents: ScreenContents) => void
   onNoiseVoiceLevelChange: (
     trackerId: NoiseTrackerId,
     voiceLevel: VoiceLevel,
@@ -66,6 +69,7 @@ export function TeacherDock({
   onApplyCustomPreset,
   onDeleteCustomPreset,
   onImportBoardState,
+  onContentsChange,
   onNoiseVoiceLevelChange,
   onResetNoiseTracker,
   onCardVisibleChange,
@@ -152,6 +156,13 @@ export function TeacherDock({
           ))}
         </div>
       </section>
+
+      <DailyBriefPanel
+        activeScreen={activeScreen}
+        contents={boardState.contents}
+        onContentsChange={onContentsChange}
+        onNoiseVoiceLevelChange={onNoiseVoiceLevelChange}
+      />
 
       <BoardPresetPanel
         activeScreen={activeScreen}

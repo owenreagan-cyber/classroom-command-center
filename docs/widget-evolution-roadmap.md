@@ -30,6 +30,7 @@ Completed:
 - Widget visibility toggles and Edit mode placeholders
 - Inline editing polish (labels, focus, placeholders)
 - Voice Level / Traffic Light widget (microphone-free student voice expectations guide)
+- Daily Brief Intake & Routine Templates (offline-ready template presets for daily board setups)
 - Build and lint passing
 
 Parked:

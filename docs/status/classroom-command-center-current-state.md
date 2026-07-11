@@ -61,6 +61,7 @@ Core app:
 
 Board:
 - `src/board/BoardFrame.tsx`
+- `src/board/DailyBriefPanel.tsx`
 - `src/board/TeacherDock.tsx`
 
 Components:
@@ -72,6 +73,7 @@ Components:
 
 Data:
 - `src/data/backgroundAssets.ts`
+- `src/data/dailyBriefTemplates.ts`
 - `src/data/defaults.ts`
 - `src/data/timerDefaults.ts`
 - `src/data/timerTypes.ts`
@@ -139,6 +141,7 @@ Implemented:
 - Widget visibility toggles and placeholders
 - Inline editing polish
 - Voice Level / Traffic Light Widget (microphone-free student voice expectations indicator)
+- Daily Brief Intake & Routine Templates (offline-ready template presets for daily board setups)
 - docs architecture bundle
 - Spotify/Classroom Audio plan
 - widget evolution roadmap
