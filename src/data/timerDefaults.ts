@@ -27,6 +27,8 @@ export function createDefaultSimpleTimer(
     status: 'idle',
     remainingMs: DEFAULT_TIMER_DURATION_MS,
     endsAt: null,
+    appearance: 'calm',
+    chimeEnabled: false,
   }
 }
 
@@ -72,6 +74,8 @@ export const DEFAULT_PHASE_TIMER: PhaseTimerState = {
   currentPhaseIndex: 0,
   remainingMs: 10 * 60 * 1000,
   endsAt: null,
+  appearance: 'calm',
+  chimeEnabled: false,
 }
 
 export const SIMPLE_TIMER_SCREEN_IDS: SimpleTimerScreenId[] = [

@@ -17,6 +17,8 @@ export interface SimpleTimerConfig {
   presetId: TimerPresetId
   /** Selected / custom duration in milliseconds. */
   durationMs: number
+  appearance?: 'calm' | 'bold' | 'minimal'
+  chimeEnabled?: boolean
 }
 
 export interface SimpleTimerRuntime {
@@ -46,6 +48,8 @@ export interface PhaseDefinition {
 export interface PhaseTimerConfig {
   title: string
   phases: PhaseDefinition[]
+  appearance?: 'calm' | 'bold' | 'minimal'
+  chimeEnabled?: boolean
 }
 
 export interface PhaseTimerRuntime {

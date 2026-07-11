@@ -30,6 +30,14 @@ interface TimerStore {
     screenId: SimpleTimerScreenId,
     minutes: number,
   ) => void
+  setSimpleAppearance: (
+    screenId: SimpleTimerScreenId,
+    appearance: 'calm' | 'bold' | 'minimal',
+  ) => void
+  setSimpleChimeEnabled: (
+    screenId: SimpleTimerScreenId,
+    enabled: boolean,
+  ) => void
   startSimple: (screenId: SimpleTimerScreenId) => void
   pauseSimple: (screenId: SimpleTimerScreenId) => void
   resumeSimple: (screenId: SimpleTimerScreenId) => void
@@ -40,6 +48,12 @@ interface TimerStore {
   syncSimple: (screenId: SimpleTimerScreenId) => void
 
   setPhaseTitle: (title: string) => void
+  setPhaseAppearance: (
+    appearance: 'calm' | 'bold' | 'minimal',
+  ) => void
+  setPhaseChimeEnabled: (
+    enabled: boolean,
+  ) => void
   updatePhase: (phaseId: string, patch: Partial<PhaseDefinition>) => void
   startPhase: () => void
   pausePhase: () => void
@@ -212,6 +226,28 @@ export const useTimerStore = create<TimerStore>()(
           }
         }),
 
+      setSimpleAppearance: (screenId, appearance) =>
+        set((state) => ({
+          simpleTimers: {
+            ...state.simpleTimers,
+            [screenId]: {
+              ...state.simpleTimers[screenId],
+              appearance,
+            },
+          },
+        })),
+
+      setSimpleChimeEnabled: (screenId, chimeEnabled) =>
+        set((state) => ({
+          simpleTimers: {
+            ...state.simpleTimers,
+            [screenId]: {
+              ...state.simpleTimers[screenId],
+              chimeEnabled,
+            },
+          },
+        })),
+
       startSimple: (screenId) =>
         set((state) => {
           const current = state.simpleTimers[screenId]
@@ -376,6 +412,16 @@ export const useTimerStore = create<TimerStore>()(
       setPhaseTitle: (title) =>
         set((state) => ({
           phaseTimer: { ...state.phaseTimer, title },
+        })),
+
+      setPhaseAppearance: (appearance) =>
+        set((state) => ({
+          phaseTimer: { ...state.phaseTimer, appearance },
+        })),
+
+      setPhaseChimeEnabled: (chimeEnabled) =>
+        set((state) => ({
+          phaseTimer: { ...state.phaseTimer, chimeEnabled },
         })),
 
       updatePhase: (phaseId, patch) =>

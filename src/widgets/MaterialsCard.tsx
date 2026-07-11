@@ -28,36 +28,36 @@ function MaterialSection({ heading, items, compact, maxVisible }: SectionProps) 
   return (
     <div className="min-w-0">
       <h3
-        className="font-bold uppercase tracking-[0.08em] text-slate-700"
-        style={{ fontSize: compact ? '0.7em' : '0.78em' }}
+        className="font-bold uppercase tracking-[0.08em] text-slate-500"
+        style={{ fontSize: compact ? '0.8em' : '0.86em' }}
       >
         {heading}
       </h3>
       {hasItems ? (
         <ul
           className={compact ? 'mt-[0.25em] space-y-[0.18em]' : 'mt-[0.3em] space-y-[0.25em]'}
-          style={{ fontSize: '0.88em' }}
+          style={{ fontSize: compact ? '0.92em' : '0.96em' }}
         >
           {visible.map((item) => (
-            <li key={item} className="flex gap-[0.4em] text-slate-800">
+            <li key={item} className="flex gap-[0.4em] text-slate-850">
               <span
                 className="mt-[0.35em] inline-block h-[0.3em] w-[0.3em] shrink-0 rounded-full bg-slate-800"
                 aria-hidden="true"
               />
-              <span className="min-w-0 break-normal">{item}</span>
+              <span className="min-w-0 break-normal font-semibold">{item}</span>
             </li>
           ))}
         </ul>
       ) : (
         <p
           className="mt-[0.3em] rounded-lg border border-dashed border-slate-300 bg-slate-50/80 px-[0.7em] py-[0.45em] font-semibold text-slate-500"
-          style={{ fontSize: '0.72em' }}
+          style={{ fontSize: '0.8em' }}
         >
           Add items in edit mode.
         </p>
       )}
       {hidden > 0 && (
-        <p className="mt-[0.2em] font-semibold text-slate-700" style={{ fontSize: '0.68em' }}>
+        <p className="mt-[0.2em] font-semibold text-slate-700" style={{ fontSize: '0.76em' }}>
           + {hidden} more
         </p>
       )}
