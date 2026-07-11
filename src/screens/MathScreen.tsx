@@ -11,7 +11,7 @@ import type {
 import { gridArea, noiseCardOverlayClass, screenGridClass } from '../lib/displayLayout'
 import { MaterialsCard } from '../widgets/MaterialsCard'
 import { SmartTextCard } from '../widgets/SmartTextCard'
-import { NoiseStatusCard } from '../widgets/NoiseStatusCard'
+import { VoiceLevelWidget } from '../widgets/VoiceLevelWidget'
 import { TimerWidget } from '../widgets/TimerWidget'
 
 interface MathScreenProps {
@@ -121,8 +121,8 @@ export function MathScreen({
         )
       )}
       {actualNoiseVisible && (
-        <NoiseStatusCard
-          tracker={noiseTracker}
+        <VoiceLevelWidget
+          level={noiseTracker.voiceLevel}
           mode={mode}
           className={noiseCardOverlayClass(mode)}
         />

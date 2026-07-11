@@ -103,6 +103,7 @@ Widgets:
 - `src/widgets/ReminderCard.tsx`
 - `src/widgets/SmartTextCard.tsx`
 - `src/widgets/TimerWidget.tsx`
+- `src/widgets/VoiceLevelWidget.tsx`
 
 Styles:
 - `src/styles/index.css`
@@ -137,6 +138,7 @@ Implemented:
 - reset clears timers
 - Widget visibility toggles and placeholders
 - Inline editing polish
+- Voice Level / Traffic Light Widget (microphone-free student voice expectations indicator)
 - docs architecture bundle
 - Spotify/Classroom Audio plan
 - widget evolution roadmap
@@ -215,10 +217,10 @@ Shared:
 ## Recommended Next Phase
 
 Next phase:
-Voice Level / Traffic Light Widget
+Daily Brief Intake
 
 Why:
-The core board configuration and editing experience is now polished. The next logical step is to add classroom management tools that don't require microphone input, starting with a visual traffic light / voice level guide.
+With the voice level and traffic light widget complete, the core set of daily classroom widgets is fully established. Introducing the Daily Brief Intake will allow teachers to seamlessly import and set up structured lesson details, schedules, or announcements in one quick central interface.
 
 ## Recommended Phase Order
 

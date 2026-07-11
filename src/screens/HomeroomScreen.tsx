@@ -14,7 +14,7 @@ import { DoNowCard } from '../widgets/DoNowCard'
 import { MaterialsCard } from '../widgets/MaterialsCard'
 import { ReadyPositionCard } from '../widgets/ReadyPositionCard'
 import { ReminderCard } from '../widgets/ReminderCard'
-import { NoiseStatusCard } from '../widgets/NoiseStatusCard'
+import { VoiceLevelWidget } from '../widgets/VoiceLevelWidget'
 import { TimerWidget } from '../widgets/TimerWidget'
 
 interface HomeroomScreenProps {
@@ -265,8 +265,8 @@ export function HomeroomScreen({
         )
       )}
       {actualNoiseVisible && (
-        <NoiseStatusCard
-          tracker={noiseTracker}
+        <VoiceLevelWidget
+          level={noiseTracker.voiceLevel}
           mode={mode}
           className={noiseCardOverlayClass(mode)}
         />

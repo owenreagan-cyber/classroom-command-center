@@ -12,7 +12,7 @@ import type {
 import { displayFontRange, gridArea, screenGridClass, noiseCardOverlayClass } from '../lib/displayLayout'
 import { ReadyPositionCard } from '../widgets/ReadyPositionCard'
 import { SmartTextCard } from '../widgets/SmartTextCard'
-import { NoiseStatusCard } from '../widgets/NoiseStatusCard'
+import { VoiceLevelWidget } from '../widgets/VoiceLevelWidget'
 
 interface ReadyPositionScreenProps {
   content: ReadyPositionContent
@@ -124,8 +124,8 @@ export function ReadyPositionScreen({
         )
       )}
       {noiseTracker && actualNoiseVisible && (
-        <NoiseStatusCard
-          tracker={noiseTracker}
+        <VoiceLevelWidget
+          level={noiseTracker.voiceLevel}
           mode={mode}
           className={noiseCardOverlayClass(mode)}
         />
