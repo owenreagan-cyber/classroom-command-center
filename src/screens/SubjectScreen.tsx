@@ -5,7 +5,7 @@ import type { AppMode, CardId, SubjectContent, NoiseTrackerState, ScreenId } fro
 import { MaterialsCard } from '../widgets/MaterialsCard'
 import { SmartTextCard } from '../widgets/SmartTextCard'
 import { TeacherHint } from '../widgets/TeacherHint'
-import { NoiseStatusCard } from '../widgets/NoiseStatusCard'
+import { VoiceLevelWidget } from '../widgets/VoiceLevelWidget'
 import { noiseCardOverlayClass } from '../lib/displayLayout'
 
 type SubjectCardVisibility = Partial<Record<CardId, boolean>>
@@ -144,8 +144,8 @@ export function SubjectScreen({
       )}
 
       {noiseTracker && actualNoiseVisible && (
-        <NoiseStatusCard
-          tracker={noiseTracker}
+        <VoiceLevelWidget
+          level={noiseTracker.voiceLevel}
           mode={mode}
           className={noiseCardOverlayClass(mode)}
         />

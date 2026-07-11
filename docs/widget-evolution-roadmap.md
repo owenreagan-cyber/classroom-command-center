@@ -29,6 +29,7 @@ Completed:
 - Timer reload recovery using wall-clock `endsAt`
 - Widget visibility toggles and Edit mode placeholders
 - Inline editing polish (labels, focus, placeholders)
+- Voice Level / Traffic Light widget (microphone-free student voice expectations guide)
 - Build and lint passing
 
 Parked:
@@ -57,11 +58,10 @@ Level 3 = maxed out / fully decked out / automated or integrated
 
 ## Current Priority Order
 
-1. Voice Level / Traffic Light
-2. Daily Brief Intake
-3. Lesson Card
-4. Vocabulary Card
-5. Random Picker
+1. Daily Brief Intake
+2. Lesson Card
+3. Vocabulary Card
+4. Random Picker
 
 Do not chase Level 3 features until the MVP board els excellent.
 

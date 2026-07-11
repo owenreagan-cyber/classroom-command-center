@@ -12,7 +12,7 @@ import { gridArea, noiseCardOverlayClass, screenGridClass } from '../lib/display
 import { MaterialsCard } from '../widgets/MaterialsCard'
 import { ReadyPositionCard } from '../widgets/ReadyPositionCard'
 import { SmartTextCard } from '../widgets/SmartTextCard'
-import { NoiseStatusCard } from '../widgets/NoiseStatusCard'
+import { VoiceLevelWidget } from '../widgets/VoiceLevelWidget'
 import { TimerWidget } from '../widgets/TimerWidget'
 
 interface ReadingScreenProps {
@@ -141,8 +141,8 @@ export function ReadingScreen({
         )
       )}
       {actualNoiseVisible && (
-        <NoiseStatusCard
-          tracker={noiseTracker}
+        <VoiceLevelWidget
+          level={noiseTracker.voiceLevel}
           mode={mode}
           className={noiseCardOverlayClass(mode)}
         />

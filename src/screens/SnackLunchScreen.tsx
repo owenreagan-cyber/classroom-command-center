@@ -12,7 +12,7 @@ import { gridArea, screenGridClass, noiseCardOverlayClass } from '../lib/display
 import { PhaseTimerCard } from '../widgets/PhaseTimerCard'
 import { ReminderCard } from '../widgets/ReminderCard'
 import { SmartTextCard } from '../widgets/SmartTextCard'
-import { NoiseStatusCard } from '../widgets/NoiseStatusCard'
+import { VoiceLevelWidget } from '../widgets/VoiceLevelWidget'
 
 interface SnackLunchScreenProps {
   content: SnackLunchContent
@@ -125,8 +125,8 @@ export function SnackLunchScreen({
         )
       )}
       {noiseTracker && actualNoiseVisible && (
-        <NoiseStatusCard
-          tracker={noiseTracker}
+        <VoiceLevelWidget
+          level={noiseTracker.voiceLevel}
           mode={mode}
           className={noiseCardOverlayClass(mode)}
         />
