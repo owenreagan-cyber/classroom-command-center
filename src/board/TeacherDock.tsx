@@ -179,6 +179,7 @@ export function TeacherDock({
 
       <NoiseControlPanel
         noiseTrackers={boardState.noiseTrackers}
+        activeScreen={activeScreen}
         onVoiceLevelChange={onNoiseVoiceLevelChange}
         onAddNoisyPoint={onAddNoisyPoint}
         onRepairNoiseTick={onRepairNoiseTick}
