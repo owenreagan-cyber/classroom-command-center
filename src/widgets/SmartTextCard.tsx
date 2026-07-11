@@ -190,7 +190,7 @@ export function SmartTextCard({
                           className="mt-[0.35em] inline-block h-[0.32em] w-[0.32em] shrink-0 rounded-full bg-slate-800"
                           aria-hidden="true"
                         />
-                        <span className="min-w-0 break-words">{item}</span>
+                        <span className="min-w-0 break-normal">{item}</span>
                       </li>
                     ))}
                   </ul>

@@ -44,7 +44,7 @@ function MaterialSection({ heading, items, compact, maxVisible }: SectionProps) 
                 className="mt-[0.35em] inline-block h-[0.3em] w-[0.3em] shrink-0 rounded-full bg-slate-800"
                 aria-hidden="true"
               />
-              <span className="min-w-0 break-words">{item}</span>
+              <span className="min-w-0 break-normal">{item}</span>
             </li>
           ))}
         </ul>
