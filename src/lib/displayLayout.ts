@@ -13,11 +13,11 @@ export function boardGap(mode: AppMode): string {
 /** High-contrast card shell — slightly larger padding in display mode. */
 export function boardCardShell(mode: AppMode): string {
   const base =
-    'relative flex min-h-0 flex-col overflow-hidden rounded-3xl border shadow-lg backdrop-blur-sm'
+    'relative flex min-h-0 flex-col overflow-hidden rounded-3xl border shadow-xl backdrop-blur-md transition-all duration-300'
   if (mode === 'display') {
-    return `${base} border-white/65 bg-white/94 p-5 md:p-6`
+    return `${base} border-slate-300/65 bg-white/98 p-5 md:p-6 shadow-2xl`
   }
-  return `${base} border-white/55 bg-white/92 p-4 md:p-5`
+  return `${base} border-slate-200/70 bg-white/94 p-4 md:p-5`
 }
 
 /** Screen grid shells aligned to background safe zones (left-main, center-card, right-utility). */

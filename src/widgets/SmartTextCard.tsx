@@ -162,8 +162,8 @@ export function SmartTextCard({
             </h2>
             {displayModel.subtitle && (
               <p
-                className="font-semibold uppercase tracking-[0.12em] text-slate-600"
-                style={{ fontSize: '0.52em' }}
+                className="font-bold uppercase tracking-[0.14em] text-slate-500"
+                style={{ fontSize: '0.64em' }}
               >
                 {displayModel.subtitle}
               </p>
@@ -171,7 +171,7 @@ export function SmartTextCard({
             {!hasContent && (
               <p
                 className="rounded-lg border border-dashed border-slate-300 bg-slate-50/80 px-3 py-2 font-semibold text-slate-500"
-                style={{ fontSize: '0.72em' }}
+                style={{ fontSize: '0.78em' }}
               >
                 Add details in edit mode.
               </p>
@@ -207,7 +207,7 @@ export function SmartTextCard({
                         ? 'rounded-lg border border-amber-300/50 bg-amber-50/90 px-2 py-1.5 text-amber-900'
                         : 'text-slate-600'
                     }
-                    style={{ fontSize: '0.58em', lineHeight: 1.3 }}
+                    style={{ fontSize: '0.66em', lineHeight: 1.3 }}
                   >
                     {isTeacherNote && mode === 'edit' && (
                       <span className="mr-1 text-[0.85em] font-semibold uppercase tracking-wide">
@@ -240,14 +240,14 @@ export function SmartTextCard({
               )
             })}
             {displayModel.footer && (
-              <p className="text-slate-600" style={{ fontSize: '0.55em' }}>
+              <p className="text-slate-600" style={{ fontSize: '0.64em' }}>
                 {displayModel.footer}
               </p>
             )}
             {hiddenCount > 0 && (
               <p
                 className="font-semibold text-slate-700"
-                style={{ fontSize: '0.7em' }}
+                style={{ fontSize: '0.78em' }}
                 aria-label={`${hiddenCount} more items`}
               >
                 + {hiddenCount} more
