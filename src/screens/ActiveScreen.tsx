@@ -12,6 +12,7 @@ import { ReadingScreen } from './ReadingScreen'
 import { ReadyPositionScreen } from './ReadyPositionScreen'
 import { SnackLunchScreen } from './SnackLunchScreen'
 import { SubjectScreen } from './SubjectScreen'
+import { getNoiseTrackerIdForScreen } from '../lib/noiseTowers'
 
 interface ActiveScreenProps {
   screenId: ScreenId
@@ -32,6 +33,9 @@ export function ActiveScreen({
   onContentsChange,
   onBeautify,
 }: ActiveScreenProps) {
+  const trackerId = getNoiseTrackerIdForScreen(screenId)
+  const noiseTracker = trackerId ? noiseTrackers[trackerId] : undefined
+
   switch (screenId) {
     case 'homeroom':
       return (
@@ -39,7 +43,7 @@ export function ActiveScreen({
           content={contents.homeroom}
           mode={mode}
           cardVisibility={cardVisibility.homeroom}
-          noiseTracker={noiseTrackers.homeroom}
+          noiseTracker={noiseTracker || noiseTrackers.homeroom}
           onContentChange={(homeroom) =>
             onContentsChange({ ...contents, homeroom })
           }
@@ -52,7 +56,7 @@ export function ActiveScreen({
           content={contents.math}
           mode={mode}
           cardVisibility={cardVisibility.math}
-          noiseTracker={noiseTrackers.math}
+          noiseTracker={noiseTracker || noiseTrackers.math}
           onContentChange={(math) => onContentsChange({ ...contents, math })}
           onBeautify={onBeautify}
         />
@@ -63,7 +67,7 @@ export function ActiveScreen({
           content={contents.reading}
           mode={mode}
           cardVisibility={cardVisibility.reading}
-          noiseTracker={noiseTrackers.reading}
+          noiseTracker={noiseTracker || noiseTrackers.reading}
           onContentChange={(reading) =>
             onContentsChange({ ...contents, reading })
           }
@@ -76,6 +80,7 @@ export function ActiveScreen({
           content={contents.writing}
           mode={mode}
           cardVisibility={cardVisibility.writing}
+          noiseTracker={noiseTracker}
           onContentChange={(writing) =>
             onContentsChange({ ...contents, writing })
           }
@@ -88,6 +93,7 @@ export function ActiveScreen({
           content={contents.science}
           mode={mode}
           cardVisibility={cardVisibility.science}
+          noiseTracker={noiseTracker}
           onContentChange={(science) =>
             onContentsChange({ ...contents, science })
           }
@@ -100,6 +106,7 @@ export function ActiveScreen({
           content={contents['social-studies']}
           mode={mode}
           cardVisibility={cardVisibility['social-studies']}
+          noiseTracker={noiseTracker}
           onContentChange={(socialStudies) =>
             onContentsChange({ ...contents, 'social-studies': socialStudies })
           }
@@ -112,6 +119,7 @@ export function ActiveScreen({
           content={contents.intervention}
           mode={mode}
           cardVisibility={cardVisibility.intervention}
+          noiseTracker={noiseTracker}
           onContentChange={(intervention) =>
             onContentsChange({ ...contents, intervention })
           }
@@ -124,6 +132,7 @@ export function ActiveScreen({
           content={contents.assessment}
           mode={mode}
           cardVisibility={cardVisibility.assessment}
+          noiseTracker={noiseTracker}
           onContentChange={(assessment) =>
             onContentsChange({ ...contents, assessment })
           }
@@ -136,6 +145,7 @@ export function ActiveScreen({
           content={contents['flexible-groups']}
           mode={mode}
           cardVisibility={cardVisibility['flexible-groups']}
+          noiseTracker={noiseTracker}
           onContentChange={(flexibleGroups) =>
             onContentsChange({ ...contents, 'flexible-groups': flexibleGroups })
           }
@@ -148,6 +158,7 @@ export function ActiveScreen({
           content={contents.centers}
           mode={mode}
           cardVisibility={cardVisibility.centers}
+          noiseTracker={noiseTracker}
           onContentChange={(centers) =>
             onContentsChange({ ...contents, centers })
           }
@@ -160,6 +171,7 @@ export function ActiveScreen({
           content={contents['homework-packup']}
           mode={mode}
           cardVisibility={cardVisibility['homework-packup']}
+          noiseTracker={noiseTracker}
           onContentChange={(homeworkPackup) =>
             onContentsChange({ ...contents, 'homework-packup': homeworkPackup })
           }
@@ -172,6 +184,7 @@ export function ActiveScreen({
           content={contents['snack-lunch']}
           mode={mode}
           cardVisibility={cardVisibility['snack-lunch']}
+          noiseTracker={noiseTracker}
           onContentChange={(snackLunch) =>
             onContentsChange({ ...contents, 'snack-lunch': snackLunch })
           }
@@ -184,6 +197,7 @@ export function ActiveScreen({
           content={contents['ready-position']}
           mode={mode}
           cardVisibility={cardVisibility['ready-position']}
+          noiseTracker={noiseTracker}
           onContentChange={(readyPosition) =>
             onContentsChange({ ...contents, 'ready-position': readyPosition })
           }

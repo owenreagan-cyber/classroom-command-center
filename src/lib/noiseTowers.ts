@@ -4,6 +4,7 @@ import type {
   NoiseTrackerId,
   NoiseTrackerState,
   VoiceLevel,
+  ScreenId,
 } from '../data/types'
 
 const TRACKER_DEFAULTS: Record<
@@ -210,4 +211,43 @@ export function applyRepairTickToTracker(tracker: NoiseTrackerState): NoiseTrack
 
 export function resetNoiseTrackerState(trackerId: NoiseTrackerId): NoiseTrackerState {
   return createDefaultNoiseTracker(trackerId)
+}
+
+/**
+ * Resolves the noise tracker ID assigned to a given screen ID.
+ *
+ * CCC Screen Assignment Rules:
+ * - Math display uses the Math noise tracker.
+ * - Reading display uses the Reading noise tracker.
+ * - Homeroom noise tracker carries across morning message (homeroom), snack (snack-lunch),
+ *   Shurley (writing), history/science (social-studies/science), clean up / dismissal (homework-packup),
+ *   and other general classroom screens.
+ * - Spelling/Vibe-specific screens are excluded from using the Homeroom tracker.
+ */
+export function getNoiseTrackerIdForScreen(screenId: ScreenId): NoiseTrackerId | null {
+  switch (screenId) {
+    case 'math':
+      return 'math'
+    case 'reading':
+      return 'reading'
+    case 'homeroom':
+    case 'writing':
+    case 'science':
+    case 'social-studies':
+    case 'intervention':
+    case 'assessment':
+    case 'flexible-groups':
+    case 'centers':
+    case 'homework-packup':
+    case 'snack-lunch':
+    case 'ready-position':
+      return 'homeroom'
+    // Exclude Spelling / Vibe specific screens explicitly
+    // case 'spelling':
+    // case 'vibe':
+    //   return null
+    default:
+      // Default fallback is to not assign any noise tracker unless explicitly supported
+      return null
+  }
 }

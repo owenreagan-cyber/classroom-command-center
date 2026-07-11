@@ -4,15 +4,18 @@ import type {
   AppMode,
   ReadyPositionContent,
   ScreenCardVisibility,
+  NoiseTrackerState,
 } from '../data/types'
-import { displayFontRange, gridArea, screenGridClass } from '../lib/displayLayout'
+import { displayFontRange, gridArea, screenGridClass, noiseCardOverlayClass } from '../lib/displayLayout'
 import { ReadyPositionCard } from '../widgets/ReadyPositionCard'
 import { SmartTextCard } from '../widgets/SmartTextCard'
+import { NoiseStatusCard } from '../widgets/NoiseStatusCard'
 
 interface ReadyPositionScreenProps {
   content: ReadyPositionContent
   mode: AppMode
   cardVisibility: ScreenCardVisibility['ready-position']
+  noiseTracker?: NoiseTrackerState
   onContentChange: (content: ReadyPositionContent) => void
   onBeautify?: () => void
 }
@@ -21,13 +24,14 @@ export function ReadyPositionScreen({
   content,
   mode,
   cardVisibility,
+  noiseTracker,
   onContentChange,
   onBeautify,
 }: ReadyPositionScreenProps) {
   const cueFonts = displayFontRange(mode, 16, 44)
 
   return (
-    <div className={screenGridClass('ready-position', mode)}>
+    <div className={`${screenGridClass('ready-position', mode)} relative`}>
       {(cardVisibility.ready ?? true) && (
         <ReadyPositionCard
           content={content}
@@ -83,6 +87,13 @@ export function ReadyPositionScreen({
             ],
             align: 'center',
           }}
+        />
+      )}
+      {noiseTracker && (cardVisibility.noise ?? true) && (
+        <NoiseStatusCard
+          tracker={noiseTracker}
+          mode={mode}
+          className={noiseCardOverlayClass(mode)}
         />
       )}
     </div>

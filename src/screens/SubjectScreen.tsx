@@ -1,9 +1,11 @@
 import { EditableList } from '../components/editing/EditableList'
 import { EditableText } from '../components/editing/EditableText'
-import type { AppMode, CardId, SubjectContent } from '../data/types'
+import type { AppMode, CardId, SubjectContent, NoiseTrackerState } from '../data/types'
 import { MaterialsCard } from '../widgets/MaterialsCard'
 import { SmartTextCard } from '../widgets/SmartTextCard'
 import { TeacherHint } from '../widgets/TeacherHint'
+import { NoiseStatusCard } from '../widgets/NoiseStatusCard'
+import { noiseCardOverlayClass } from '../lib/displayLayout'
 
 type SubjectCardVisibility = Partial<Record<CardId, boolean>>
 
@@ -11,6 +13,7 @@ interface SubjectScreenProps {
   content: SubjectContent
   mode: AppMode
   cardVisibility: SubjectCardVisibility
+  noiseTracker?: NoiseTrackerState
   onContentChange: (content: SubjectContent) => void
   onBeautify?: () => void
 }
@@ -19,11 +22,12 @@ export function SubjectScreen({
   content,
   mode,
   cardVisibility,
+  noiseTracker,
   onContentChange,
   onBeautify,
 }: SubjectScreenProps) {
   return (
-    <section className="board-grid board-grid-three">
+    <section className="board-grid board-grid-three relative">
       {(cardVisibility.focus ?? true) && (
         <SmartTextCard
           className="board-card-hero"
@@ -95,6 +99,14 @@ export function SubjectScreen({
           />
           <TeacherHint mode={mode} text={content.teacherHint} />
         </div>
+      )}
+
+      {noiseTracker && (cardVisibility.noise ?? true) && (
+        <NoiseStatusCard
+          tracker={noiseTracker}
+          mode={mode}
+          className={noiseCardOverlayClass(mode)}
+        />
       )}
     </section>
   )

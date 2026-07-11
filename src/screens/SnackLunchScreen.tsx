@@ -3,16 +3,19 @@ import type {
   AppMode,
   ScreenCardVisibility,
   SnackLunchContent,
+  NoiseTrackerState,
 } from '../data/types'
-import { gridArea, screenGridClass } from '../lib/displayLayout'
+import { gridArea, screenGridClass, noiseCardOverlayClass } from '../lib/displayLayout'
 import { PhaseTimerCard } from '../widgets/PhaseTimerCard'
 import { ReminderCard } from '../widgets/ReminderCard'
 import { SmartTextCard } from '../widgets/SmartTextCard'
+import { NoiseStatusCard } from '../widgets/NoiseStatusCard'
 
 interface SnackLunchScreenProps {
   content: SnackLunchContent
   mode: AppMode
   cardVisibility: ScreenCardVisibility['snack-lunch']
+  noiseTracker?: NoiseTrackerState
   onContentChange: (content: SnackLunchContent) => void
   onBeautify?: () => void
 }
@@ -21,11 +24,12 @@ export function SnackLunchScreen({
   content,
   mode,
   cardVisibility,
+  noiseTracker,
   onContentChange,
   onBeautify,
 }: SnackLunchScreenProps) {
   return (
-    <div className={screenGridClass('snack-lunch', mode)}>
+    <div className={`${screenGridClass('snack-lunch', mode)} relative`}>
       {(cardVisibility.cleanup ?? true) && (
         <ReminderCard
           title={content.cleanupTitle}
@@ -73,6 +77,13 @@ export function SnackLunchScreen({
           mode={mode}
           teacherHint={content.phaseNote}
           className={`min-h-0 ${gridArea.snackLunch.timer}`}
+        />
+      )}
+      {noiseTracker && (cardVisibility.noise ?? true) && (
+        <NoiseStatusCard
+          tracker={noiseTracker}
+          mode={mode}
+          className={noiseCardOverlayClass(mode)}
         />
       )}
     </div>

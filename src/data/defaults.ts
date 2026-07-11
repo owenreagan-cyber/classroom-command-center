@@ -54,50 +54,60 @@ export const CARD_VISIBILITY_OPTIONS: Record<string, CardVisibilityOption[]> = {
     { id: 'focus', label: 'Focus task' },
     { id: 'agenda', label: 'Agenda' },
     { id: 'materials', label: 'Materials' },
+    { id: 'noise', label: 'Noise tracker', helperText: 'Manual voice level tracker' },
   ],
   science: [
     { id: 'focus', label: 'Focus task' },
     { id: 'agenda', label: 'Agenda' },
     { id: 'materials', label: 'Materials' },
+    { id: 'noise', label: 'Noise tracker', helperText: 'Manual voice level tracker' },
   ],
   'social-studies': [
     { id: 'focus', label: 'Focus task' },
     { id: 'agenda', label: 'Agenda' },
     { id: 'materials', label: 'Materials' },
+    { id: 'noise', label: 'Noise tracker', helperText: 'Manual voice level tracker' },
   ],
   intervention: [
     { id: 'focus', label: 'Focus task' },
     { id: 'agenda', label: 'Agenda' },
     { id: 'materials', label: 'Materials' },
+    { id: 'noise', label: 'Noise tracker', helperText: 'Manual voice level tracker' },
   ],
   assessment: [
     { id: 'focus', label: 'Focus task' },
     { id: 'agenda', label: 'Agenda' },
     { id: 'materials', label: 'Materials' },
+    { id: 'noise', label: 'Noise tracker', helperText: 'Manual voice level tracker' },
   ],
   'flexible-groups': [
     { id: 'focus', label: 'Focus task' },
     { id: 'agenda', label: 'Agenda' },
     { id: 'materials', label: 'Materials' },
+    { id: 'noise', label: 'Noise tracker', helperText: 'Manual voice level tracker' },
   ],
   centers: [
     { id: 'focus', label: 'Focus task' },
     { id: 'agenda', label: 'Agenda' },
     { id: 'materials', label: 'Materials' },
+    { id: 'noise', label: 'Noise tracker', helperText: 'Manual voice level tracker' },
   ],
   'homework-packup': [
     { id: 'focus', label: 'Focus task' },
     { id: 'agenda', label: 'Agenda' },
     { id: 'materials', label: 'Materials' },
+    { id: 'noise', label: 'Noise tracker', helperText: 'Manual voice level tracker' },
   ],
   'snack-lunch': [
     { id: 'cleanup', label: 'Cleanup reminders' },
     { id: 'routine', label: 'Routine' },
     { id: 'phase-timer', label: 'Phase timer' },
+    { id: 'noise', label: 'Noise tracker', helperText: 'Manual voice level tracker' },
   ],
   'ready-position': [
     { id: 'ready', label: 'Ready Position checklist' },
     { id: 'compact-cue', label: 'Compact cue' },
+    { id: 'noise', label: 'Noise tracker', helperText: 'Manual voice level tracker' },
   ],
 }
 
