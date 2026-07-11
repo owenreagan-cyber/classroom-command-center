@@ -8,7 +8,7 @@ This phase delivered a set of targeted layout, readability, density, and timer i
 
 ### Scope A: Projector Readability Polish
 - **Higher Card Contrast:** Upgraded the `boardCardShell` utility in `displayLayout.ts` to feature a solid semi-opaque slate-300 border (`border-slate-300/65` and `border-slate-200/70`) and solid white background (`bg-white/98` and `bg-white/94`) with deep soft shadows. This provides robust readability against all background asset fallback gradients and patterns.
-- **Enhanced Card Typography Hierarchy:** 
+- **Enhanced Card Typography Hierarchy:**
   - Adjusted secondary card labels (such as subtitles, bullet counts, hidden indicators) in `SmartTextCard.tsx` from small `0.52em` weights to bold, easily legible sizes like `0.64em`, `0.78em`, and notes up to `0.66em`.
   - Upgraded heading labels and descriptions in `MaterialsCard.tsx` sections to support `0.86em` uppercase headers and bold item lists with comfortable line heights for long-distance viewing.
 - **Transition Smoothness:** Infused responsive classes with `transition-all duration-300` so cards scale cleanly between Edit and Display modes.
