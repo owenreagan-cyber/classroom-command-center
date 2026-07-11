@@ -1,6 +1,5 @@
 import type { AppMode, NoiseTrackerState, VoiceLevel } from '../data/types'
 import {
-  boardCardShell,
   displayFontRange,
 } from '../lib/displayLayout'
 import {
@@ -54,7 +53,13 @@ export function NoiseStatusCard({
 
   return (
     <article
-      className={`${boardCardShell(mode)} ${className} overflow-hidden border-slate-900/20 bg-slate-950 text-white shadow-2xl`}
+      className={`relative flex min-h-0 flex-col overflow-hidden rounded-3xl border backdrop-blur-sm text-white shadow-2xl transition-all duration-300 ${
+        isCritical
+          ? 'border-rose-500/40 shadow-rose-950/20'
+          : isWarning
+            ? 'border-amber-500/40 shadow-amber-950/20'
+            : 'border-cyan-500/35 shadow-cyan-950/20'
+      } ${mode === 'display' ? 'p-5 md:p-6' : 'p-4 md:p-5'} ${className}`}
     >
       <div
         className={`absolute inset-0 opacity-90 ${
@@ -68,7 +73,7 @@ export function NoiseStatusCard({
       />
       <div className="absolute inset-0 bg-[linear-gradient(115deg,rgba(255,255,255,0.08),transparent_24%,transparent_76%,rgba(255,255,255,0.08))] opacity-40" />
 
-      <div className="relative z-10 flex h-full min-h-0 flex-col gap-4">
+      <div className="relative z-10 flex h-full min-h-0 flex-col gap-3 md:gap-4">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <p className="text-[0.72rem] font-black uppercase tracking-[0.28em] text-cyan-100/85">
@@ -86,7 +91,7 @@ export function NoiseStatusCard({
           </div>
 
           <div
-            className={`shrink-0 rounded-2xl border px-4 py-3 text-right shadow-lg ${voiceToneClass(
+            className={`shrink-0 rounded-2xl border px-3 md:px-4 py-2 md:py-2.5 text-right shadow-lg ${voiceToneClass(
               isPaused,
               tracker.meterLevel,
             )}`}
@@ -105,7 +110,7 @@ export function NoiseStatusCard({
             <span>Room Meter</span>
             <span>{tracker.meterLevel}%</span>
           </div>
-          <div className="h-6 overflow-hidden rounded-full border border-white/20 bg-black/55 shadow-inner">
+          <div className="h-5 md:h-6 overflow-hidden rounded-full border border-white/20 bg-black/55 shadow-inner">
             <div
               className={`h-full rounded-full transition-all duration-300 ${
                 isPaused
@@ -121,18 +126,18 @@ export function NoiseStatusCard({
           </div>
         </div>
 
-        <div className="grid grid-cols-5 gap-2">
+        <div className="grid grid-cols-5 gap-1.5 md:gap-2">
           {tracker.towers.map((tower) => {
             const condition = getNoiseTowerCondition(tower)
 
             return (
               <div
                 key={tower.letter}
-                className={`relative flex min-h-[7rem] flex-col justify-between overflow-hidden rounded-2xl border p-2 text-center ${toneClasses(condition)}`}
+                className={`relative flex min-h-[5.5rem] md:min-h-[6.5rem] flex-col justify-between overflow-hidden rounded-2xl border py-1.5 px-0.5 md:p-2 text-center transition-all duration-300 ${toneClasses(condition)}`}
               >
                 <div className="absolute inset-x-0 top-0 h-1 bg-white/15" />
                 <span
-                  className="mt-1 block font-black uppercase tracking-[0.14em] text-white/90"
+                  className="mt-0.5 block font-black uppercase tracking-[0.14em] text-white/90"
                   style={{
                     fontSize: `${towerLabelFonts.minFontSize}px`,
                     lineHeight: 1,
@@ -140,11 +145,11 @@ export function NoiseStatusCard({
                 >
                   {tower.letter}
                 </span>
-                <div className="flex flex-1 items-center justify-center">
+                <div className="flex flex-1 items-center justify-center my-0.5">
                   <span
                     className="font-black tabular-nums text-white drop-shadow"
                     style={{
-                      fontSize: `${statFonts.maxFontSize}px`,
+                      fontSize: `${statFonts.maxFontSize - 2}px`,
                       lineHeight: 0.9,
                     }}
                   >
@@ -154,7 +159,7 @@ export function NoiseStatusCard({
                     </span>
                   </span>
                 </div>
-                <span className="mb-1 block text-[0.64rem] font-black uppercase tracking-[0.16em] text-white/80">
+                <span className="mb-0.5 block text-[0.6rem] md:text-[0.64rem] font-black uppercase tracking-[0.16em] text-white/80">
                   {getNoiseTowerConditionLabel(tower)}
                 </span>
               </div>
@@ -162,29 +167,29 @@ export function NoiseStatusCard({
           })}
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-2xl border border-white/15 bg-black/35 p-3 text-center shadow-inner">
+        <div className="grid grid-cols-2 gap-2 md:gap-3">
+          <div className="rounded-2xl border border-white/15 bg-black/35 p-2 md:p-3 text-center shadow-inner">
             <span className="block text-[0.68rem] font-black uppercase tracking-[0.2em] text-slate-200/75">
               Noisy Points
             </span>
             <span
               className="block font-black tabular-nums text-white"
               style={{
-                fontSize: `${statFonts.maxFontSize}px`,
+                fontSize: `${statFonts.maxFontSize - 2}px`,
                 lineHeight: 0.9,
               }}
             >
               {tracker.noisyPoints}
             </span>
           </div>
-          <div className="rounded-2xl border border-white/15 bg-black/35 p-3 text-center shadow-inner">
+          <div className="rounded-2xl border border-white/15 bg-black/35 p-2 md:p-3 text-center shadow-inner">
             <span className="block text-[0.68rem] font-black uppercase tracking-[0.2em] text-slate-200/75">
               Lap Minutes
             </span>
             <span
               className="block font-black tabular-nums text-white"
               style={{
-                fontSize: `${statFonts.maxFontSize}px`,
+                fontSize: `${statFonts.maxFontSize - 2}px`,
                 lineHeight: 0.9,
               }}
             >
@@ -193,7 +198,7 @@ export function NoiseStatusCard({
           </div>
         </div>
 
-        <p className="rounded-2xl border border-white/12 bg-black/35 px-4 py-3 text-center text-sm font-bold uppercase tracking-[0.14em] text-slate-50 shadow-inner md:text-base">
+        <p className="rounded-2xl border border-white/12 bg-black/35 px-3 md:px-4 py-2.5 md:py-3 text-center text-xs md:text-sm font-bold uppercase tracking-[0.14em] text-slate-50 shadow-inner">
           {tracker.voiceLevel === 'off'
             ? 'Tracker paused. Repair and reset stay manual.'
             : getNoiseTrackerTowerStatus(tracker)}
