@@ -254,3 +254,14 @@ Use Cursor/Codex only for:
 - complex refactors
 - visual layout polish
 - Xcode/Swift app build phases
+
+## Future Intake Architecture Note
+
+Daily Brief Intake should eventually support a Daily Brief Packet workflow.
+
+The recommended boundary is:
+- Classroom Command Center remains the local-first display/control app.
+- Teacher AI Workstation / Chief of Staff prepares reviewed packets from Canvas files/modules, uploaded files, email, calendar notes, or teacher notes.
+- Command Center previews and applies packets only after teacher approval.
+
+See: `docs/architecture/daily-brief-packet-intake-plan.md`
