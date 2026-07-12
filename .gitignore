@@ -27,3 +27,4 @@ dist-ssr
 .local/playwright/
 .cursor/mcp.json
 .local/student-picker-tests
+.local/local-packet-tests

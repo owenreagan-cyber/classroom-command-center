@@ -1,5 +1,8 @@
 import { useMemo, useRef, useState } from 'react'
 import type { BoardExportPayload, BoardState } from '../data/types'
+import { validatePacket } from '../features/local-packets/packetValidation'
+import { restoreBackupToStores } from '../features/local-packets/packetStoreAdapter'
+import type { BackupBoardContent } from '../features/local-packets/types'
 import {
   createBoardExportPayload,
   downloadBoardExport,
@@ -14,12 +17,10 @@ import {
 
 interface BoardBackupPanelProps {
   boardState: BoardState
-  onImportBoardState: (payload: BoardExportPayload) => void
 }
 
 export function BoardBackupPanel({
   boardState,
-  onImportBoardState,
 }: BoardBackupPanelProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [status, setStatus] = useState('')
@@ -71,8 +72,42 @@ export function BoardBackupPanel({
   const confirmImport = () => {
     if (!pendingImport) return
 
-    onImportBoardState(pendingImport)
-    setStatus('Board import complete.')
+    // Convert legacy board state to the unified full-backup packet format
+    const envelope = {
+      format: 'classroom-command-center' as const,
+      kind: 'full-backup' as const,
+      version: 1,
+      exportedAt: pendingImport.exportedAt,
+      payload: {
+        categories: {
+          board: pendingImport.state as unknown as BackupBoardContent,
+        },
+        exportedCategories: ['board'],
+      },
+    }
+
+    // Validate the packet through the unified validator
+    const rawJson = JSON.stringify(envelope)
+    const validationResult = validatePacket(rawJson)
+    if (!validationResult.valid) {
+      setStatus(`Import rejected by validator: ${validationResult.errors.map((e) => `${e.field}: ${e.message}`).join('; ')}`)
+      clearPendingImport()
+      return
+    }
+
+    // Apply the restore via the unified coordinator for safety, protection, and undo guarantees
+    const result = restoreBackupToStores({
+      packet: envelope.payload,
+      selectedCategories: ['board'],
+      replaceTimerRuntime: false,
+      replaceActiveMystery: false,
+    })
+
+    if (result.success) {
+      setStatus('Board import complete (Undo is available in the Local Packets restore tab).')
+    } else {
+      setStatus(`Import failed: ${result.errors.join('; ')}`)
+    }
     clearPendingImport()
   }
 
@@ -80,11 +115,15 @@ export function BoardBackupPanel({
     <section className="space-y-3 rounded-2xl border border-slate-800 bg-slate-900/40 p-3">
       <div>
         <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-400">
-          Backup / Restore
+          Backup / Restore <span className="ml-1 rounded bg-slate-700 px-1.5 py-0.5 text-[0.6rem] font-bold uppercase tracking-wider text-slate-400">Legacy</span>
         </h2>
         <p className="mt-1 text-xs leading-relaxed text-slate-500">
           Export or import a local JSON backup. Import replaces the current
           board state after confirmation.
+        </p>
+        <p className="mt-1 text-[10px] leading-relaxed text-amber-500/70">
+          Legacy — use the Local Packets panel above for backup/restore with
+          validation, category selection, and safety guarantees.
         </p>
       </div>
 

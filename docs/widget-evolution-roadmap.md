@@ -33,6 +33,7 @@ Completed:
 - Daily Brief Intake & Routine Templates (offline-ready template presets for daily board setups)
 - Lesson Card + Vocabulary Card
 - Random Picker + Mystery Star Student Tracker
+- Local Packet Backup & Restore (Daily Brief import/export, full backup/restore, validation, undo, privacy boundary)
 - Build and lint passing
 
 Parked:
@@ -61,9 +62,9 @@ Level 3 = maxed out / fully decked out / automated or integrated
 
 ## Current Priority Order
 
-1. Local Daily Brief Packet import/export
+1. Projector Readability & Contrast Mode Pass
 
-Do not chase Level 3 features until the MVP board els excellent.
+Do not chase Level 3 features until the MVP board feels excellent.
 
 ---
 

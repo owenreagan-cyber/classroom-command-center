@@ -1,9 +1,14 @@
+import type { SimpleTimerState, SimpleTimerScreenId, PhaseTimerState } from '../data/timerTypes'
+import type {
+  Student,
+  PickerClassId,
+  MysterySession,
+} from '../features/student-picker/types'
 import { BACKGROUND_ASSETS } from '../data/backgroundAssets'
 import { SCREEN_META } from '../data/defaults'
 import type {
   AppMode,
   BackgroundAssetId,
-  BoardExportPayload,
   BoardPresetId,
   BoardState,
   CardId,
@@ -21,6 +26,7 @@ import { DailyBriefPanel } from './DailyBriefPanel'
 import { NoiseControlPanel } from './NoiseControlPanel'
 import { TeacherNotesPanel } from './TeacherNotesPanel'
 import { StudentPickerPanel } from '../features/student-picker/StudentPickerPanel'
+import { LocalPacketPanel } from '../features/local-packets/LocalPacketPanel'
 
 interface TeacherDockProps {
   mode: AppMode
@@ -37,7 +43,6 @@ interface TeacherDockProps {
   onSaveCustomPreset: (label: string) => void
   onApplyCustomPreset: (presetId: string) => void
   onDeleteCustomPreset: (presetId: string) => void
-  onImportBoardState: (payload: BoardExportPayload) => void
   onContentsChange: (contents: ScreenContents) => void
   onNoiseVoiceLevelChange: (
     trackerId: NoiseTrackerId,
@@ -52,6 +57,14 @@ interface TeacherDockProps {
   onBeautify: () => void
   onUndoBeautify: () => void
   onReset: () => void
+  // Local packets
+  timerSimpleTimers: Record<SimpleTimerScreenId, SimpleTimerState>
+  timerPhaseTimer: PhaseTimerState
+  pickerStudents: Student[]
+  pickerHistoryEntries: import('../features/student-picker/types').FairnessEntry[]
+  pickerCoachingConfig: import('../features/student-picker/types').CoachingState
+  pickerSettings: import('../features/student-picker/types').PickerSettings
+  pickerActiveMysterySessions: Record<PickerClassId, MysterySession | null>
 }
 
 export function TeacherDock({
@@ -69,7 +82,6 @@ export function TeacherDock({
   onSaveCustomPreset,
   onApplyCustomPreset,
   onDeleteCustomPreset,
-  onImportBoardState,
   onContentsChange,
   onNoiseVoiceLevelChange,
   onResetNoiseTracker,
@@ -77,6 +89,13 @@ export function TeacherDock({
   onBeautify,
   onUndoBeautify,
   onReset,
+  timerSimpleTimers,
+  timerPhaseTimer,
+  pickerStudents,
+  pickerHistoryEntries,
+  pickerCoachingConfig,
+  pickerSettings,
+  pickerActiveMysterySessions,
 }: TeacherDockProps) {
   if (mode !== 'edit') {
     return null
@@ -176,9 +195,27 @@ export function TeacherDock({
         onDeleteCustomPreset={onDeleteCustomPreset}
       />
 
+      <LocalPacketPanel
+        boardContents={boardState.contents as unknown as Record<string, unknown>}
+        boardActiveScreen={boardState.activeScreen}
+        boardMode={boardState.mode}
+        boardBackgroundId={boardState.backgroundId}
+        boardTeacherNotes={boardState.teacherNotes}
+        boardCardVisibility={boardState.cardVisibility}
+        boardCustomPresets={boardState.customPresets}
+        boardNoiseTrackers={boardState.noiseTrackers}
+        timerSimpleTimers={timerSimpleTimers}
+        timerPhaseTimer={timerPhaseTimer}
+        pickerStudents={pickerStudents.filter(s => s.isActive)}
+        pickerArchivedStudents={pickerStudents.filter(s => !s.isActive)}
+        pickerHistory={pickerHistoryEntries}
+        pickerCoachingConfig={pickerCoachingConfig}
+        pickerSettings={pickerSettings}
+        pickerActiveMysterySessions={pickerActiveMysterySessions}
+      />
+
       <BoardBackupPanel
         boardState={boardState}
-        onImportBoardState={onImportBoardState}
       />
 
       <NoiseControlPanel

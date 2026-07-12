@@ -4,6 +4,7 @@ import type { PickerClassId } from '../types'
 export function HistoryTab({ classId }: { classId: PickerClassId }) {
   const history = usePickerStore((s) => s.fairnessHistory)
   const students = usePickerStore((s) => s.students)
+  const correctOutcome = usePickerStore((s) => s.correctOutcome)
 
   const classHistory = history
     .filter((h) => h.classId === classId)
@@ -67,7 +68,20 @@ export function HistoryTab({ classId }: { classId: PickerClassId }) {
               </div>
               <div className="flex justify-between items-center text-[10px] uppercase font-black tracking-tight">
                 <span className="text-slate-400">{formatRole(h.role)}</span>
-                <span>{formatOutcome(h.outcome)}</span>
+                <div className="flex items-center gap-2">
+                  <span>{formatOutcome(h.outcome)}</span>
+                  {(h.outcome === 'earned' || h.outcome === 'did-not-earn') && (
+                    <button
+                      onClick={() => {
+                        const next = h.outcome === 'earned' ? 'did-not-earn' : 'earned'
+                        correctOutcome(classId, h.id, next)
+                      }}
+                      className="rounded border border-slate-700 bg-slate-800 px-1 py-0.5 text-[8px] font-bold text-slate-400 transition hover:bg-slate-700 hover:text-slate-200"
+                    >
+                      Correct to {h.outcome === 'earned' ? 'Did Not Earn' : 'Earned'}
+                    </button>
+                  )}
+                </div>
               </div>
               {h.reason && (
                 <div className="mt-1.5 text-slate-400 italic leading-snug border-t border-slate-800 pt-1">

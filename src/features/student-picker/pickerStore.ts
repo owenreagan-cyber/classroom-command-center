@@ -316,6 +316,22 @@ export const usePickerStore = create<PickerStoreState>()(
         }))
       },
 
+      correctOutcome: (classId, eventId, nextOutcome) => {
+        set((state) => ({
+          fairnessHistory: state.fairnessHistory.map((h) => {
+            if (h.id === eventId && h.classId === classId) {
+              return {
+                ...h,
+                originalOutcome: h.originalOutcome || h.outcome,
+                outcome: nextOutcome,
+                correctedAt: Date.now(),
+              }
+            }
+            return h
+          }),
+        }))
+      },
+
       updateCoachingConfig: (updates) => {
         set((state) => ({
           coachingConfig: { ...state.coachingConfig, ...updates },
