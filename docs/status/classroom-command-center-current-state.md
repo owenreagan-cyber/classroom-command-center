@@ -142,6 +142,7 @@ Implemented:
 - Inline editing polish
 - Voice Level / Traffic Light Widget (microphone-free student voice expectations indicator)
 - Daily Brief Intake & Routine Templates (offline-ready template presets for daily board setups)
+- Lesson Card + Vocabulary Card (student-facing widgets for tracking objectives and keywords)
 - docs architecture bundle
 - Spotify/Classroom Audio plan
 - widget evolution roadmap
@@ -220,10 +221,10 @@ Shared:
 ## Recommended Next Phase
 
 Next phase:
-Daily Brief Intake
+Local Daily Brief Packet import/export
 
 Why:
-With the voice level and traffic light widget complete, the core set of daily classroom widgets is fully established. Introducing the Daily Brief Intake will allow teachers to seamlessly import and set up structured lesson details, schedules, or announcements in one quick central interface.
+With the lesson cards and daily brief panel built, creating a portable JSON packet import/export layer allows teachers to actually save their full day's plan out of the browser and re-import it safely without needing a backend.
 
 ## Recommended Phase Order
 

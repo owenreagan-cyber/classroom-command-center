@@ -130,6 +130,17 @@ function beautifyScreenContents(
       next.math.lessonTitle = beautifySingleInstruction(next.math.lessonTitle)
       next.math.materialsTitle = beautifyTitle(next.math.materialsTitle)
       next.math.materials = beautifyMaterialsLists(next.math.materials)
+      if (next.math.lesson) {
+        next.math.lesson.title = beautifyTitle(next.math.lesson.title)
+        next.math.lesson.objective = beautifySingleInstruction(next.math.lesson.objective)
+        next.math.lesson.successCriteria = beautifyBulletList(next.math.lesson.successCriteria)
+        if (next.math.lesson.reminder) {
+          next.math.lesson.reminder = beautifySingleInstruction(next.math.lesson.reminder)
+        }
+      }
+      if (next.math.vocabulary) {
+        next.math.vocabulary.title = beautifyTitle(next.math.vocabulary.title)
+      }
       break
     }
     case 'reading': {
@@ -145,6 +156,17 @@ function beautifyScreenContents(
       next.reading.readyPosition.compactLine = beautifySingleInstruction(
         next.reading.readyPosition.compactLine,
       )
+      if (next.reading.lesson) {
+        next.reading.lesson.title = beautifyTitle(next.reading.lesson.title)
+        next.reading.lesson.objective = beautifySingleInstruction(next.reading.lesson.objective)
+        next.reading.lesson.successCriteria = beautifyBulletList(next.reading.lesson.successCriteria)
+        if (next.reading.lesson.reminder) {
+          next.reading.lesson.reminder = beautifySingleInstruction(next.reading.lesson.reminder)
+        }
+      }
+      if (next.reading.vocabulary) {
+        next.reading.vocabulary.title = beautifyTitle(next.reading.vocabulary.title)
+      }
       break
     }
     case 'snack-lunch': {
@@ -168,6 +190,34 @@ function beautifyScreenContents(
       next['ready-position'].compactLine = beautifySingleInstruction(
         next['ready-position'].compactLine,
       )
+      break
+    }
+    case 'writing':
+    case 'science':
+    case 'social-studies':
+    case 'intervention':
+    case 'assessment':
+    case 'flexible-groups':
+    case 'centers':
+    case 'homework-packup': {
+      const subj = next[screenId]
+      subj.focusTitle = beautifyTitle(subj.focusTitle)
+      subj.focusTask = beautifySingleInstruction(subj.focusTask)
+      subj.agendaTitle = beautifyTitle(subj.agendaTitle)
+      subj.agenda = beautifyBulletList(subj.agenda)
+      subj.materialsTitle = beautifyTitle(subj.materialsTitle)
+      subj.materials = beautifyMaterialsLists(subj.materials)
+      if (subj.lesson) {
+        subj.lesson.title = beautifyTitle(subj.lesson.title)
+        subj.lesson.objective = beautifySingleInstruction(subj.lesson.objective)
+        subj.lesson.successCriteria = beautifyBulletList(subj.lesson.successCriteria)
+        if (subj.lesson.reminder) {
+          subj.lesson.reminder = beautifySingleInstruction(subj.lesson.reminder)
+        }
+      }
+      if (subj.vocabulary) {
+        subj.vocabulary.title = beautifyTitle(subj.vocabulary.title)
+      }
       break
     }
   }

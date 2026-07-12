@@ -6,6 +6,8 @@ import { MaterialsCard } from '../widgets/MaterialsCard'
 import { SmartTextCard } from '../widgets/SmartTextCard'
 import { TeacherHint } from '../widgets/TeacherHint'
 import { VoiceLevelWidget } from '../widgets/VoiceLevelWidget'
+import { LessonCard } from '../widgets/LessonCard'
+import { VocabularyCard } from '../widgets/VocabularyCard'
 import { noiseCardOverlayClass } from '../lib/displayLayout'
 
 type SubjectCardVisibility = Partial<Record<CardId, boolean>>
@@ -37,14 +39,17 @@ export function SubjectScreen({
 }: SubjectScreenProps) {
   const isEdit = mode === 'edit'
   const actualFocusVisible = cardVisibility.focus ?? true
+  const actualLessonCardVisible = cardVisibility['lesson-card'] ?? false
+  const actualVocabVisible = cardVisibility['vocabulary-card'] ?? false
   const actualAgendaVisible = cardVisibility.agenda ?? true
   const actualMaterialsVisible = cardVisibility.materials ?? true
   const actualNoiseVisible = cardVisibility.noise ?? true
 
   return (
     <section className="board-grid board-grid-three relative">
-      {(actualFocusVisible || isEdit) && (
-        actualFocusVisible ? (
+      <div className="flex min-h-0 flex-col gap-4">
+        {(actualFocusVisible || isEdit) && (
+          actualFocusVisible ? (
           <SmartTextCard
             className="board-card-hero"
             mode={mode}
@@ -81,7 +86,47 @@ export function SubjectScreen({
           />
         )
       )}
+      {(actualLessonCardVisible || isEdit) && (
+        actualLessonCardVisible ? (
+          <LessonCard
+            content={content.lesson}
+            mode={mode}
+            onBeautify={onBeautify}
+            onContentChange={(lesson) =>
+              onContentChange({ ...content, lesson })
+            }
+          />
+        ) : (
+          <HiddenCardPlaceholder
+            screenId={screenId}
+            cardId="lesson-card"
+            label="Lesson Card"
+            onToggle={onCardVisibleChange}
+          />
+        )
+      )}
+      </div>
 
+      <div className="flex min-h-0 flex-col gap-4">
+      {(actualVocabVisible || isEdit) && (
+        actualVocabVisible ? (
+          <VocabularyCard
+            content={content.vocabulary}
+            mode={mode}
+            onBeautify={onBeautify}
+            onContentChange={(vocabulary) =>
+              onContentChange({ ...content, vocabulary })
+            }
+          />
+        ) : (
+          <HiddenCardPlaceholder
+            screenId={screenId}
+            cardId="vocabulary-card"
+            label="Vocabulary Card"
+            onToggle={onCardVisibleChange}
+          />
+        )
+      )}
       {(actualAgendaVisible || isEdit) && (
         actualAgendaVisible ? (
           <SmartTextCard
@@ -119,6 +164,7 @@ export function SubjectScreen({
           />
         )
       )}
+      </div>
 
       {(actualMaterialsVisible || isEdit) && (
         actualMaterialsVisible ? (

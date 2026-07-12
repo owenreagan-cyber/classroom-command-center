@@ -59,6 +59,8 @@ export type CardId =
   | 'compact-cue'
   | 'focus'
   | 'agenda'
+  | 'lesson-card'
+  | 'vocabulary-card'
   | 'noise'
 
 export type ScreenCardVisibility = Record<
@@ -85,6 +87,23 @@ export interface ReadyPositionContent {
   useCompact: boolean
 }
 
+export interface LessonContent {
+  title: string
+  objective: string
+  successCriteria: string[]
+  reminder?: string
+}
+
+export interface VocabularyEntry {
+  term: string
+  definition?: string
+}
+
+export interface VocabularyContent {
+  title: string
+  entries: VocabularyEntry[]
+}
+
 export interface HomeroomContent {
   remindersTitle: string
   reminders: string[]
@@ -100,6 +119,8 @@ export interface MathContent {
   materialsTitle: string
   materials: MaterialsLists
   timerNote: string
+  lesson?: LessonContent
+  vocabulary?: VocabularyContent
 }
 
 export interface ReadingContent {
@@ -108,6 +129,8 @@ export interface ReadingContent {
   materials: MaterialsLists
   readyPosition: ReadyPositionContent
   timerNote: string
+  lesson?: LessonContent
+  vocabulary?: VocabularyContent
 }
 
 export interface SnackLunchContent {
@@ -128,6 +151,8 @@ export interface SubjectContent {
   materialsTitle: string
   materials: MaterialsLists
   teacherHint: string
+  lesson?: LessonContent
+  vocabulary?: VocabularyContent
 }
 
 export interface ScreenContents {
@@ -268,6 +293,9 @@ export interface DailyBriefTemplate {
   materialsOut?: string[]
   materialsAway?: string[]
   smartTvReminder?: string
+  lessonObjective?: string
+  successCriteria?: string[]
+  vocabularyTerms?: string[]
   optionalRotationGroups?: string[]
   optionalTeacherNote?: string
   optionalTargetScreenSuggestion?: ScreenId

@@ -74,18 +74,18 @@ button {
 
 /* Math: lesson left, materials center, timer utility column right */
 .board-screen-grid--math {
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr) minmax(0, 0.68fr);
-  grid-template-rows: minmax(0, 1fr);
-  grid-template-areas: 'lesson materials timer';
+  grid-template-columns: var(--math-cols, minmax(0, 1fr) minmax(0, 1.05fr) minmax(0, 0.68fr));
+  grid-template-rows: var(--math-rows, minmax(0, 1fr));
+  grid-template-areas: var(--math-areas, 'lesson materials timer');
 }
 
 /* Reading: lesson + materials top row, ready spans bottom-left, timer right */
 .board-screen-grid--reading {
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 0.68fr);
-  grid-template-rows: minmax(0, 1fr) minmax(0, 0.92fr);
-  grid-template-areas:
+  grid-template-columns: var(--reading-cols, minmax(0, 1fr) minmax(0, 1fr) minmax(0, 0.68fr));
+  grid-template-rows: var(--reading-rows, minmax(0, 1fr) minmax(0, 0.92fr));
+  grid-template-areas: var(--reading-areas,
     'lesson materials timer'
-    'ready ready timer';
+    'ready ready timer');
 }
 
 /* Snack/Lunch: cleanup | routine | phase timer */
@@ -122,6 +122,12 @@ button {
 .board-area-math-lesson {
   grid-area: lesson;
 }
+.board-area-math-lesson-card {
+  grid-area: lesson-card;
+}
+.board-area-math-vocabulary-card {
+  grid-area: vocabulary-card;
+}
 .board-area-math-materials {
   grid-area: materials;
 }
@@ -131,6 +137,12 @@ button {
 
 .board-area-reading-lesson {
   grid-area: lesson;
+}
+.board-area-reading-lesson-card {
+  grid-area: lesson-card;
+}
+.board-area-reading-vocabulary-card {
+  grid-area: vocabulary-card;
 }
 .board-area-reading-materials {
   grid-area: materials;
