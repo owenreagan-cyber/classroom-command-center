@@ -143,7 +143,8 @@ Implemented:
 - Voice Level / Traffic Light Widget (microphone-free student voice expectations indicator)
 - Daily Brief Intake & Routine Templates (offline-ready template presets for daily board setups)
 - Lesson Card + Vocabulary Card (student-facing widgets for tracking objectives and keywords)
-- docs architecture bundle
+- Random Picker + Mystery Star Student Tracker
+- Build and lint passing
 - Spotify/Classroom Audio plan
 - widget evolution roadmap
 - Reward Maker Studio parking-lot doc
