@@ -200,6 +200,7 @@ function assertEq(label: string, a: unknown, b: unknown) {
       homeroom: { presetId: 'custom', label: 'Old', durationMs: 60000, remainingMs: 60000, status: 'idle', endsAt: null, appearance: 'calm', chimeEnabled: true },
       math: { presetId: 'custom', label: 'Math', durationMs: 60000, remainingMs: 60000, status: 'idle', endsAt: null, appearance: 'calm', chimeEnabled: true },
       reading: { presetId: 'custom', label: 'Reading', durationMs: 60000, remainingMs: 60000, status: 'idle', endsAt: null, appearance: 'calm', chimeEnabled: true },
+      spelling: { presetId: 'custom', label: 'Spelling', durationMs: 60000, remainingMs: 60000, status: 'idle', endsAt: null, appearance: 'calm', chimeEnabled: true },
     }
   })
   const timerBackup: FullBackupPacketPayload = {
@@ -267,6 +268,7 @@ function assertEq(label: string, a: unknown, b: unknown) {
       homeroom: { presetId: 'custom', label: 'Running', durationMs: 60000, remainingMs: 30000, status: 'running', endsAt: Date.now() + 30000, appearance: 'calm', chimeEnabled: true },
       math: { presetId: 'custom', label: 'Math', durationMs: 60000, remainingMs: 60000, status: 'idle', endsAt: null, appearance: 'calm', chimeEnabled: true },
       reading: { presetId: 'custom', label: 'Reading', durationMs: 60000, remainingMs: 60000, status: 'idle', endsAt: null, appearance: 'calm', chimeEnabled: true },
+      spelling: { presetId: 'custom', label: 'Spelling', durationMs: 60000, remainingMs: 60000, status: 'idle', endsAt: null, appearance: 'calm', chimeEnabled: true },
     }
   })
   const staleTimerBackup: FullBackupPacketPayload = {

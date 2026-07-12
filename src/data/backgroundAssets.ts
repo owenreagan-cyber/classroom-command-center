@@ -37,16 +37,28 @@ export const BACKGROUND_ASSETS: BackgroundAsset[] = [
       'Canva page 4 export. Keep center open for materials and ready-position cards.',
   },
   {
-    id: 'snack-lunch-flow-control',
-    screenId: 'snack-lunch',
-    label: 'Snack-Lunch Flow Control',
+    id: 'snack-flow-control',
+    screenId: 'snack',
+    label: 'Snack Flow Control',
     path: '/assets/backgrounds/snack-lunch-flow-control.png',
     fallbackGradient:
       'linear-gradient(135deg, #134e4a 0%, #0f766e 45%, #fbbf24 100%)',
     safeZones: ['left-main', 'center-card', 'right-utility'],
-    mood: 'cafeteria flow control board',
+    mood: 'snack flow control board',
     notes:
-      'Canva page 5 export. Do not bake schedule times into artwork. Times stay editable in React only.',
+      'Phase 4D replacement. Keep times editable in React only.',
+  },
+  {
+    id: 'lunch-flow-control',
+    screenId: 'lunch',
+    label: 'Lunch Flow Control',
+    path: '/assets/backgrounds/snack-lunch-flow-control.png',
+    fallbackGradient:
+      'linear-gradient(135deg, #1e3a5f 0%, #3b82f6 40%, #fde68a 100%)',
+    safeZones: ['left-main', 'center-card', 'right-utility'],
+    mood: 'lunch flow control board',
+    notes:
+      'Phase 4D replacement. Keep times editable in React only.',
   },
   {
     id: 'ready-position-expectations',
@@ -94,17 +106,6 @@ export const BACKGROUND_ASSETS: BackgroundAsset[] = [
     notes: 'Phase 4A lightweight alias. Replace with custom background later.',
   },
   {
-    id: 'intervention-focus',
-    screenId: 'intervention',
-    label: 'Intervention Focus',
-    path: '/assets/backgrounds/ready-position-expectations.png',
-    fallbackGradient:
-      'linear-gradient(135deg, #1e1b4b 0%, #4338ca 45%, #bfdbfe 100%)',
-    safeZones: ['left-main', 'center-card', 'right-utility'],
-    mood: 'small group focus',
-    notes: 'Phase 4A lightweight alias. Replace with custom background later.',
-  },
-  {
     id: 'assessment-mode',
     screenId: 'assessment',
     label: 'Assessment Mode',
@@ -116,37 +117,48 @@ export const BACKGROUND_ASSETS: BackgroundAsset[] = [
     notes: 'Phase 4A lightweight alias. Replace with custom background later.',
   },
   {
-    id: 'flexible-groups',
-    screenId: 'flexible-groups',
-    label: 'Flexible Groups',
-    path: '/assets/backgrounds/homeroom-morning-briefing.png',
-    fallbackGradient:
-      'linear-gradient(135deg, #164e63 0%, #0891b2 45%, #cffafe 100%)',
-    safeZones: ['left-main', 'center-card', 'right-utility'],
-    mood: 'collaborative group work',
-    notes: 'Phase 4A lightweight alias. Replace with custom background later.',
-  },
-  {
     id: 'centers-rotations',
     screenId: 'centers',
-    label: 'Centers / Rotations',
+    label: 'Group Work',
     path: '/assets/backgrounds/snack-lunch-flow-control.png',
     fallbackGradient:
       'linear-gradient(135deg, #14532d 0%, #16a34a 45%, #bbf7d0 100%)',
     safeZones: ['left-main', 'center-card', 'right-utility'],
-    mood: 'centers and rotation flow',
-    notes: 'Phase 4A lightweight alias. Replace with custom background later.',
+    mood: 'group work and rotation flow',
+    notes: 'Primary runtime background for Group Work.',
   },
   {
-    id: 'homework-packup',
-    screenId: 'homework-packup',
-    label: 'Homework / Pack-Up',
+    id: 'recess-play',
+    screenId: 'recess',
+    label: 'Recess Play',
+    path: '/assets/backgrounds/homeroom-morning-briefing.png',
+    fallbackGradient:
+      'linear-gradient(135deg, #0f172a 0%, #0f766e 42%, #fbbf24 100%)',
+    safeZones: ['left-main', 'center-card', 'right-utility'],
+    mood: 'safe recess transition',
+    notes: 'Display destination for recess transitions.',
+  },
+  {
+    id: 'homework-station',
+    screenId: 'homework',
+    label: 'Homework Station',
     path: '/assets/backgrounds/homeroom-morning-briefing.png',
     fallbackGradient:
       'linear-gradient(135deg, #0f172a 0%, #475569 45%, #e2e8f0 100%)',
     safeZones: ['left-main', 'center-card', 'right-utility'],
+    mood: 'homework and planner station',
+    notes: 'Phase 4D replacement. Replace with custom background later.',
+  },
+  {
+    id: 'pack-up-station',
+    screenId: 'pack-up',
+    label: 'Pack Up Station',
+    path: '/assets/backgrounds/homeroom-morning-briefing.png',
+    fallbackGradient:
+      'linear-gradient(135deg, #0f172a 0%, #475569 45%, #fbbf24 100%)',
+    safeZones: ['left-main', 'center-card', 'right-utility'],
     mood: 'end of day pack-up',
-    notes: 'Phase 4A lightweight alias. Replace with custom background later.',
+    notes: 'Phase 4D replacement. Replace with custom background later.',
   },
 ]
 
@@ -167,4 +179,32 @@ export function getBackgroundForScreen(screenId: ScreenId): BackgroundAsset {
     BACKGROUND_ASSETS.find((asset) => asset.screenId === screenId) ??
     BACKGROUND_ASSETS[0]
   )
+}
+
+/** Map legacy background IDs to new ones. */
+export function normalizeBackgroundId(
+  backgroundId: string | undefined,
+): BackgroundAssetId {
+  switch (backgroundId) {
+    case 'homeroom-morning-briefing':
+    case 'math-training-lab':
+    case 'reading-sky-book-world':
+    case 'snack-flow-control':
+    case 'lunch-flow-control':
+    case 'ready-position-expectations':
+    case 'writing-workshop':
+    case 'science-lab':
+    case 'social-studies-map':
+    case 'assessment-mode':
+    case 'centers-rotations':
+    case 'recess-play':
+    case 'homework-station':
+    case 'pack-up-station':
+      return backgroundId
+    case 'snack-lunch-flow-control':
+    case 'homework-packup':
+      return backgroundId === 'snack-lunch-flow-control' ? 'snack-flow-control' : 'homework-station'
+    default:
+      return DEFAULT_BACKGROUND_ID
+  }
 }

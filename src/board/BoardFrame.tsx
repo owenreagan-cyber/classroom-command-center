@@ -101,9 +101,12 @@ export function BoardFrame({
 
         <main className="board-main-safe">{children}</main>
 
-        <div className="absolute bottom-6 left-12 right-12 z-30 pointer-events-none flex justify-center">
+        <div className="absolute bottom-4 left-4 z-30 max-w-[22rem] pointer-events-none">
           <div className="pointer-events-auto">
-            <CoachingCard screenId={activeScreen} />
+            <CoachingCard
+              screenId={activeScreen}
+              presentation={isDisplay ? 'compact' : 'expanded'}
+            />
           </div>
         </div>
 

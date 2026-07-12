@@ -1,5 +1,6 @@
 import type { ScreenContents, BoardState, ScreenCardVisibility, TeacherNote, CustomBoardPreset } from '../../data/types'
 import type { SimpleTimerState, SimpleTimerScreenId, PhaseTimerState } from '../../data/timerTypes'
+import type { RoutineControlState } from '../../data/routineTypes'
 import type { DailyBriefPacketPayload, FullBackupPacketPayload } from './types'
 import type { Student, FairnessEntry, PickerClassId, MysterySession, CoachingState, PickerSettings } from '../../features/student-picker/types'
 import { useBoardStore } from '../../store/boardStore'
@@ -14,7 +15,7 @@ interface InternalUndoState {
   timestamp: number
   categories: string[]
   board?: BoardState & { beautifyUndo: ScreenContents | null }
-  timers?: { simpleTimers: Record<SimpleTimerScreenId, SimpleTimerState>; phaseTimer: PhaseTimerState }
+  timers?: { simpleTimers: Record<SimpleTimerScreenId, SimpleTimerState>; phaseTimer: PhaseTimerState; routineControls?: Record<string, RoutineControlState> }
   rosters?: Student[]
   pickerHistory?: FairnessEntry[]
   coachingConfig?: CoachingState
@@ -51,7 +52,7 @@ export function snapshotCategory(cat: string): unknown {
     }
     case 'timers': {
       const ts = useTimerStore.getState()
-      return structuredClone({ simpleTimers: ts.simpleTimers, phaseTimer: ts.phaseTimer })
+      return structuredClone({ simpleTimers: ts.simpleTimers, phaseTimer: ts.phaseTimer, routineControls: ts.routineControls })
     }
     case 'rosters': return structuredClone(usePickerStore.getState().students.filter((s: Student) => s.isActive))
     case 'archivedStudents': return structuredClone(usePickerStore.getState().students.filter((s: Student) => !s.isActive))
@@ -115,10 +116,11 @@ function restoreCategory(cat: string, snapshot: unknown): boolean {
         return true
       }
       case 'timers': {
-        const s = snapshot as { simpleTimers: Record<SimpleTimerScreenId, SimpleTimerState>; phaseTimer: PhaseTimerState }
+        const s = snapshot as { simpleTimers: Record<SimpleTimerScreenId, SimpleTimerState>; phaseTimer: PhaseTimerState; routineControls?: Record<string, RoutineControlState> }
         useTimerStore.setState({
           simpleTimers: structuredClone(s.simpleTimers),
           phaseTimer: structuredClone(s.phaseTimer),
+          routineControls: structuredClone(s.routineControls ?? {}),
         })
         return true
       }

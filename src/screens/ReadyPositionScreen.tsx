@@ -15,6 +15,7 @@ import { SmartTextCard } from '../widgets/SmartTextCard'
 import { VoiceLevelWidget } from '../widgets/VoiceLevelWidget'
 
 interface ReadyPositionScreenProps {
+  screenId: 'ready-position' | 'recess'
   content: ReadyPositionContent
   mode: AppMode
   cardVisibility: ScreenCardVisibility['ready-position']
@@ -29,6 +30,7 @@ interface ReadyPositionScreenProps {
 }
 
 export function ReadyPositionScreen({
+  screenId,
   content,
   mode,
   cardVisibility,
@@ -45,7 +47,7 @@ export function ReadyPositionScreen({
   const cueFonts = displayFontRange(mode, 16, 44)
 
   return (
-    <div className={`${screenGridClass('ready-position', mode)} relative`}>
+    <div className={`${screenGridClass(screenId, mode)} relative`}>
       {(actualReadyVisible || isEdit) && (
         actualReadyVisible ? (
           <ReadyPositionCard
@@ -63,9 +65,9 @@ export function ReadyPositionScreen({
             }
             className={`min-h-0 ${gridArea.readyPosition.main}`}
           />
-        ) : (
+          ) : (
           <HiddenCardPlaceholder
-            screenId="ready-position"
+            screenId={screenId}
             cardId="ready"
             label="Ready Position checklist"
             onToggle={onCardVisibleChange}
@@ -115,7 +117,7 @@ export function ReadyPositionScreen({
           />
         ) : (
           <HiddenCardPlaceholder
-            screenId="ready-position"
+            screenId={screenId}
             cardId="compact-cue"
             label="Compact cue"
             onToggle={onCardVisibleChange}

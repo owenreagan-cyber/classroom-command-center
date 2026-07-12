@@ -1,6 +1,8 @@
 import { EditableList } from '../components/editing/EditableList'
 import { EditableText } from '../components/editing/EditableText'
 import { HiddenCardPlaceholder } from '../components/editing/HiddenCardPlaceholder'
+import { BlockRoutineStrip } from '../components/routines/BlockRoutineStrip'
+import { useClockTick } from '../hooks/useClockTick'
 import type { AppMode, CardId, SubjectContent, NoiseTrackerState, ScreenId } from '../data/types'
 import { MaterialsCard } from '../widgets/MaterialsCard'
 import { SmartTextCard } from '../widgets/SmartTextCard'
@@ -9,6 +11,7 @@ import { VoiceLevelWidget } from '../widgets/VoiceLevelWidget'
 import { LessonCard } from '../widgets/LessonCard'
 import { VocabularyCard } from '../widgets/VocabularyCard'
 import { noiseCardOverlayClass } from '../lib/displayLayout'
+import { getBlockRoutineTimeline } from '../lib/routineEngine'
 
 type SubjectCardVisibility = Partial<Record<CardId, boolean>>
 
@@ -37,6 +40,14 @@ export function SubjectScreen({
   onCardVisibleChange,
   onBeautify,
 }: SubjectScreenProps) {
+  const now = useClockTick(1000)
+  const blockId =
+    screenId === 'writing'
+      ? 'writing'
+      : screenId === 'science' || screenId === 'social-studies'
+        ? 'history-science'
+          : null
+  const blockRoutine = blockId ? getBlockRoutineTimeline(blockId, new Date(now)) : null
   const isEdit = mode === 'edit'
   const actualFocusVisible = cardVisibility.focus ?? true
   const actualLessonCardVisible = cardVisibility['lesson-card'] ?? false
@@ -46,7 +57,14 @@ export function SubjectScreen({
   const actualNoiseVisible = cardVisibility.noise ?? true
 
   return (
-    <section className="board-grid board-grid-three relative">
+    <section className="flex h-full min-h-0 flex-col gap-4">
+      {blockRoutine?.currentWindow && (
+        <BlockRoutineStrip
+          currentWindow={blockRoutine.currentWindow}
+          nextWindowLabel={blockRoutine.nextWindow?.label ?? null}
+        />
+      )}
+      <div className="board-grid board-grid-three relative flex-1">
       <div className="flex min-h-0 flex-col gap-4">
         {(actualFocusVisible || isEdit) && (
           actualFocusVisible ? (
@@ -196,6 +214,7 @@ export function SubjectScreen({
           className={noiseCardOverlayClass(mode)}
         />
       )}
+      </div>
     </section>
   )
 }

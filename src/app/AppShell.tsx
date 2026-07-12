@@ -8,6 +8,8 @@ import { TeacherDock } from '../board/TeacherDock'
 export function AppShell() {
   const mode = useBoardStore((state) => state.mode)
   const activeScreen = useBoardStore((state) => state.activeScreen)
+  const activePageId = useBoardStore((state) => state.activePageId)
+  const classWorkspaces = useBoardStore((state) => state.classWorkspaces)
   const backgroundId = useBoardStore((state) => state.backgroundId)
   const contents = useBoardStore((state) => state.contents)
   const teacherNotes = useBoardStore((state) => state.teacherNotes)
@@ -17,6 +19,9 @@ export function AppShell() {
   const beautifyUndo = useBoardStore((state) => state.beautifyUndo)
   const setMode = useBoardStore((state) => state.setMode)
   const setActiveScreen = useBoardStore((state) => state.setActiveScreen)
+  const setActivePageId = useBoardStore((state) => state.setActivePageId)
+  const navigateToPreviousPage = useBoardStore((state) => state.navigateToPreviousPage)
+  const navigateToNextPage = useBoardStore((state) => state.navigateToNextPage)
   const setBackgroundId = useBoardStore((state) => state.setBackgroundId)
   const setCardVisible = useBoardStore((state) => state.setCardVisible)
   const updateContents = useBoardStore((state) => state.updateContents)
@@ -30,20 +35,22 @@ export function AppShell() {
   const undoBeautify = useBoardStore((state) => state.undoBeautify)
   const resetToDefaults = useBoardStore((state) => state.resetToDefaults)
 
-  // Timer store subscriptions
   const simpleTimers = useTimerStore((state) => state.simpleTimers)
   const phaseTimer = useTimerStore((state) => state.phaseTimer)
 
-  // Picker store subscriptions
   const pickerStudents = usePickerStore((state) => state.students)
   const pickerHistoryEntries = usePickerStore((state) => state.fairnessHistory)
   const pickerCoachingConfig = usePickerStore((state) => state.coachingConfig)
   const pickerSettings = usePickerStore((state) => state.settings)
   const pickerActiveMysterySessions = usePickerStore((state) => state.activeMysterySessions)
 
+  const classWorkspace = classWorkspaces[activeScreen]
+
   const boardState = {
     mode,
     activeScreen,
+    activePageId,
+    classWorkspaces,
     backgroundId,
     contents,
     teacherNotes,
@@ -76,7 +83,6 @@ export function AppShell() {
         onBeautify={beautifyActiveScreen}
         onUndoBeautify={undoBeautify}
         onReset={resetToDefaults}
-        // Local packets state
         timerSimpleTimers={simpleTimers}
         timerPhaseTimer={phaseTimer}
         pickerStudents={pickerStudents}
@@ -93,12 +99,18 @@ export function AppShell() {
       >
         <ActiveScreen
           screenId={activeScreen}
+          activePageId={activePageId}
+          classWorkspace={classWorkspace}
           mode={mode}
           contents={contents}
           cardVisibility={cardVisibility}
           noiseTrackers={noiseTrackers}
           onContentsChange={updateContents}
+          onNavigateSuggestedScreen={setActiveScreen}
           onCardVisibleChange={setCardVisible}
+          onNavigateToPage={setActivePageId}
+          onNavigatePrevious={navigateToPreviousPage}
+          onNavigateNext={navigateToNextPage}
           onBeautify={mode === 'edit' ? beautifyActiveScreen : undefined}
         />
       </BoardFrame>

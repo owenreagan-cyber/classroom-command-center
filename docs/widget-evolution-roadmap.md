@@ -8,6 +8,8 @@ App: `~/Projects/classroom-command-center`
 Completed:
 - Canva-generated classroom backgrounds in `public/assets/backgrounds/`
 - Background manifest: `src/data/backgroundAssets.ts`
+- Routine engine with canonical block timing and transition routines
+- Deterministic routine tests
 - SmartTextCard system
 - AutoFitText with no silent clipping
 - Visible `+ more` overflow indicator
@@ -22,6 +24,7 @@ Completed:
 - Reading screen
 - Snack/Lunch screen
 - Ready Position screen
+- Recess screen/destination
 - Display/Edit modes
 - Local persistence
 - TimerWidget
@@ -76,6 +79,8 @@ Level 1:
 - Manual screen switching
 - Saved selected screen
 - Homeroom, Math, Reading, Snack/Lunch, Ready Position
+- Group Work
+- Recess
 
 Level 2:
 - Custom screen names
@@ -84,7 +89,7 @@ Level 2:
 - Projector readability modes
 
 Level 3:
-- Schedule-aware auto-switching
+- Teacher-triggered transition suggestions
 - Canvas/Chief-of-Staff daily lesson screens
 - iPad remote control
 
@@ -392,6 +397,9 @@ Level 3:
 ---
 
 ### Group Maker
+
+Status:
+Launcher placeholder only. The full grouping tool is not built yet.
 
 Level 1:
 - Paste list

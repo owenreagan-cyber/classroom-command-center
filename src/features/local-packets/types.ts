@@ -85,12 +85,11 @@ export interface DailyBriefPacketPayload {
     reading?: DailyBriefScreenContent
     'snack-lunch'?: DailyBriefScreenContent
     'ready-position'?: DailyBriefScreenContent
+    recess?: DailyBriefScreenContent
     writing?: DailyBriefScreenContent
     science?: DailyBriefScreenContent
     'social-studies'?: DailyBriefScreenContent
-    intervention?: DailyBriefScreenContent
     assessment?: DailyBriefScreenContent
-    'flexible-groups'?: DailyBriefScreenContent
     centers?: DailyBriefScreenContent
     'homework-packup'?: DailyBriefScreenContent
   }
@@ -117,6 +116,7 @@ export interface BackupBoardContent {
 export interface BackupTimerContent {
   simpleTimers?: Record<string, unknown>
   phaseTimer?: unknown
+  routineControls?: Record<string, unknown>
 }
 
 export interface BackupPickerContent {

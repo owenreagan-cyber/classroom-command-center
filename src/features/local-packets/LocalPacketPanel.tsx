@@ -137,7 +137,11 @@ function ImportBriefTab(props: LocalPacketPanelProps & { onStatus: (s: string) =
   const [pending, setPending] = useState<{ envelope: LocalPacketEnvelope; payload: DailyBriefPacketPayload; plan: ApplyPlan } | null>(null)
   const [error, setError] = useState('')
 
-  const importCurrentTimers = { simpleTimers: props.timerSimpleTimers || {}, phaseTimer: props.timerPhaseTimer || { status: 'idle' } }
+  const importCurrentTimers = {
+    simpleTimers: props.timerSimpleTimers || {},
+    phaseTimer: props.timerPhaseTimer || { status: 'idle' },
+    routineControls: {},
+  }
   const importCurrentMystery = (props.pickerActiveMysterySessions || {}) as Record<string, { status: string } | null | undefined>
 
   const handleFile = async (file: File | undefined) => {
@@ -331,6 +335,7 @@ function BackupTab(props: LocalPacketPanelProps & { onStatus: (s: string) => voi
         timers: {
           simpleTimers: props.timerSimpleTimers,
           phaseTimer: props.timerPhaseTimer,
+          routineControls: {},
           config: props.timerConfig,
         },
         rosters: props.pickerStudents,
@@ -394,7 +399,11 @@ function RestoreTab(props: LocalPacketPanelProps & { onStatus: (s: string) => vo
   const [replaceTimerRuntime, setReplaceTimerRuntime] = useState(false)
   const [replaceActiveMystery, setReplaceActiveMystery] = useState(false)
 
-  const importCurrentTimers = { simpleTimers: props.timerSimpleTimers || {}, phaseTimer: props.timerPhaseTimer || { status: 'idle' } }
+  const importCurrentTimers = {
+    simpleTimers: props.timerSimpleTimers || {},
+    phaseTimer: props.timerPhaseTimer || { status: 'idle' },
+    routineControls: {},
+  }
   const importCurrentMystery = (props.pickerActiveMysterySessions || {}) as Record<string, { status: string } | null | undefined>
 
   const handleFile = async (file: File | undefined) => {

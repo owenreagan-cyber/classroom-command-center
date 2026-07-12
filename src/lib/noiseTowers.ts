@@ -221,7 +221,7 @@ export function resetNoiseTrackerState(trackerId: NoiseTrackerId): NoiseTrackerS
  * - Reading display uses the Reading noise tracker.
  * - Homeroom noise tracker carries across morning message (homeroom), snack (snack-lunch),
  *   Shurley (writing), history/science (social-studies/science), clean up / dismissal (homework-packup),
- *   and other general classroom screens.
+ *   recess transition, and other general classroom screens.
  * - Spelling/Vibe-specific screens are excluded from using the Homeroom tracker.
  */
 export function getNoiseTrackerIdForScreen(screenId: ScreenId): NoiseTrackerId | null {
@@ -234,20 +234,17 @@ export function getNoiseTrackerIdForScreen(screenId: ScreenId): NoiseTrackerId |
     case 'writing':
     case 'science':
     case 'social-studies':
-    case 'intervention':
     case 'assessment':
-    case 'flexible-groups':
     case 'centers':
-    case 'homework-packup':
-    case 'snack-lunch':
+    case 'snack':
+    case 'lunch':
+    case 'recess':
     case 'ready-position':
+    case 'homework':
+    case 'pack-up':
+    case 'spelling':
       return 'homeroom'
-    // Exclude Spelling / Vibe specific screens explicitly
-    // case 'spelling':
-    // case 'vibe':
-    //   return null
     default:
-      // Default fallback is to not assign any noise tracker unless explicitly supported
       return null
   }
 }

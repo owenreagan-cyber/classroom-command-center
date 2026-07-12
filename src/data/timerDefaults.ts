@@ -4,6 +4,7 @@ import type {
   SimpleTimerState,
   TimerPreset,
 } from './timerTypes'
+import { DEFAULT_ROUTINE_CONTROLS } from './routineSchedule'
 
 /** Duration presets only — not school bell / schedule clock times. */
 export const TIMER_PRESETS: TimerPreset[] = [
@@ -39,6 +40,7 @@ export const DEFAULT_SIMPLE_TIMERS: Record<
   homeroom: createDefaultSimpleTimer('Homeroom Timer'),
   math: createDefaultSimpleTimer('Math Timer'),
   reading: createDefaultSimpleTimer('Reading Timer'),
+  spelling: createDefaultSimpleTimer('Spelling Timer'),
 }
 
 /**
@@ -78,8 +80,11 @@ export const DEFAULT_PHASE_TIMER: PhaseTimerState = {
   chimeEnabled: false,
 }
 
+export { DEFAULT_ROUTINE_CONTROLS }
+
 export const SIMPLE_TIMER_SCREEN_IDS: SimpleTimerScreenId[] = [
   'homeroom',
   'math',
   'reading',
+  'spelling',
 ]

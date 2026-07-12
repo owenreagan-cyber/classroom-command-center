@@ -179,17 +179,43 @@ export function DailyBriefPanel({
         }
         break
       }
-      case 'snack-lunch': {
-        if (displayTitle) next['snack-lunch'].title = displayTitle
-        if (draftChecklist.length > 0) next['snack-lunch'].routine = draftChecklist
-        if (draftMaterialsAway.length > 0) next['snack-lunch'].cleanupReminders = draftMaterialsAway
-        if (smartTvReminder) next['snack-lunch'].phaseNote = smartTvReminder
+      case 'snack': {
+        if (displayTitle) next.snack.title = displayTitle
+        if (draftChecklist.length > 0) next.snack.routine = draftChecklist
+        if (draftMaterialsAway.length > 0) next.snack.cleanupReminders = draftMaterialsAway
+        if (smartTvReminder) next.snack.phaseNote = smartTvReminder
         break
       }
-      case 'ready-position': {
-        if (displayTitle) next['ready-position'].title = displayTitle
-        if (draftChecklist.length > 0) next['ready-position'].steps = draftChecklist
-        if (mainInstruction) next['ready-position'].compactLine = mainInstruction
+      case 'lunch': {
+        if (displayTitle) next.lunch.title = displayTitle
+        if (draftChecklist.length > 0) next.lunch.routine = draftChecklist
+        if (draftMaterialsAway.length > 0) next.lunch.cleanupReminders = draftMaterialsAway
+        if (smartTvReminder) next.lunch.phaseNote = smartTvReminder
+        break
+      }
+      case 'ready-position':
+      case 'recess': {
+        if (displayTitle) {
+          if (activeScreen === 'recess') {
+            next.recess.title = displayTitle
+          } else {
+            next['ready-position'].title = displayTitle
+          }
+        }
+        if (draftChecklist.length > 0) {
+          if (activeScreen === 'recess') {
+            next.recess.steps = draftChecklist
+          } else {
+            next['ready-position'].steps = draftChecklist
+          }
+        }
+        if (mainInstruction) {
+          if (activeScreen === 'recess') {
+            next.recess.compactLine = mainInstruction
+          } else {
+            next['ready-position'].compactLine = mainInstruction
+          }
+        }
         break
       }
       default: {
