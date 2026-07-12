@@ -1,5 +1,7 @@
 import { ActiveScreen } from '../screens/ActiveScreen'
 import { useBoardStore } from '../store/boardStore'
+import { useTimerStore } from '../store/timerStore'
+import { usePickerStore } from '../features/student-picker/pickerStore'
 import { BoardFrame } from '../board/BoardFrame'
 import { TeacherDock } from '../board/TeacherDock'
 
@@ -22,12 +24,22 @@ export function AppShell() {
   const saveCustomPreset = useBoardStore((state) => state.saveCustomPreset)
   const applyCustomPreset = useBoardStore((state) => state.applyCustomPreset)
   const deleteCustomPreset = useBoardStore((state) => state.deleteCustomPreset)
-  const importBoardState = useBoardStore((state) => state.importBoardState)
   const setNoiseVoiceLevel = useBoardStore((state) => state.setNoiseVoiceLevel)
   const resetNoiseTracker = useBoardStore((state) => state.resetNoiseTracker)
   const beautifyActiveScreen = useBoardStore((state) => state.beautifyActiveScreen)
   const undoBeautify = useBoardStore((state) => state.undoBeautify)
   const resetToDefaults = useBoardStore((state) => state.resetToDefaults)
+
+  // Timer store subscriptions
+  const simpleTimers = useTimerStore((state) => state.simpleTimers)
+  const phaseTimer = useTimerStore((state) => state.phaseTimer)
+
+  // Picker store subscriptions
+  const pickerStudents = usePickerStore((state) => state.students)
+  const pickerHistoryEntries = usePickerStore((state) => state.fairnessHistory)
+  const pickerCoachingConfig = usePickerStore((state) => state.coachingConfig)
+  const pickerSettings = usePickerStore((state) => state.settings)
+  const pickerActiveMysterySessions = usePickerStore((state) => state.activeMysterySessions)
 
   const boardState = {
     mode,
@@ -57,7 +69,6 @@ export function AppShell() {
         onSaveCustomPreset={saveCustomPreset}
         onApplyCustomPreset={applyCustomPreset}
         onDeleteCustomPreset={deleteCustomPreset}
-        onImportBoardState={importBoardState}
         onContentsChange={updateContents}
         onNoiseVoiceLevelChange={setNoiseVoiceLevel}
         onResetNoiseTracker={resetNoiseTracker}
@@ -65,6 +76,14 @@ export function AppShell() {
         onBeautify={beautifyActiveScreen}
         onUndoBeautify={undoBeautify}
         onReset={resetToDefaults}
+        // Local packets state
+        timerSimpleTimers={simpleTimers}
+        timerPhaseTimer={phaseTimer}
+        pickerStudents={pickerStudents}
+        pickerHistoryEntries={pickerHistoryEntries}
+        pickerCoachingConfig={pickerCoachingConfig}
+        pickerSettings={pickerSettings}
+        pickerActiveMysterySessions={pickerActiveMysterySessions}
       />
       <BoardFrame
         mode={mode}

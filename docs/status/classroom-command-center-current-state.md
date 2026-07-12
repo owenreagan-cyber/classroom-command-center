@@ -1,7 +1,7 @@
 # Classroom Command Center — Current State Audit
 
 Status: PASS
-Date: 2026-07-11
+Date: 2026-07-12
 Project: `~/Projects/classroom-command-center`
 
 ## Validation
@@ -107,6 +107,10 @@ Widgets:
 - `src/widgets/TimerWidget.tsx`
 - `src/widgets/VoiceLevelWidget.tsx`
 
+Features:
+- `src/features/student-picker/` — Random Picker, Mystery Star, Roster, History, Coaching
+- `src/features/local-packets/` — Daily Brief Import/Export, Full Backup/Restore
+
 Styles:
 - `src/styles/index.css`
 
@@ -144,6 +148,7 @@ Implemented:
 - Daily Brief Intake & Routine Templates (offline-ready template presets for daily board setups)
 - Lesson Card + Vocabulary Card (student-facing widgets for tracking objectives and keywords)
 - Random Picker + Mystery Star Student Tracker
+- Local Packet Backup & Restore (Daily Brief import/export, full backup/restore, validation, undo, privacy boundary)
 - Build and lint passing
 - Spotify/Classroom Audio plan
 - widget evolution roadmap
@@ -222,10 +227,10 @@ Shared:
 ## Recommended Next Phase
 
 Next phase:
-Local Daily Brief Packet import/export
+Command Center Display Layout Polish & Projector Readability Pass
 
 Why:
-With the lesson cards and daily brief panel built, creating a portable JSON packet import/export layer allows teachers to actually save their full day's plan out of the browser and re-import it safely without needing a backend.
+Now that the Local Packet Import/Export and Full Backup/Restore system is completely wired, integrated with real stores, and transactionally rollback-safe, the next phase is to polish the display layout and perform a projector readability pass to ensure high-contrast visibility for students in real classrooms.
 
 ## Recommended Phase Order
 

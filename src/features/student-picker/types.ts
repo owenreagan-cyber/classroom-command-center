@@ -54,6 +54,8 @@ export interface FairnessEntry {
   outcome: 'earned' | 'did-not-earn' | 'quick-picked' | 'absent-replaced'
   date?: string
   reason?: string
+  originalOutcome?: 'earned' | 'did-not-earn' | 'quick-picked' | 'absent-replaced'
+  correctedAt?: number
 }
 
 export interface BehaviorLookFor {
@@ -109,6 +111,7 @@ export interface PickerStoreState {
 
   recordQuickPick: (classId: PickerClassId, studentId: StudentId) => void
   clearQuickPickHistory: (classId: PickerClassId) => void
+  correctOutcome: (classId: PickerClassId, eventId: string, nextOutcome: 'earned' | 'did-not-earn') => void
 
   updateCoachingConfig: (updates: Partial<CoachingState>) => void
   updateSettings: (updates: Partial<PickerSettings>) => void
