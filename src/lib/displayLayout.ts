@@ -69,11 +69,15 @@ export const gridArea = {
   },
   math: {
     lesson: 'board-area-math-lesson',
+    lessonCard: 'board-area-math-lesson-card',
+    vocabularyCard: 'board-area-math-vocabulary-card',
     materials: 'board-area-math-materials',
     timer: 'board-area-math-timer',
   },
   reading: {
     lesson: 'board-area-reading-lesson',
+    lessonCard: 'board-area-reading-lesson-card',
+    vocabularyCard: 'board-area-reading-vocabulary-card',
     materials: 'board-area-reading-materials',
     ready: 'board-area-reading-ready',
     timer: 'board-area-reading-timer',

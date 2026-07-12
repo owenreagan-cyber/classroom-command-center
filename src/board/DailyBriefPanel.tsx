@@ -41,6 +41,9 @@ export function DailyBriefPanel({
   const [materialsOut, setMaterialsOut] = useState(draftData.materialsOut || '')
   const [materialsAway, setMaterialsAway] = useState(draftData.materialsAway || '')
   const [smartTvReminder, setSmartTvReminder] = useState(draftData.smartTvReminder || '')
+  const [lessonObjective, setLessonObjective] = useState(draftData.lessonObjective || '')
+  const [successCriteria, setSuccessCriteria] = useState(draftData.successCriteria || '')
+  const [vocabularyTerms, setVocabularyTerms] = useState(draftData.vocabularyTerms || '')
   const [optionalTeacherNote, setOptionalTeacherNote] = useState(draftData.optionalTeacherNote || '')
 
   const [showAdvanced, setShowAdvanced] = useState(false)
@@ -57,6 +60,9 @@ export function DailyBriefPanel({
       materialsOut,
       materialsAway,
       smartTvReminder,
+      lessonObjective,
+      successCriteria,
+      vocabularyTerms,
       optionalTeacherNote,
     }
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(draft))
@@ -69,6 +75,9 @@ export function DailyBriefPanel({
     materialsOut,
     materialsAway,
     smartTvReminder,
+    lessonObjective,
+    successCriteria,
+    vocabularyTerms,
     optionalTeacherNote,
   ])
 
@@ -87,6 +96,9 @@ export function DailyBriefPanel({
     setMaterialsOut(template.materialsOut ? template.materialsOut.join('\n') : '')
     setMaterialsAway(template.materialsAway ? template.materialsAway.join('\n') : '')
     setSmartTvReminder(template.smartTvReminder || '')
+    setLessonObjective(template.lessonObjective || '')
+    setSuccessCriteria(template.successCriteria ? template.successCriteria.join('\n') : '')
+    setVocabularyTerms(template.vocabularyTerms ? template.vocabularyTerms.join('\n') : '')
     setOptionalTeacherNote(template.optionalTeacherNote || '')
 
     // Show feedback that template is previewed
@@ -119,6 +131,23 @@ export function DailyBriefPanel({
         next.math.materials.haveOut = draftMaterialsOut
         next.math.materials.putAway = draftMaterialsAway
         if (smartTvReminder) next.math.timerNote = smartTvReminder
+        const draftSuccessCriteria = successCriteria.split('\n').map((line: string) => line.trim()).filter(Boolean)
+        const draftVocabEntries = vocabularyTerms.split('\n').map((line: string) => {
+          const parts = line.split(':')
+          return parts.length > 1
+            ? { term: parts[0].trim(), definition: parts.slice(1).join(':').trim() }
+            : { term: line.trim() }
+        }).filter((e: { term: string; definition?: string }) => e.term)
+
+        if (next.math.lesson && lessonObjective) {
+          next.math.lesson.objective = lessonObjective
+        }
+        if (next.math.lesson && draftSuccessCriteria.length > 0) {
+          next.math.lesson.successCriteria = draftSuccessCriteria
+        }
+        if (next.math.vocabulary && draftVocabEntries.length > 0) {
+          next.math.vocabulary.entries = draftVocabEntries
+        }
         break
       }
       case 'reading': {
@@ -129,6 +158,24 @@ export function DailyBriefPanel({
         if (smartTvReminder) next.reading.timerNote = smartTvReminder
         if (optionalTeacherNote) {
           next.reading.readyPosition.steps = optionalTeacherNote.split('\n').map((line: string) => line.trim()).filter(Boolean)
+        }
+
+        const draftSuccessCriteria = successCriteria.split('\n').map((line: string) => line.trim()).filter(Boolean)
+        const draftVocabEntries = vocabularyTerms.split('\n').map((line: string) => {
+          const parts = line.split(':')
+          return parts.length > 1
+            ? { term: parts[0].trim(), definition: parts.slice(1).join(':').trim() }
+            : { term: line.trim() }
+        }).filter((e: { term: string; definition?: string }) => e.term)
+
+        if (next.reading.lesson && lessonObjective) {
+          next.reading.lesson.objective = lessonObjective
+        }
+        if (next.reading.lesson && draftSuccessCriteria.length > 0) {
+          next.reading.lesson.successCriteria = draftSuccessCriteria
+        }
+        if (next.reading.vocabulary && draftVocabEntries.length > 0) {
+          next.reading.vocabulary.entries = draftVocabEntries
         }
         break
       }
@@ -154,6 +201,24 @@ export function DailyBriefPanel({
           subject.materials.haveOut = draftMaterialsOut
           subject.materials.putAway = draftMaterialsAway
           if (smartTvReminder) subject.teacherHint = smartTvReminder
+
+          const draftSuccessCriteria = successCriteria.split('\n').map((line: string) => line.trim()).filter(Boolean)
+          const draftVocabEntries = vocabularyTerms.split('\n').map((line: string) => {
+            const parts = line.split(':')
+            return parts.length > 1
+              ? { term: parts[0].trim(), definition: parts.slice(1).join(':').trim() }
+              : { term: line.trim() }
+          }).filter((e: { term: string; definition?: string }) => e.term)
+
+          if (subject.lesson && lessonObjective) {
+            subject.lesson.objective = lessonObjective
+          }
+          if (subject.lesson && draftSuccessCriteria.length > 0) {
+            subject.lesson.successCriteria = draftSuccessCriteria
+          }
+          if (subject.vocabulary && draftVocabEntries.length > 0) {
+            subject.vocabulary.entries = draftVocabEntries
+          }
         }
         break
       }
@@ -316,12 +381,54 @@ export function DailyBriefPanel({
             onClick={() => setShowAdvanced(!showAdvanced)}
             className="text-xs font-bold text-cyan-400 hover:text-cyan-300 focus:outline-none flex items-center gap-1 py-1"
           >
-            {showAdvanced ? 'Hide Additional Fields ▲' : 'Show Additional Fields (Smart TV, Materials Away...) ▼'}
+            {showAdvanced ? 'Hide Additional Fields ▲' : 'Show Additional Fields (Smart TV, Lesson Goal, Vocab...) ▼'}
           </button>
         </div>
 
         {showAdvanced && (
           <div className="space-y-3 pt-2 border-t border-slate-800/40">
+            <div className="space-y-1">
+              <label htmlFor="brief-lesson-obj" className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400 block">
+                Lesson Objective / I Can...
+              </label>
+              <input
+                id="brief-lesson-obj"
+                type="text"
+                value={lessonObjective}
+                onChange={(e) => setLessonObjective(e.target.value)}
+                placeholder="Learning target..."
+                className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 focus:outline-none transition"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label htmlFor="brief-success-criteria" className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400 block">
+                Success Criteria (one per line)
+              </label>
+              <textarea
+                id="brief-success-criteria"
+                rows={2}
+                value={successCriteria}
+                onChange={(e) => setSuccessCriteria(e.target.value)}
+                placeholder="I can explain my work...&#10;I can show proof..."
+                className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 focus:outline-none transition resize-y"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label htmlFor="brief-vocab-terms" className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400 block">
+                Vocabulary (term: definition per line)
+              </label>
+              <textarea
+                id="brief-vocab-terms"
+                rows={2}
+                value={vocabularyTerms}
+                onChange={(e) => setVocabularyTerms(e.target.value)}
+                placeholder="hypothesis: an educated guess&#10;variable"
+                className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 focus:outline-none transition resize-y"
+              />
+            </div>
+
             <div className="space-y-1">
               <label htmlFor="brief-materials-away" className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400 block">
                 Materials Away (one per line)
