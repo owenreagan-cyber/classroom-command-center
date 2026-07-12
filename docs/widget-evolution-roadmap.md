@@ -666,3 +666,16 @@ Level 3:
 8. Vocabulary Card
 9. Random Picker
 
+
+## Future Daily Brief Packet Intake Architecture
+
+Daily Brief Intake should eventually support a reviewed packet workflow.
+
+Recommended staged path:
+1. Local routine templates inside Command Center.
+2. Local paste/import of a prepared Daily Brief Packet.
+3. Teacher AI Workstation / Chief of Staff prepares packets from Canvas files/modules, uploaded files, email, calendar notes, or teacher notes.
+4. Command Center previews the packet and applies it only after teacher approval.
+
+Boundary:
+Command Center should remain local-first and display-focused. Canvas, email, calendar, file parsing, and AI extraction should live upstream in Teacher AI Workstation / Chief of Staff.
