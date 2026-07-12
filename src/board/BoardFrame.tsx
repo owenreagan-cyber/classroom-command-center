@@ -3,6 +3,9 @@ import { SCREEN_META } from '../data/defaults'
 import { getBackgroundAsset } from '../data/backgroundAssets'
 import type { AppMode, BackgroundAssetId, ScreenId } from '../data/types'
 
+import { CoachingCard } from '../features/student-picker/widgets/CoachingCard'
+import { MysteryRevealStage } from '../features/student-picker/widgets/MysteryRevealStage'
+
 interface BoardChromeProps {
   mode: AppMode
   activeScreen: ScreenId
@@ -97,6 +100,14 @@ export function BoardFrame({
         </header>
 
         <main className="board-main-safe">{children}</main>
+
+        <div className="absolute bottom-6 left-12 right-12 z-30 pointer-events-none flex justify-center">
+          <div className="pointer-events-auto">
+            <CoachingCard screenId={activeScreen} />
+          </div>
+        </div>
+
+        <MysteryRevealStage screenId={activeScreen} />
       </div>
     </div>
   )

@@ -32,6 +32,7 @@ Completed:
 - Voice Level / Traffic Light widget (microphone-free student voice expectations guide)
 - Daily Brief Intake & Routine Templates (offline-ready template presets for daily board setups)
 - Lesson Card + Vocabulary Card
+- Random Picker + Mystery Star Student Tracker
 - Build and lint passing
 
 Parked:
@@ -60,8 +61,7 @@ Level 3 = maxed out / fully decked out / automated or integrated
 
 ## Current Priority Order
 
-1. Random Picker
-2. Local Daily Brief Packet import/export
+1. Local Daily Brief Packet import/export
 
 Do not chase Level 3 features until the MVP board els excellent.
 

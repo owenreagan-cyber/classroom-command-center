@@ -20,6 +20,7 @@ import { CardVisibilityPanel } from './CardVisibilityPanel'
 import { DailyBriefPanel } from './DailyBriefPanel'
 import { NoiseControlPanel } from './NoiseControlPanel'
 import { TeacherNotesPanel } from './TeacherNotesPanel'
+import { StudentPickerPanel } from '../features/student-picker/StudentPickerPanel'
 
 interface TeacherDockProps {
   mode: AppMode
@@ -156,6 +157,8 @@ export function TeacherDock({
           ))}
         </div>
       </section>
+
+      <StudentPickerPanel activeScreen={activeScreen} />
 
       <DailyBriefPanel
         activeScreen={activeScreen}
