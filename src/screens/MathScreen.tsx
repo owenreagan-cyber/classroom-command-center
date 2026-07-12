@@ -1,5 +1,7 @@
 import { EditableText } from '../components/editing/EditableText'
 import { HiddenCardPlaceholder } from '../components/editing/HiddenCardPlaceholder'
+import { BlockRoutineStrip } from '../components/routines/BlockRoutineStrip'
+import { useClockTick } from '../hooks/useClockTick'
 import type {
   AppMode,
   CardId,
@@ -9,6 +11,7 @@ import type {
   ScreenId,
 } from '../data/types'
 import { gridArea, noiseCardOverlayClass, screenGridClass } from '../lib/displayLayout'
+import { getBlockRoutineTimeline } from '../lib/routineEngine'
 import { MaterialsCard } from '../widgets/MaterialsCard'
 import { SmartTextCard } from '../widgets/SmartTextCard'
 import { VoiceLevelWidget } from '../widgets/VoiceLevelWidget'
@@ -39,6 +42,8 @@ export function MathScreen({
   onCardVisibleChange,
   onBeautify,
 }: MathScreenProps) {
+  const now = useClockTick(1000)
+  const blockRoutine = getBlockRoutineTimeline('math', new Date(now))
   const isEdit = mode === 'edit'
   const actualLessonVisible = cardVisibility.lesson ?? true
   const actualLessonCardVisible = cardVisibility['lesson-card'] ?? false
@@ -114,7 +119,12 @@ export function MathScreen({
   } as React.CSSProperties
 
   return (
-    <div className={`${screenGridClass('math', mode)} relative`} style={gridStyle}>
+    <div className="flex h-full min-h-0 flex-col gap-4">
+      <BlockRoutineStrip
+        currentWindow={blockRoutine.currentWindow}
+        nextWindowLabel={blockRoutine.nextWindow?.label ?? null}
+      />
+      <div className={`${screenGridClass('math', mode)} relative flex-1`} style={gridStyle}>
       {(actualLessonVisible || isEdit) && (
         actualLessonVisible ? (
           <SmartTextCard
@@ -239,6 +249,7 @@ export function MathScreen({
           className={noiseCardOverlayClass(mode)}
         />
       )}
+      </div>
     </div>
   )
 }

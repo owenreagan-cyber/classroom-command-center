@@ -4,9 +4,10 @@ import type { ScreenId } from '../../../data/types'
 
 interface CoachingCardProps {
   screenId: ScreenId
+  presentation?: 'hidden' | 'compact' | 'expanded'
 }
 
-export function CoachingCard({ screenId }: CoachingCardProps) {
+export function CoachingCard({ screenId, presentation = 'expanded' }: CoachingCardProps) {
   const config = usePickerStore((s) => s.coachingConfig)
 
   if (!config.enabled || !config.showOnScreens.includes(screenId)) {
@@ -21,18 +22,30 @@ export function CoachingCard({ screenId }: CoachingCardProps) {
     return null
   }
 
+  if (presentation === 'hidden') {
+    return null
+  }
+
   return (
-    <div className="rounded-3xl border border-cyan-500/30 bg-slate-900/90 p-6 shadow-xl shadow-cyan-900/20 backdrop-blur">
-      <h3 className="mb-4 text-xl font-black uppercase tracking-widest text-cyan-400">
-        I am looking for students who...
+    <div
+      className={`rounded-3xl border border-cyan-500/28 bg-slate-950/70 shadow-xl shadow-cyan-900/15 backdrop-blur ${
+        presentation === 'compact' ? 'px-4 py-3' : 'p-6'
+      }`}
+    >
+      <h3
+        className={`font-black uppercase tracking-widest text-cyan-300 ${
+          presentation === 'compact' ? 'mb-2 text-[11px]' : 'mb-4 text-lg'
+        }`}
+      >
+        Looking for...
       </h3>
-      <ul className="space-y-3">
+      <ul className={`${presentation === 'compact' ? 'grid gap-2' : 'space-y-3'}`}>
         {visibleLabels.map((label, idx) => (
           <li key={idx} className="flex items-start gap-3">
-            <span className="mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-cyan-500/20 text-cyan-400 font-bold">
+            <span className={`mt-1 flex shrink-0 items-center justify-center rounded-full bg-cyan-500/18 font-bold text-cyan-300 ${presentation === 'compact' ? 'h-5 w-5 text-[10px]' : 'h-6 w-6 text-sm'}`}>
               ✓
             </span>
-            <span className="text-xl font-bold leading-tight text-slate-100">
+            <span className={`font-bold leading-tight text-slate-100 ${presentation === 'compact' ? 'text-sm' : 'text-lg'}`}>
               {label}
             </span>
           </li>

@@ -110,7 +110,7 @@ export const DAILY_BRIEF_TEMPLATES: DailyBriefTemplate[] = [
       'Check floor',
     ],
     smartTvReminder: 'Check the floor around your feet. Leave no crumbs behind.',
-    optionalTargetScreenSuggestion: 'snack-lunch',
+    optionalTargetScreenSuggestion: 'snack',
   },
   {
     id: 'lunch-routine',
@@ -132,7 +132,7 @@ export const DAILY_BRIEF_TEMPLATES: DailyBriefTemplate[] = [
       'Group 4',
     ],
     smartTvReminder: 'Watch the timer. Clean transitions help us get back to learning.',
-    optionalTargetScreenSuggestion: 'snack-lunch',
+    optionalTargetScreenSuggestion: 'lunch',
   },
   {
     id: 'ready-position',

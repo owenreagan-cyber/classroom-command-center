@@ -1,23 +1,19 @@
 # Classroom Command Center — Current State Audit
 
-Status: PASS
+Status: corrective pass in progress
 Date: 2026-07-12
 Project: `~/Projects/classroom-command-center`
 
 ## Validation
 
-Latest validation:
-- `npm run build` — PASS
+Latest confirmed local checks:
+- `npm run test:routines` — PASS
+- `npm run test:student-picker` — PASS
+- `npm run test:local-packets` — PASS
 - `npm run lint` — PASS
-- `git diff --check` — PASS
+- `npm run build` — PASS
 
-Production build output:
-- `dist/index.html` — 0.47 kB / gzip 0.30 kB
-- `dist/assets/index-BScqAiEL.css` — 32.74 kB / gzip 6.42 kB
-- `dist/assets/index-BzYDAvY9.js` — 233.60 kB / gzip 71.27 kB
-
-Build time:
-- 77ms
+Final git hygiene evidence is captured in the thread report after the last corrective edit.
 
 ## Dependency State
 
@@ -73,8 +69,12 @@ Components:
 
 Data:
 - `src/data/backgroundAssets.ts`
+- `src/data/boardPresets.ts`
 - `src/data/dailyBriefTemplates.ts`
 - `src/data/defaults.ts`
+- `src/data/pageSequences.ts`
+- `src/data/routineSchedule.ts`
+- `src/data/routineTypes.ts`
 - `src/data/timerDefaults.ts`
 - `src/data/timerTypes.ts`
 - `src/data/types.ts`
@@ -85,16 +85,26 @@ Screens:
 - `src/screens/MathScreen.tsx`
 - `src/screens/ReadingScreen.tsx`
 - `src/screens/ReadyPositionScreen.tsx`
-- `src/screens/SnackLunchScreen.tsx`
+- `src/screens/SubjectScreen.tsx`
+- `src/screens/VibePageScreen.tsx`
+- `src/screens/SnackLunchDisplayView.tsx`
 
 Stores:
 - `src/store/boardStore.ts`
 - `src/store/timerStore.ts`
 
 Hooks/libs:
-- `src/hooks/useTimerTick.ts`
+- `src/hooks/useClockTick.ts`
 - `src/lib/beautify.ts`
+- `src/lib/routineEngine.ts`
 - `src/lib/timerFormat.ts`
+
+Routines:
+- `src/components/routines/BlockRoutineStrip.tsx`
+- `src/components/routines/CompactRealClock.tsx`
+- `src/components/routines/LauncherDock.tsx`
+- `src/components/routines/PageNavigation.tsx`
+- `src/components/routines/RoutineBanner.tsx`
 
 Widgets:
 - `src/widgets/AutoFitText.tsx`
@@ -123,10 +133,19 @@ Implemented:
 - Display/Edit mode
 - background manifest
 - Canva-exported background support
-- Homeroom screen
+- Nested vibe page architecture (ClassWorkspace → VibePage → slide)
+- Page navigation with Previous/Next buttons, dots, page count
+- 33 stable vibe page IDs across 15 class workspaces
+- Layout presets (centered-message, message-plus-timer, etc.)
+- Display mode renders clean slides per active page
+- Homeroom screen (5 pages)
 - Math screen
 - Reading screen
-- Snack/Lunch screen
+- Snack screen (split from Snack/Lunch)
+- Lunch screen (split from Snack/Lunch)
+- Homework screen (split from Homework/Pack-Up)
+- Pack Up screen (split from Homework/Pack-Up)
+- Spelling screen
 - Ready Position screen
 - SmartTextCard system
 - AutoFitText with no silent clipping
@@ -140,6 +159,8 @@ Implemented:
 - TimerWidget
 - PhaseTimerCard / RoutineTimerCard
 - wall-clock timer reload recovery
+- Routine engine with canonical block timing and transition routines
+- Recess destination and Group Work runtime rename
 - local persistence with Zustand
 - reset clears timers
 - Widget visibility toggles and placeholders
@@ -149,8 +170,9 @@ Implemented:
 - Lesson Card + Vocabulary Card (student-facing widgets for tracking objectives and keywords)
 - Random Picker + Mystery Star Student Tracker
 - Local Packet Backup & Restore (Daily Brief import/export, full backup/restore, validation, undo, privacy boundary)
-- Build and lint passing
-- Spotify/Classroom Audio plan
+- Deterministic routine tests for date-driven coverage
+- Page architecture tests (148 tests, all passing)
+- Build and lint currently passing locally
 - widget evolution roadmap
 - Reward Maker Studio parking-lot doc
 
@@ -223,6 +245,13 @@ Shared:
 - Command Center export
 - OmniNote import
 - deep link handoff later
+
+Not built:
+- Tauri wrapper
+- Spotify SDK integration
+- full Group Maker
+- full Random Reader
+- automatic class switching
 
 ## Recommended Next Phase
 

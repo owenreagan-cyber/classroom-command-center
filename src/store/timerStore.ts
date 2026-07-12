@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware'
 import {
   DEFAULT_PHASE_TIMER,
   DEFAULT_SIMPLE_TIMERS,
+  DEFAULT_ROUTINE_CONTROLS,
   DEFAULT_TIMER_DURATION_MS,
   TIMER_PRESETS,
 } from '../data/timerDefaults'
@@ -13,13 +14,23 @@ import type {
   SimpleTimerState,
   TimerPresetId,
 } from '../data/timerTypes'
+import type { RoutineControlState } from '../data/routineTypes'
 import { minutesToMs, remainingFromEndsAt } from '../lib/timerFormat'
+import {
+  advanceRoutineControlToNextPhase,
+  buildManualRoutineControl,
+  buildPausedRoutineControl,
+  getRoutineTimeline,
+  restartRoutineControl,
+} from '../lib/routineEngine'
+import { normalizeRoutineControlState } from '../data/routineSchedule'
 
 const ONE_MINUTE_MS = 60_000
 
 interface TimerStore {
   simpleTimers: Record<SimpleTimerScreenId, SimpleTimerState>
   phaseTimer: PhaseTimerState
+  routineControls: Record<string, RoutineControlState>
 
   setSimpleLabel: (screenId: SimpleTimerScreenId, label: string) => void
   setSimplePreset: (
@@ -60,6 +71,12 @@ interface TimerStore {
   resumePhase: () => void
   resetPhase: () => void
   syncPhase: () => void
+  pauseRoutine: (scheduleId: string) => void
+  resumeRoutine: (scheduleId: string) => void
+  skipRoutinePhase: (scheduleId: string) => void
+  restartRoutinePhase: (scheduleId: string) => void
+  setRoutineManualOverride: (scheduleId: string, phaseId: string) => void
+  clearRoutineControl: (scheduleId: string) => void
   resetAllTimers: () => void
 }
 
@@ -173,6 +190,7 @@ export const useTimerStore = create<TimerStore>()(
     (set) => ({
       simpleTimers: structuredClone(DEFAULT_SIMPLE_TIMERS),
       phaseTimer: structuredClone(DEFAULT_PHASE_TIMER),
+      routineControls: structuredClone(DEFAULT_ROUTINE_CONTROLS),
 
       setSimpleLabel: (screenId, label) =>
         set((state) => ({
@@ -550,10 +568,93 @@ export const useTimerStore = create<TimerStore>()(
           return { phaseTimer: recovered }
         }),
 
+      pauseRoutine: (scheduleId) =>
+        set((state) => {
+          const timeline = getRoutineTimeline(scheduleId, new Date(), state.routineControls)
+          if (!timeline.phase) return state
+          const paused = buildPausedRoutineControl(scheduleId, state.routineControls)
+          if (!paused) return state
+          return {
+            routineControls: {
+              ...state.routineControls,
+              [scheduleId]: paused,
+            },
+          }
+        }),
+
+      resumeRoutine: (scheduleId) =>
+        set((state) => {
+          const current = state.routineControls[scheduleId]
+          if (!current || current.mode !== 'paused' || !current.phaseId) {
+            return state
+          }
+          const schedule = buildManualRoutineControl(scheduleId, current.phaseId, state.routineControls)
+          if (!schedule) return state
+          return {
+            routineControls: {
+              ...state.routineControls,
+              [scheduleId]: {
+                ...schedule,
+                remainingMs: current.remainingMs ?? schedule.remainingMs,
+                endsAt: Date.now() + (current.remainingMs ?? schedule.remainingMs ?? 0),
+              },
+            },
+          }
+        }),
+
+      skipRoutinePhase: (scheduleId) =>
+        set((state) => {
+          const next = advanceRoutineControlToNextPhase(scheduleId, state.routineControls)
+          if (!next) return state
+          return {
+            routineControls: {
+              ...state.routineControls,
+              [scheduleId]: next,
+            },
+          }
+        }),
+
+      restartRoutinePhase: (scheduleId) =>
+        set((state) => {
+          const restarted = restartRoutineControl(scheduleId, state.routineControls)
+          if (!restarted) return state
+          return {
+            routineControls: {
+              ...state.routineControls,
+              [scheduleId]: restarted,
+            },
+          }
+        }),
+
+      setRoutineManualOverride: (scheduleId, phaseId) =>
+        set((state) => {
+          const manual = buildManualRoutineControl(scheduleId, phaseId, state.routineControls)
+          if (!manual) return state
+          return {
+            routineControls: {
+              ...state.routineControls,
+              [scheduleId]: manual,
+            },
+          }
+        }),
+
+      clearRoutineControl: (scheduleId) =>
+        set((state) => ({
+          routineControls: {
+            ...state.routineControls,
+            [scheduleId]: {
+              mode: 'auto',
+              dateKey: null,
+              phaseId: null,
+            },
+          },
+        })),
+
       resetAllTimers: () =>
         set({
           simpleTimers: structuredClone(DEFAULT_SIMPLE_TIMERS),
           phaseTimer: structuredClone(DEFAULT_PHASE_TIMER),
+          routineControls: structuredClone(DEFAULT_ROUTINE_CONTROLS),
         }),
     }),
     {
@@ -561,6 +662,16 @@ export const useTimerStore = create<TimerStore>()(
       version: 1,
       migrate: (persisted) => {
         const state = (persisted ?? {}) as Partial<TimerStore>
+        const normalizedRoutineControls = state.routineControls
+          ? Object.fromEntries(
+              Object.entries(state.routineControls)
+                .filter(([, control]) => control !== undefined)
+                .map(([scheduleId, control]) => [
+                  scheduleId,
+                  normalizeRoutineControlState(control as RoutineControlState) ?? control,
+                ]),
+            )
+          : undefined
         return {
           simpleTimers: state.simpleTimers
             ? {
@@ -576,8 +687,14 @@ export const useTimerStore = create<TimerStore>()(
                   state.phaseTimer.phases?.length
                     ? state.phaseTimer.phases
                     : structuredClone(DEFAULT_PHASE_TIMER.phases),
-              }
+            }
             : structuredClone(DEFAULT_PHASE_TIMER),
+          routineControls: normalizedRoutineControls
+            ? {
+                ...structuredClone(DEFAULT_ROUTINE_CONTROLS),
+                ...normalizedRoutineControls,
+              }
+            : structuredClone(DEFAULT_ROUTINE_CONTROLS),
         }
       },
       merge: (persisted, current) => {
@@ -603,15 +720,29 @@ export const useTimerStore = create<TimerStore>()(
               : current.phaseTimer.phases,
         })
 
+        const routineControls = {
+          ...current.routineControls,
+          ...(raw.routineControls ?? {}),
+        } as Record<string, RoutineControlState>
+
+        const recoveredRoutineControls = Object.fromEntries(
+          Object.entries(routineControls).map(([scheduleId, control]) => [
+            scheduleId,
+            normalizeRoutineControlState(control) ?? control,
+          ]),
+        ) as Record<string, RoutineControlState>
+
         return {
           ...current,
           simpleTimers: recoveredSimple,
           phaseTimer,
+          routineControls: recoveredRoutineControls,
         }
       },
       partialize: (state) => ({
         simpleTimers: state.simpleTimers,
         phaseTimer: state.phaseTimer,
+        routineControls: state.routineControls,
       }),
     },
   ),

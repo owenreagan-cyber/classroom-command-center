@@ -141,7 +141,7 @@ export function TeacherDock({
               key={screen.id}
               active={activeScreen === screen.id}
               onClick={() => onScreenChange(screen.id)}
-              label={screen.label}
+              label={screen.navLabel ?? screen.label}
             />
           ))}
         </nav>

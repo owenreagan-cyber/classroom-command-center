@@ -7,35 +7,147 @@ export interface WithVisibility {
   visibility?: Visibility
 }
 
+// ── Screen IDs with splits ────────────────────────────────────────────
+
 export type ScreenId =
   | 'homeroom'
   | 'math'
   | 'reading'
-  | 'snack-lunch'
+  | 'snack'
+  | 'lunch'
+  | 'recess'
   | 'ready-position'
   | 'writing'
   | 'science'
   | 'social-studies'
-  | 'intervention'
   | 'assessment'
-  | 'flexible-groups'
   | 'centers'
+  | 'homework'
+  | 'pack-up'
+  | 'spelling'
+
+/** Legacy screen IDs that still need migration support. */
+export type LegacyScreenId =
+  | 'snack-lunch'
   | 'homework-packup'
+  | 'intervention'
+  | 'flexible-groups'
+
+// ── Vibe Page Architecture ────────────────────────────────────────────
+
+export type VibePageId =
+  | 'homeroom-morning-arrival'
+  | 'homeroom-silent-work'
+  | 'homeroom-clean-up-math'
+  | 'homeroom-morning-message'
+  | 'homeroom-announcements'
+  | 'math-get-ready'
+  | 'math-warm-up'
+  | 'math-lesson'
+  | 'math-guided-practice'
+  | 'math-independent-work'
+  | 'math-wrap-up'
+  | 'reading-get-ready'
+  | 'reading-focus'
+  | 'reading-random-reader'
+  | 'reading-independent'
+  | 'reading-response-prompt'
+  | 'reading-wrap-up'
+  | 'snack-quiet-snack'
+  | 'snack-silent-clean-up'
+  | 'lunch-quiet-lunch-a'
+  | 'lunch-silent-chew'
+  | 'lunch-quiet-lunch-b'
+  | 'lunch-silent-clean-up'
+  | 'homework-copy-homework'
+  | 'homework-check-planner'
+  | 'homework-pack-materials'
+  | 'pack-up-pack-up'
+  | 'pack-up-ready-position'
+  | 'pack-up-dismissal'
+  | 'history-science-get-ready'
+  | 'history-science-lesson-focus'
+  | 'history-science-activity'
+  | 'history-science-wrap-up'
+  | 'spelling-get-ready'
+  | 'spelling-focus'
+  | 'spelling-practice'
+  | 'shurley-get-ready'
+  | 'shurley-writing-focus'
+  | 'shurley-independent-work'
+  | 'shurley-wrap-up'
+  | 'recess-play'
+  | 'ready-position-default'
+  | 'social-studies-focus'
+  | 'assessment-default'
+  | 'centers-default'
+
+export type PageLayoutPreset =
+  | 'centered-message'
+  | 'message-plus-timer'
+  | 'message-plus-materials'
+  | 'split-content'
+  | 'full-focus'
+  | 'cleanup-checklist'
+
+export interface PageWidget {
+  id: string
+  type: string
+  x: number
+  y: number
+  width: number
+  height: number
+  zIndex: number
+  locked: boolean
+  visible: boolean
+  snapRegion?: string
+  contentRef?: string
+}
+
+export interface VibePage {
+  id: VibePageId
+  title: string
+  subtitle?: string
+  backgroundId: BackgroundAssetId
+  primaryMessage: string
+  supportingContent?: string[]
+  widgetIds: string[]
+  layoutPreset: PageLayoutPreset
+  widgets: PageWidget[]
+  previousPageId: VibePageId | null
+  nextPageId: VibePageId | null
+  routinePhaseIds: string[]
+  visibleInStudio: boolean
+  visibleInClassroom: boolean
+}
+
+export interface ClassWorkspace {
+  classId: ScreenId
+  title: string
+  pages: VibePage[]
+  activePageId: VibePageId | null
+  previousPageId: VibePageId | null
+  nextPageId: VibePageId | null
+  routinePhaseAssociations?: Record<string, VibePageId>
+}
+
+// ── Background ─────────────────────────────────────────────────────────
 
 export type BackgroundAssetId =
   | 'homeroom-morning-briefing'
   | 'math-training-lab'
   | 'reading-sky-book-world'
-  | 'snack-lunch-flow-control'
+  | 'snack-flow-control'
+  | 'lunch-flow-control'
   | 'ready-position-expectations'
   | 'writing-workshop'
   | 'science-lab'
   | 'social-studies-map'
-  | 'intervention-focus'
   | 'assessment-mode'
-  | 'flexible-groups'
   | 'centers-rotations'
-  | 'homework-packup'
+  | 'recess-play'
+  | 'homework-station'
+  | 'pack-up-station'
 
 export type SafeZoneId =
   | 'left-main'
@@ -62,6 +174,8 @@ export type CardId =
   | 'lesson-card'
   | 'vocabulary-card'
   | 'noise'
+
+// ── Screen Contents (flat per class, vibe pages reference these) ───────
 
 export type ScreenCardVisibility = Record<
   ScreenId,
@@ -133,7 +247,16 @@ export interface ReadingContent {
   vocabulary?: VocabularyContent
 }
 
-export interface SnackLunchContent {
+export interface SnackContent {
+  title: string
+  cleanupTitle: string
+  cleanupReminders: string[]
+  routineTitle: string
+  routine: string[]
+  phaseNote: string
+}
+
+export interface LunchContent {
   title: string
   cleanupTitle: string
   cleanupReminders: string[]
@@ -155,20 +278,48 @@ export interface SubjectContent {
   vocabulary?: VocabularyContent
 }
 
+export interface HomeworkContent {
+  title: string
+  focusTitle: string
+  focusTask: string
+  agendaTitle: string
+  agenda: string[]
+  materialsTitle: string
+  materials: MaterialsLists
+  teacherHint: string
+  lesson?: LessonContent
+  vocabulary?: VocabularyContent
+}
+
+export interface PackUpContent {
+  title: string
+  focusTitle: string
+  focusTask: string
+  agendaTitle: string
+  agenda: string[]
+  materialsTitle: string
+  materials: MaterialsLists
+  teacherHint: string
+  lesson?: LessonContent
+  vocabulary?: VocabularyContent
+}
+
 export interface ScreenContents {
   homeroom: HomeroomContent
   math: MathContent
   reading: ReadingContent
-  'snack-lunch': SnackLunchContent
+  snack: SnackContent
+  lunch: LunchContent
+  recess: ReadyPositionContent
   'ready-position': ReadyPositionContent
   writing: SubjectContent
   science: SubjectContent
   'social-studies': SubjectContent
-  intervention: SubjectContent
   assessment: SubjectContent
-  'flexible-groups': SubjectContent
   centers: SubjectContent
-  'homework-packup': SubjectContent
+  homework: HomeworkContent
+  'pack-up': PackUpContent
+  spelling: SubjectContent
 }
 
 export interface BackgroundAsset {
@@ -185,7 +336,6 @@ export interface BackgroundAsset {
 export interface TeacherNote extends WithVisibility {
   id: string
   text: string
-  /** When set, note is scoped to a screen; omitted notes appear on all screens. */
   screenId?: ScreenId
 }
 
@@ -195,14 +345,14 @@ export interface TeacherResourceLink extends WithVisibility {
   url: string
 }
 
-
 export type BoardPresetId =
   | 'morning-arrival'
   | 'math-warm-up'
   | 'reading-rotation'
   | 'pack-up'
   | 'assessment-mode'
-  | 'snack-lunch-routine'
+  | 'snack-routine'
+  | 'lunch-routine'
   | 'ready-position-reset'
 
 export interface BoardPreset {
@@ -227,7 +377,6 @@ export interface BoardExportPayload {
   exportedAt: string
   state: BoardState
 }
-
 
 export type NoiseTrackerId = 'homeroom' | 'math' | 'reading'
 
@@ -255,6 +404,8 @@ export interface NoiseTrackerState {
 export interface BoardState {
   mode: AppMode
   activeScreen: ScreenId
+  activePageId: VibePageId | null
+  classWorkspaces: Record<ScreenId, ClassWorkspace | undefined>
   backgroundId: BackgroundAssetId
   contents: ScreenContents
   teacherNotes: TeacherNote[]
@@ -266,6 +417,7 @@ export interface BoardState {
 export interface ScreenMeta {
   id: ScreenId
   label: string
+  navLabel?: string
 }
 
 export interface SmartTextBlock extends WithVisibility {

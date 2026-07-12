@@ -20,7 +20,7 @@ export function boardCardShell(mode: AppMode): string {
   return `${base} border-slate-200/70 bg-white/94 p-4 md:p-5`
 }
 
-/** Screen grid shells aligned to background safe zones (left-main, center-card, right-utility). */
+/** Screen grid shells aligned to background safe zones. */
 export function screenGridClass(screenId: ScreenId, mode: AppMode): string {
   const gap = boardGap(mode)
   const base = `board-screen-grid board-screen-grid--${screenId} h-full min-h-0 ${gap}`
@@ -32,18 +32,20 @@ export function screenGridClass(screenId: ScreenId, mode: AppMode): string {
       return `${base} board-screen-grid--math`
     case 'reading':
       return `${base} board-screen-grid--reading`
-    case 'snack-lunch':
+    case 'snack':
+    case 'lunch':
       return `${base} board-screen-grid--snack-lunch`
     case 'ready-position':
+    case 'recess':
       return `${base} board-screen-grid--ready-position`
+    case 'homework':
+    case 'pack-up':
     case 'writing':
     case 'science':
     case 'social-studies':
-    case 'intervention':
     case 'assessment':
-    case 'flexible-groups':
     case 'centers':
-    case 'homework-packup':
+    case 'spelling':
       return `${base} board-screen-grid--subject`
     default:
       return `${base} board-screen-grid--subject`
@@ -54,7 +56,6 @@ export function noiseCardOverlayClass(mode: AppMode): string {
   if (mode === 'display') {
     return '!absolute bottom-4 right-4 z-20 h-auto max-h-[calc(100%-2rem)] w-[min(30rem,max(24rem,28vw))]'
   }
-
   return '!absolute bottom-4 right-4 z-20 h-auto max-h-[calc(100%-2rem)] w-[min(26rem,max(21rem,25vw))]'
 }
 

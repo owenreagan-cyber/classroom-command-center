@@ -3,7 +3,7 @@ export type TimerStatus = 'idle' | 'running' | 'paused' | 'finished'
 export type TimerPresetId = '2' | '5' | '10' | '15' | '20' | 'custom'
 
 /** Screens that host a simple countdown TimerWidget. */
-export type SimpleTimerScreenId = 'homeroom' | 'math' | 'reading'
+export type SimpleTimerScreenId = 'homeroom' | 'math' | 'reading' | 'spelling'
 
 export interface TimerPreset {
   id: TimerPresetId

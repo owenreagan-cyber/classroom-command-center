@@ -14,7 +14,8 @@ import {
   DEFAULT_SCREEN_ID,
   DEFAULT_TEACHER_NOTES,
 } from '../data/defaults'
-import { getBackgroundForScreen } from '../data/backgroundAssets'
+import { getBackgroundForScreen, normalizeBackgroundId } from '../data/backgroundAssets'
+import { buildClassWorkspaces } from '../data/pageSequences'
 import type {
   AppMode,
   BackgroundAssetId,
@@ -26,6 +27,8 @@ import type {
   ScreenCardVisibility,
   ScreenContents,
   ScreenId,
+  TeacherNote,
+  VibePageId,
 } from '../data/types'
 import {
   applyNoisyPointToTracker,
@@ -46,6 +49,9 @@ interface BoardStore extends BoardState {
   beautifyUndo: ScreenContents | null
   setMode: (mode: AppMode) => void
   setActiveScreen: (screen: ScreenId) => void
+  setActivePageId: (pageId: VibePageId) => void
+  navigateToPreviousPage: () => void
+  navigateToNextPage: () => void
   setBackgroundId: (backgroundId: BackgroundAssetId) => void
   updateContents: (contents: ScreenContents) => void
   applyBoardPreset: (presetId: BoardPresetId) => void
@@ -66,9 +72,13 @@ interface BoardStore extends BoardState {
   resetToDefaults: () => void
 }
 
+const defaultWorkspaces = buildClassWorkspaces()
+
 const initialState: BoardState = {
   mode: DEFAULT_MODE,
   activeScreen: DEFAULT_SCREEN_ID,
+  activePageId: defaultWorkspaces[DEFAULT_SCREEN_ID]?.activePageId ?? null,
+  classWorkspaces: defaultWorkspaces,
   backgroundId: DEFAULT_BACKGROUND_ID,
   contents: structuredClone(DEFAULT_CONTENTS),
   teacherNotes: structuredClone(DEFAULT_TEACHER_NOTES),
@@ -77,35 +87,139 @@ const initialState: BoardState = {
   noiseTrackers: structuredClone(DEFAULT_NOISE_TRACKERS) as BoardState['noiseTrackers'],
 }
 
-/**
- * Card-type-preserving, conservative beautify.
- * Cleans formatting without aggressive rewrite or phrase splitting.
- */
+// ── Screen ID normalization with legacy support ────────────────────────
+
+export function normalizeScreenIdForBoard(screenId: string | undefined): ScreenId {
+  switch (screenId) {
+    case 'homeroom':
+    case 'math':
+    case 'reading':
+    case 'snack':
+    case 'lunch':
+    case 'recess':
+    case 'ready-position':
+    case 'writing':
+    case 'science':
+    case 'social-studies':
+    case 'assessment':
+    case 'centers':
+    case 'homework':
+    case 'pack-up':
+    case 'spelling':
+      return screenId
+    case 'snack-lunch':
+      // Legacy: snack-lunch -> snack by default (content preserved)
+      return 'snack'
+    case 'homework-packup':
+      // Legacy: homework-packup -> homework by default
+      return 'homework'
+    case 'intervention':
+    case 'flexible-groups':
+      return 'centers'
+    default:
+      return DEFAULT_SCREEN_ID
+  }
+}
+
+function normalizeBoardContents(contents: ScreenContents | undefined): ScreenContents {
+  if (!contents) {
+    return structuredClone(DEFAULT_CONTENTS)
+  }
+
+  const next = structuredClone(DEFAULT_CONTENTS)
+  const raw = contents as unknown as Record<string, unknown>
+
+  // Helper to try reading a field from contents raw
+  function readField<K extends keyof ScreenContents>(key: K, legacyKey?: string): ScreenContents[K] {
+    const val = raw[key as string] ?? (legacyKey ? raw[legacyKey] : undefined)
+    return val !== undefined ? structuredClone(val as ScreenContents[K]) : structuredClone(DEFAULT_CONTENTS[key])
+  }
+
+  next.homeroom = readField('homeroom')
+  next.math = readField('math')
+  next.reading = readField('reading')
+  next.writing = readField('writing')
+  next.science = readField('science')
+  next['social-studies'] = readField('social-studies')
+  next.assessment = readField('assessment')
+  next.centers = readField('centers') ?? readField('centers', 'flexible-groups') ?? readField('centers', 'intervention')
+  next.recess = readField('recess')
+  next['ready-position'] = readField('ready-position')
+  next.snack = readField('snack', 'snack-lunch')
+  next.lunch = readField('lunch')
+  next.homework = readField('homework', 'homework-packup')
+  next['pack-up'] = readField('pack-up')
+  next.spelling = readField('spelling')
+
+  return next
+}
+
+function normalizeTeacherNotes(notes: TeacherNote[] | undefined): TeacherNote[] {
+  if (!notes) return structuredClone(DEFAULT_TEACHER_NOTES)
+  return notes.map((note) => ({
+    ...note,
+    screenId: note.screenId ? normalizeScreenIdForBoard(note.screenId) : note.screenId,
+  }))
+}
+
+function normalizeCustomPresets(presets: BoardState['customPresets'] | undefined) {
+  if (!presets) return []
+  return presets.map((preset) => ({
+    ...preset,
+    screenId: normalizeScreenIdForBoard(preset.screenId),
+  }))
+}
+
 function mergeCardVisibility(
   persisted: ScreenCardVisibility | undefined,
 ): ScreenCardVisibility {
   const next = structuredClone(DEFAULT_CARD_VISIBILITY)
-
-  if (!persisted) {
-    return next
-  }
+  if (!persisted) return next
 
   for (const [screenId, cards] of Object.entries(persisted)) {
     if (!cards) continue
-    next[screenId as ScreenId] = {
-      ...(next[screenId as ScreenId] ?? {}),
+    const resolvedScreenId = normalizeScreenIdForBoard(screenId)
+    next[resolvedScreenId] = {
+      ...(next[resolvedScreenId] ?? {}),
       ...cards,
     }
   }
 
+  // Ensure legacy snack-lunch card visibility maps to snack (lunch gets default)
+  const legacyPersisted = persisted as Record<string, Partial<Record<string, boolean>> | undefined>
+  if (legacyPersisted['snack-lunch']) {
+    next.snack = { ...next.snack, ...legacyPersisted['snack-lunch'] as Record<string, boolean> }
+  }
+  if (legacyPersisted['homework-packup']) {
+    next.homework = { ...next.homework, ...legacyPersisted['homework-packup'] as Record<string, boolean> }
+  }
+
   return next
 }
+
+// ── Beautify ───────────────────────────────────────────────────────────
 
 function beautifyScreenContents(
   screenId: ScreenId,
   contents: ScreenContents,
 ): ScreenContents {
   const next = structuredClone(contents)
+
+  const beautifySubject = (subj: ScreenContents['writing' | 'science' | 'social-studies' | 'assessment' | 'centers' | 'homework' | 'pack-up' | 'spelling']) => {
+    subj.focusTitle = beautifyTitle(subj.focusTitle)
+    subj.focusTask = beautifySingleInstruction(subj.focusTask)
+    subj.agendaTitle = beautifyTitle(subj.agendaTitle)
+    subj.agenda = beautifyBulletList(subj.agenda)
+    subj.materialsTitle = beautifyTitle(subj.materialsTitle)
+    subj.materials = beautifyMaterialsLists(subj.materials)
+    if (subj.lesson) {
+      subj.lesson.title = beautifyTitle(subj.lesson.title)
+      subj.lesson.objective = beautifySingleInstruction(subj.lesson.objective)
+      subj.lesson.successCriteria = beautifyBulletList(subj.lesson.successCriteria)
+      if (subj.lesson.reminder) subj.lesson.reminder = beautifySingleInstruction(subj.lesson.reminder)
+    }
+    if (subj.vocabulary) subj.vocabulary.title = beautifyTitle(subj.vocabulary.title)
+  }
 
   switch (screenId) {
     case 'homeroom': {
@@ -115,15 +229,9 @@ function beautifyScreenContents(
       next.homeroom.doNow = beautifySingleInstruction(next.homeroom.doNow)
       next.homeroom.materialsTitle = beautifyTitle(next.homeroom.materialsTitle)
       next.homeroom.materials = beautifyMaterialsLists(next.homeroom.materials)
-      next.homeroom.readyPosition.title = beautifyTitle(
-        next.homeroom.readyPosition.title,
-      )
-      next.homeroom.readyPosition.steps = beautifyBulletList(
-        next.homeroom.readyPosition.steps,
-      )
-      next.homeroom.readyPosition.compactLine = beautifySingleInstruction(
-        next.homeroom.readyPosition.compactLine,
-      )
+      next.homeroom.readyPosition.title = beautifyTitle(next.homeroom.readyPosition.title)
+      next.homeroom.readyPosition.steps = beautifyBulletList(next.homeroom.readyPosition.steps)
+      next.homeroom.readyPosition.compactLine = beautifySingleInstruction(next.homeroom.readyPosition.compactLine)
       break
     }
     case 'math': {
@@ -134,96 +242,65 @@ function beautifyScreenContents(
         next.math.lesson.title = beautifyTitle(next.math.lesson.title)
         next.math.lesson.objective = beautifySingleInstruction(next.math.lesson.objective)
         next.math.lesson.successCriteria = beautifyBulletList(next.math.lesson.successCriteria)
-        if (next.math.lesson.reminder) {
-          next.math.lesson.reminder = beautifySingleInstruction(next.math.lesson.reminder)
-        }
+        if (next.math.lesson.reminder) next.math.lesson.reminder = beautifySingleInstruction(next.math.lesson.reminder)
       }
-      if (next.math.vocabulary) {
-        next.math.vocabulary.title = beautifyTitle(next.math.vocabulary.title)
-      }
+      if (next.math.vocabulary) next.math.vocabulary.title = beautifyTitle(next.math.vocabulary.title)
       break
     }
     case 'reading': {
       next.reading.lessonTitle = beautifySingleInstruction(next.reading.lessonTitle)
       next.reading.materialsTitle = beautifyTitle(next.reading.materialsTitle)
       next.reading.materials = beautifyMaterialsLists(next.reading.materials)
-      next.reading.readyPosition.title = beautifyTitle(
-        next.reading.readyPosition.title,
-      )
-      next.reading.readyPosition.steps = beautifyBulletList(
-        next.reading.readyPosition.steps,
-      )
-      next.reading.readyPosition.compactLine = beautifySingleInstruction(
-        next.reading.readyPosition.compactLine,
-      )
+      next.reading.readyPosition.title = beautifyTitle(next.reading.readyPosition.title)
+      next.reading.readyPosition.steps = beautifyBulletList(next.reading.readyPosition.steps)
+      next.reading.readyPosition.compactLine = beautifySingleInstruction(next.reading.readyPosition.compactLine)
       if (next.reading.lesson) {
         next.reading.lesson.title = beautifyTitle(next.reading.lesson.title)
         next.reading.lesson.objective = beautifySingleInstruction(next.reading.lesson.objective)
         next.reading.lesson.successCriteria = beautifyBulletList(next.reading.lesson.successCriteria)
-        if (next.reading.lesson.reminder) {
-          next.reading.lesson.reminder = beautifySingleInstruction(next.reading.lesson.reminder)
-        }
+        if (next.reading.lesson.reminder) next.reading.lesson.reminder = beautifySingleInstruction(next.reading.lesson.reminder)
       }
-      if (next.reading.vocabulary) {
-        next.reading.vocabulary.title = beautifyTitle(next.reading.vocabulary.title)
-      }
+      if (next.reading.vocabulary) next.reading.vocabulary.title = beautifyTitle(next.reading.vocabulary.title)
       break
     }
-    case 'snack-lunch': {
-      next['snack-lunch'].cleanupTitle = beautifyTitle(
-        next['snack-lunch'].cleanupTitle,
-      )
-      next['snack-lunch'].cleanupReminders = beautifyBulletList(
-        next['snack-lunch'].cleanupReminders,
-      )
-      next['snack-lunch'].routineTitle = beautifyTitle(
-        next['snack-lunch'].routineTitle,
-      )
-      next['snack-lunch'].routine = beautifyBulletList(next['snack-lunch'].routine)
+    case 'snack': {
+      next.snack.cleanupTitle = beautifyTitle(next.snack.cleanupTitle)
+      next.snack.cleanupReminders = beautifyBulletList(next.snack.cleanupReminders)
+      next.snack.routineTitle = beautifyTitle(next.snack.routineTitle)
+      next.snack.routine = beautifyBulletList(next.snack.routine)
       break
     }
-    case 'ready-position': {
-      next['ready-position'].title = beautifyTitle(next['ready-position'].title)
-      next['ready-position'].steps = beautifyBulletList(
-        next['ready-position'].steps,
-      )
-      next['ready-position'].compactLine = beautifySingleInstruction(
-        next['ready-position'].compactLine,
-      )
+    case 'lunch': {
+      next.lunch.cleanupTitle = beautifyTitle(next.lunch.cleanupTitle)
+      next.lunch.cleanupReminders = beautifyBulletList(next.lunch.cleanupReminders)
+      next.lunch.routineTitle = beautifyTitle(next.lunch.routineTitle)
+      next.lunch.routine = beautifyBulletList(next.lunch.routine)
+      break
+    }
+    case 'ready-position':
+    case 'recess': {
+      const rp = screenId === 'ready-position' ? next['ready-position'] : next.recess
+      rp.title = beautifyTitle(rp.title)
+      rp.steps = beautifyBulletList(rp.steps)
+      rp.compactLine = beautifySingleInstruction(rp.compactLine)
       break
     }
     case 'writing':
     case 'science':
     case 'social-studies':
-    case 'intervention':
     case 'assessment':
-    case 'flexible-groups':
     case 'centers':
-    case 'homework-packup': {
-      const subj = next[screenId]
-      subj.focusTitle = beautifyTitle(subj.focusTitle)
-      subj.focusTask = beautifySingleInstruction(subj.focusTask)
-      subj.agendaTitle = beautifyTitle(subj.agendaTitle)
-      subj.agenda = beautifyBulletList(subj.agenda)
-      subj.materialsTitle = beautifyTitle(subj.materialsTitle)
-      subj.materials = beautifyMaterialsLists(subj.materials)
-      if (subj.lesson) {
-        subj.lesson.title = beautifyTitle(subj.lesson.title)
-        subj.lesson.objective = beautifySingleInstruction(subj.lesson.objective)
-        subj.lesson.successCriteria = beautifyBulletList(subj.lesson.successCriteria)
-        if (subj.lesson.reminder) {
-          subj.lesson.reminder = beautifySingleInstruction(subj.lesson.reminder)
-        }
-      }
-      if (subj.vocabulary) {
-        subj.vocabulary.title = beautifyTitle(subj.vocabulary.title)
-      }
+    case 'homework':
+    case 'pack-up':
+    case 'spelling':
+      beautifySubject(next[screenId])
       break
-    }
   }
 
   return next
 }
+
+// ── Store ──────────────────────────────────────────────────────────────
 
 export const useBoardStore = create<BoardStore>()(
   persist(
@@ -232,10 +309,80 @@ export const useBoardStore = create<BoardStore>()(
       beautifyUndo: null,
       setMode: (mode) => set({ mode }),
       setActiveScreen: (activeScreen) => {
-        const matched = getBackgroundForScreen(activeScreen)
+        const normalizedScreen = normalizeScreenIdForBoard(activeScreen)
+        const matched = getBackgroundForScreen(normalizedScreen)
+        const workspaces = get().classWorkspaces
+        const ws = workspaces[normalizedScreen]
         set({
-          activeScreen,
+          activeScreen: normalizedScreen,
           backgroundId: matched.id,
+          activePageId: ws?.activePageId ?? ws?.pages[0]?.id ?? null,
+        })
+      },
+      setActivePageId: (pageId) => {
+        const workspaces = get().classWorkspaces
+        for (const [screenId, ws] of Object.entries(workspaces)) {
+          if (!ws) continue
+          const index = ws.pages.findIndex(p => p.id === pageId)
+          if (index >= 0) {
+            set({
+              activePageId: pageId,
+              classWorkspaces: {
+                ...workspaces,
+                [screenId]: {
+                  ...ws,
+                  activePageId: pageId,
+                  previousPageId: index > 0 ? ws.pages[index - 1].id : null,
+                  nextPageId: index < ws.pages.length - 1 ? ws.pages[index + 1].id : null,
+                },
+              },
+            })
+            return
+          }
+        }
+      },
+      navigateToPreviousPage: () => {
+        const { activePageId, classWorkspaces, activeScreen } = get()
+        if (!activePageId) return
+        const ws = classWorkspaces[activeScreen]
+        if (!ws) return
+        const currentIndex = ws.pages.findIndex(p => p.id === activePageId)
+        if (currentIndex <= 0) return
+        const prevPage = ws.pages[currentIndex - 1]
+        if (!prevPage) return
+        set({
+          activePageId: prevPage.id,
+          classWorkspaces: {
+            ...classWorkspaces,
+            [activeScreen]: {
+              ...ws,
+              activePageId: prevPage.id,
+              previousPageId: currentIndex - 2 >= 0 ? ws.pages[currentIndex - 2].id : null,
+              nextPageId: ws.pages[currentIndex].id,
+            },
+          },
+        })
+      },
+      navigateToNextPage: () => {
+        const { activePageId, classWorkspaces, activeScreen } = get()
+        if (!activePageId) return
+        const ws = classWorkspaces[activeScreen]
+        if (!ws) return
+        const currentIndex = ws.pages.findIndex(p => p.id === activePageId)
+        if (currentIndex < 0 || currentIndex >= ws.pages.length - 1) return
+        const nextPage = ws.pages[currentIndex + 1]
+        if (!nextPage) return
+        set({
+          activePageId: nextPage.id,
+          classWorkspaces: {
+            ...classWorkspaces,
+            [activeScreen]: {
+              ...ws,
+              activePageId: nextPage.id,
+              previousPageId: ws.pages[currentIndex].id,
+              nextPageId: currentIndex + 2 < ws.pages.length ? ws.pages[currentIndex + 2].id : null,
+            },
+          },
         })
       },
       setBackgroundId: (backgroundId) => set({ backgroundId }),
@@ -256,11 +403,14 @@ export const useBoardStore = create<BoardStore>()(
         set((state) => {
           const preset = state.customPresets.find((item) => item.id === presetId)
           if (!preset) return state
-
+          const screenId = normalizeScreenIdForBoard(preset.screenId)
+          const normalizedPreset = { ...preset, screenId }
+          const ws = state.classWorkspaces[screenId]
           return {
-            activeScreen: preset.screenId,
-            backgroundId: getBackgroundForScreen(preset.screenId).id,
-            contents: applyCustomPresetToContents(state.contents, preset),
+            activeScreen: screenId,
+            backgroundId: getBackgroundForScreen(screenId).id,
+            activePageId: ws?.activePageId ?? ws?.pages[0]?.id ?? null,
+            contents: applyCustomPresetToContents(state.contents, normalizedPreset),
             beautifyUndo: null,
           }
         }),
@@ -272,15 +422,17 @@ export const useBoardStore = create<BoardStore>()(
         })),
       importBoardState: (payload) => {
         const imported = payload.state
-
+        const workspaces = buildClassWorkspaces()
         set({
           mode: imported.mode,
-          activeScreen: imported.activeScreen,
-          backgroundId: imported.backgroundId,
-          contents: structuredClone(imported.contents),
-          teacherNotes: structuredClone(imported.teacherNotes),
+          activeScreen: normalizeScreenIdForBoard(imported.activeScreen),
+          activePageId: workspaces[normalizeScreenIdForBoard(imported.activeScreen)]?.activePageId ?? null,
+          classWorkspaces: workspaces,
+          backgroundId: normalizeBackgroundId(imported.backgroundId),
+          contents: normalizeBoardContents(imported.contents),
+          teacherNotes: normalizeTeacherNotes(imported.teacherNotes),
           cardVisibility: mergeCardVisibility(imported.cardVisibility),
-          customPresets: structuredClone(imported.customPresets ?? []),
+          customPresets: normalizeCustomPresets(imported.customPresets),
           noiseTrackers: normalizeNoiseTrackerMap(imported.noiseTrackers),
           beautifyUndo: null,
         })
@@ -289,11 +441,7 @@ export const useBoardStore = create<BoardStore>()(
         set((state) => ({
           noiseTrackers: {
             ...state.noiseTrackers,
-            [trackerId]: {
-              ...state.noiseTrackers[trackerId],
-              voiceLevel,
-              isPaused: voiceLevel === 'off',
-              },
+            [trackerId]: { ...state.noiseTrackers[trackerId], voiceLevel, isPaused: voiceLevel === 'off' },
           },
         })),
       addNoisyPoint: (trackerId) =>
@@ -314,33 +462,21 @@ export const useBoardStore = create<BoardStore>()(
         set((state) => ({
           noiseTrackers: {
             ...state.noiseTrackers,
-            [trackerId]: {
-              ...state.noiseTrackers[trackerId],
-              lapMinutes: Math.max(
-                0,
-                state.noiseTrackers[trackerId].lapMinutes + delta,
-              ),
-            },
+            [trackerId]: { ...state.noiseTrackers[trackerId], lapMinutes: Math.max(0, state.noiseTrackers[trackerId].lapMinutes + delta) },
           },
         })),
       setNoiseMeterLevel: (trackerId, meterLevel) =>
         set((state) => ({
           noiseTrackers: {
             ...state.noiseTrackers,
-            [trackerId]: {
-              ...state.noiseTrackers[trackerId],
-              meterLevel: Math.max(0, Math.min(100, meterLevel)),
-            },
+            [trackerId]: { ...state.noiseTrackers[trackerId], meterLevel: Math.max(0, Math.min(100, meterLevel)) },
           },
         })),
       resetNoiseLapMinutes: (trackerId) =>
         set((state) => ({
           noiseTrackers: {
             ...state.noiseTrackers,
-            [trackerId]: {
-              ...state.noiseTrackers[trackerId],
-              lapMinutes: 0,
-            },
+            [trackerId]: { ...state.noiseTrackers[trackerId], lapMinutes: 0 },
           },
         })),
       resetNoiseTracker: (trackerId) =>
@@ -354,10 +490,7 @@ export const useBoardStore = create<BoardStore>()(
         set((state) => ({
           cardVisibility: {
             ...state.cardVisibility,
-            [screenId]: {
-              ...(state.cardVisibility[screenId] ?? {}),
-              [cardId]: visible,
-            },
+            [screenId]: { ...(state.cardVisibility[screenId] ?? {}), [cardId]: visible },
           },
         })),
       beautifyActiveScreen: () => {
@@ -370,16 +503,16 @@ export const useBoardStore = create<BoardStore>()(
       undoBeautify: () => {
         const { beautifyUndo } = get()
         if (!beautifyUndo) return
-        set({
-          contents: structuredClone(beautifyUndo),
-          beautifyUndo: null,
-        })
+        set({ contents: structuredClone(beautifyUndo), beautifyUndo: null })
       },
       resetToDefaults: () => {
         useTimerStore.getState().resetAllTimers()
+        const freshWorkspaces = buildClassWorkspaces()
         set({
           mode: DEFAULT_MODE,
           activeScreen: DEFAULT_SCREEN_ID,
+          activePageId: freshWorkspaces[DEFAULT_SCREEN_ID]?.activePageId ?? null,
+          classWorkspaces: freshWorkspaces,
           backgroundId: DEFAULT_BACKGROUND_ID,
           contents: structuredClone(DEFAULT_CONTENTS),
           teacherNotes: structuredClone(DEFAULT_TEACHER_NOTES),
@@ -392,13 +525,11 @@ export const useBoardStore = create<BoardStore>()(
     }),
     {
       name: 'classroom-command-center-lite',
-      version: 6,
+      version: 7,
       migrate: (persisted, version) => {
         const state = (persisted ?? {}) as Partial<BoardState> & {
           themeId?: string
         }
-        // v3: recover from aggressive Beautify regressions by restoring defaults
-        // when migrating from older persisted shapes.
         const contents =
           version < 3
             ? structuredClone(DEFAULT_CONTENTS)
@@ -407,26 +538,34 @@ export const useBoardStore = create<BoardStore>()(
         const teacherNotes =
           version < 4
             ? structuredClone(DEFAULT_TEACHER_NOTES)
-            : (state.teacherNotes ?? structuredClone(DEFAULT_TEACHER_NOTES))
+            : normalizeTeacherNotes(state.teacherNotes)
 
         const cardVisibility = mergeCardVisibility(
           version < 5 ? undefined : state.cardVisibility,
         )
 
+        const workspaces = buildClassWorkspaces()
+        const normalizedScreen = normalizeScreenIdForBoard(state.activeScreen)
+        const ws = workspaces[normalizedScreen]
+
         return {
           mode: state.mode ?? DEFAULT_MODE,
-          activeScreen: state.activeScreen ?? DEFAULT_SCREEN_ID,
-          backgroundId: state.backgroundId ?? DEFAULT_BACKGROUND_ID,
-          contents,
+          activeScreen: normalizedScreen,
+          activePageId: ws?.activePageId ?? ws?.pages[0]?.id ?? null,
+          classWorkspaces: workspaces,
+          backgroundId: normalizeBackgroundId(state.backgroundId),
+          contents: normalizeBoardContents(contents as ScreenContents),
           teacherNotes,
           cardVisibility,
-          customPresets: state.customPresets ?? [],
+          customPresets: normalizeCustomPresets(state.customPresets),
           noiseTrackers: normalizeNoiseTrackerMap(state.noiseTrackers),
         }
       },
       partialize: (state) => ({
         mode: state.mode,
         activeScreen: state.activeScreen,
+        activePageId: state.activePageId,
+        classWorkspaces: state.classWorkspaces,
         backgroundId: state.backgroundId,
         contents: state.contents,
         teacherNotes: state.teacherNotes,

@@ -67,8 +67,8 @@ export function validateEnvelope(raw: unknown): ValidationResult {
 
 const VALID_SCREEN_IDS = [
   'homeroom', 'math', 'reading', 'snack-lunch', 'ready-position',
-  'writing', 'science', 'social-studies', 'intervention', 'assessment',
-  'flexible-groups', 'centers', 'homework-packup',
+  'recess', 'writing', 'science', 'social-studies', 'assessment',
+  'centers', 'homework-packup',
 ]
 
 const VALID_VOICE_LEVELS = ['silent', 'whisper', 'normal', 'off']
