@@ -103,15 +103,12 @@ export function AppShell() {
           classWorkspace={classWorkspace}
           mode={mode}
           contents={contents}
-          cardVisibility={cardVisibility}
-          noiseTrackers={noiseTrackers}
           onContentsChange={updateContents}
-          onNavigateSuggestedScreen={setActiveScreen}
-          onCardVisibleChange={setCardVisible}
           onNavigateToPage={setActivePageId}
           onNavigatePrevious={navigateToPreviousPage}
           onNavigateNext={navigateToNextPage}
           onBeautify={mode === 'edit' ? beautifyActiveScreen : undefined}
+          onPreviewClassroom={mode === 'edit' ? () => setMode('display') : undefined}
         />
       </BoardFrame>
     </div>

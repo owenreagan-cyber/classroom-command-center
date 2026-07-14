@@ -1,4 +1,4 @@
-import type { ScreenContents, BoardState, ScreenCardVisibility, TeacherNote, CustomBoardPreset } from '../../data/types'
+import type { ScreenContents, BoardState, ScreenCardVisibility, TeacherNote, CustomBoardPreset, ScreenId } from '../../data/types'
 import type { SimpleTimerState, SimpleTimerScreenId, PhaseTimerState } from '../../data/timerTypes'
 import type { RoutineControlState } from '../../data/routineTypes'
 import type { DailyBriefPacketPayload, FullBackupPacketPayload } from './types'
@@ -7,6 +7,7 @@ import { useBoardStore } from '../../store/boardStore'
 import { useTimerStore } from '../../store/timerStore'
 import { usePickerStore } from '../../features/student-picker/pickerStore'
 import { normalizeNoiseTrackerMap } from '../../lib/noiseTowers'
+import { normalizeClassWorkspacesGeometry } from '../../lib/studioCanvasMigration'
 
 // ── Undo ──────────────────────────────────────────────────────────────
 
@@ -14,7 +15,7 @@ interface InternalUndoState {
   label: string
   timestamp: number
   categories: string[]
-  board?: BoardState & { beautifyUndo: ScreenContents | null }
+  board?: Pick<BoardState, 'mode' | 'activeScreen' | 'backgroundId' | 'contents' | 'teacherNotes' | 'cardVisibility' | 'customPresets' | 'noiseTrackers' | 'activePageId' | 'classWorkspaces'> & { beautifyUndo: ScreenContents | null }
   timers?: { simpleTimers: Record<SimpleTimerScreenId, SimpleTimerState>; phaseTimer: PhaseTimerState; routineControls?: Record<string, RoutineControlState> }
   rosters?: Student[]
   pickerHistory?: FairnessEntry[]
@@ -41,6 +42,8 @@ export function snapshotCategory(cat: string): unknown {
       return {
         mode: bs.mode,
         activeScreen: bs.activeScreen,
+        activePageId: bs.activePageId,
+        classWorkspaces: structuredClone(bs.classWorkspaces),
         backgroundId: bs.backgroundId,
         contents: structuredClone(bs.contents),
         teacherNotes: structuredClone(bs.teacherNotes),
@@ -101,10 +104,14 @@ function restoreCategory(cat: string, snapshot: unknown): boolean {
   try {
     switch (cat) {
       case 'board': {
-        const s = snapshot as BoardState & { beautifyUndo: ScreenContents | null }
+        const s = snapshot as InternalUndoState['board']
+        if (!s) return false
+        const classWorkspaces = normalizeClassWorkspacesGeometry(s.classWorkspaces as never)
         useBoardStore.setState({
           mode: s.mode,
           activeScreen: s.activeScreen,
+          activePageId: s.activePageId ?? classWorkspaces[s.activeScreen]?.activePageId ?? null,
+          classWorkspaces,
           backgroundId: s.backgroundId,
           contents: structuredClone(s.contents),
           teacherNotes: structuredClone(s.teacherNotes),
@@ -112,6 +119,8 @@ function restoreCategory(cat: string, snapshot: unknown): boolean {
           customPresets: structuredClone(s.customPresets),
           noiseTrackers: normalizeNoiseTrackerMap(s.noiseTrackers),
           beautifyUndo: s.beautifyUndo,
+          canvasHistoryPast: [],
+          canvasHistoryFuture: [],
         })
         return true
       }
@@ -384,7 +393,11 @@ export function restoreBackupToStores(input: BackupRestoreInput): ApplyResult {
     // Board
     if (catSet.has('board') && cats.board) {
       const b = cats.board
-      const next: Partial<BoardState> & { beautifyUndo: null } = { beautifyUndo: null }
+      const next: Partial<BoardState> & { beautifyUndo: null; canvasHistoryPast: []; canvasHistoryFuture: [] } = {
+        beautifyUndo: null,
+        canvasHistoryPast: [],
+        canvasHistoryFuture: [],
+      }
       if (b.mode !== undefined) next.mode = b.mode as BoardState['mode']
       if (b.activeScreen !== undefined) next.activeScreen = b.activeScreen as BoardState['activeScreen']
       if (b.backgroundId !== undefined) next.backgroundId = b.backgroundId as BoardState['backgroundId']
@@ -393,6 +406,16 @@ export function restoreBackupToStores(input: BackupRestoreInput): ApplyResult {
       if (b.cardVisibility !== undefined) next.cardVisibility = structuredClone(b.cardVisibility) as ScreenCardVisibility
       if (b.customPresets !== undefined) next.customPresets = structuredClone(b.customPresets) as CustomBoardPreset[]
       if (b.noiseTrackers !== undefined) next.noiseTrackers = normalizeNoiseTrackerMap(b.noiseTrackers as never)
+      if (b.classWorkspaces !== undefined) {
+        const classWorkspaces = normalizeClassWorkspacesGeometry(b.classWorkspaces as never)
+        next.classWorkspaces = classWorkspaces
+        next.activePageId =
+          (b.activePageId as BoardState['activePageId'] | undefined) ??
+          classWorkspaces[(next.activeScreen ?? useBoardStore.getState().activeScreen) as ScreenId]?.activePageId ??
+          null
+      } else if (b.activePageId !== undefined) {
+        next.activePageId = b.activePageId as BoardState['activePageId']
+      }
       useBoardStore.setState(next)
     }
 

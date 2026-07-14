@@ -1,4 +1,5 @@
 import type { ClassWorkspace, ScreenId, VibePage, VibePageId, PageLayoutPreset, PageWidget, BackgroundAssetId } from './types'
+import { seedWidgetsForPage } from '../lib/studioLayoutSeeds'
 
 // ── Page Sequences ─────────────────────────────────────────────────────
 
@@ -20,18 +21,12 @@ export interface VibePageDefinition {
   routinePhaseIds?: string[]
 }
 
-function makeWidget(id: string, type: string, x: number, y: number, width: number, height: number, locked = true): PageWidget {
-  return { id, type, x, y, width, height, zIndex: 1, locked, visible: true, snapRegion: undefined, contentRef: undefined }
-}
-
 function buildPage(
   def: VibePageDefinition,
   index: number,
   pages: VibePageDefinition[],
 ): VibePage {
-  const widgets: PageWidget[] = (def.widgetTypes ?? []).map((wt, wi) =>
-    makeWidget(`${def.id}-widget-${wi}`, wt, 0, 0, 1, 1, true),
-  )
+  const widgets: PageWidget[] = seedWidgetsForPage(def.id, def.layoutPreset, def.widgetTypes ?? [])
   return {
     id: def.id,
     title: def.title,

@@ -43,10 +43,45 @@ import {
   beautifyTitle,
 } from '../lib/beautify'
 import { useTimerStore } from './timerStore'
+import {
+  moveWidget,
+  redoCanvasHistory,
+  resetActivePageLayout as resetActivePageLayoutPure,
+  setWidgetGeometry,
+  setWidgetLocked,
+  undoCanvasHistory,
+  pushHistory,
+  type CanvasHistoryEntry,
+} from '../lib/studioCanvasActions'
+import { normalizeClassWorkspacesGeometry } from '../lib/studioCanvasMigration'
+import type { ArrowKey } from '../lib/studioCanvasGeometry'
 
 interface BoardStore extends BoardState {
   /** Session-only snapshot taken before the latest Beautify. */
   beautifyUndo: ScreenContents | null
+  /** Session-only Studio Canvas layout history — never persisted. */
+  canvasHistoryPast: CanvasHistoryEntry[]
+  canvasHistoryFuture: CanvasHistoryEntry[]
+  /** Session-only snap-to-grid preference for the Studio Canvas toolbar. */
+  studioSnapEnabled: boolean
+  setStudioSnapEnabled: (enabled: boolean) => void
+  updatePageWidgetGeometry: (
+    classId: ScreenId,
+    pageId: VibePageId,
+    widgetId: string,
+    geometry: { x: number; y: number; width?: number; height?: number; snap?: boolean },
+  ) => void
+  movePageWidget: (
+    classId: ScreenId,
+    pageId: VibePageId,
+    widgetId: string,
+    key: ArrowKey,
+    shiftKey: boolean,
+  ) => void
+  setPageWidgetLocked: (classId: ScreenId, pageId: VibePageId, widgetId: string, locked: boolean) => void
+  resetActivePageLayout: (classId: ScreenId, pageId: VibePageId) => void
+  undoCanvasLayout: () => void
+  redoCanvasLayout: () => void
   setMode: (mode: AppMode) => void
   setActiveScreen: (screen: ScreenId) => void
   setActivePageId: (pageId: VibePageId) => void
@@ -307,6 +342,60 @@ export const useBoardStore = create<BoardStore>()(
     (set, get) => ({
       ...initialState,
       beautifyUndo: null,
+      canvasHistoryPast: [],
+      canvasHistoryFuture: [],
+      studioSnapEnabled: true,
+      setStudioSnapEnabled: (enabled) => set({ studioSnapEnabled: enabled }),
+      updatePageWidgetGeometry: (classId, pageId, widgetId, geometry) => {
+        const { classWorkspaces, canvasHistoryPast } = get()
+        const result = setWidgetGeometry(classWorkspaces, classId, pageId, widgetId, geometry)
+        if (!result.historyEntry) return
+        set({
+          classWorkspaces: result.workspaces,
+          canvasHistoryPast: pushHistory(canvasHistoryPast, result.historyEntry),
+          canvasHistoryFuture: [],
+        })
+      },
+      movePageWidget: (classId, pageId, widgetId, key, shiftKey) => {
+        const { classWorkspaces, canvasHistoryPast } = get()
+        const result = moveWidget(classWorkspaces, classId, pageId, widgetId, key, shiftKey)
+        if (!result.historyEntry) return
+        set({
+          classWorkspaces: result.workspaces,
+          canvasHistoryPast: pushHistory(canvasHistoryPast, result.historyEntry),
+          canvasHistoryFuture: [],
+        })
+      },
+      setPageWidgetLocked: (classId, pageId, widgetId, locked) => {
+        const { classWorkspaces, canvasHistoryPast } = get()
+        const result = setWidgetLocked(classWorkspaces, classId, pageId, widgetId, locked)
+        if (!result.historyEntry) return
+        set({
+          classWorkspaces: result.workspaces,
+          canvasHistoryPast: pushHistory(canvasHistoryPast, result.historyEntry),
+          canvasHistoryFuture: [],
+        })
+      },
+      resetActivePageLayout: (classId, pageId) => {
+        const { classWorkspaces, canvasHistoryPast } = get()
+        const result = resetActivePageLayoutPure(classWorkspaces, classId, pageId)
+        if (!result.historyEntry) return
+        set({
+          classWorkspaces: result.workspaces,
+          canvasHistoryPast: pushHistory(canvasHistoryPast, result.historyEntry),
+          canvasHistoryFuture: [],
+        })
+      },
+      undoCanvasLayout: () => {
+        const { classWorkspaces, canvasHistoryPast, canvasHistoryFuture } = get()
+        const result = undoCanvasHistory(classWorkspaces, canvasHistoryPast, canvasHistoryFuture)
+        set({ classWorkspaces: result.workspaces, canvasHistoryPast: result.past, canvasHistoryFuture: result.future })
+      },
+      redoCanvasLayout: () => {
+        const { classWorkspaces, canvasHistoryPast, canvasHistoryFuture } = get()
+        const result = redoCanvasHistory(classWorkspaces, canvasHistoryPast, canvasHistoryFuture)
+        set({ classWorkspaces: result.workspaces, canvasHistoryPast: result.past, canvasHistoryFuture: result.future })
+      },
       setMode: (mode) => set({ mode }),
       setActiveScreen: (activeScreen) => {
         const normalizedScreen = normalizeScreenIdForBoard(activeScreen)
@@ -422,11 +511,13 @@ export const useBoardStore = create<BoardStore>()(
         })),
       importBoardState: (payload) => {
         const imported = payload.state
-        const workspaces = buildClassWorkspaces()
+        const normalizedScreen = normalizeScreenIdForBoard(imported.activeScreen)
+        const workspaces = normalizeClassWorkspacesGeometry(imported.classWorkspaces as never)
+        const ws = workspaces[normalizedScreen]
         set({
           mode: imported.mode,
-          activeScreen: normalizeScreenIdForBoard(imported.activeScreen),
-          activePageId: workspaces[normalizeScreenIdForBoard(imported.activeScreen)]?.activePageId ?? null,
+          activeScreen: normalizedScreen,
+          activePageId: ws?.activePageId ?? ws?.pages[0]?.id ?? null,
           classWorkspaces: workspaces,
           backgroundId: normalizeBackgroundId(imported.backgroundId),
           contents: normalizeBoardContents(imported.contents),
@@ -435,6 +526,8 @@ export const useBoardStore = create<BoardStore>()(
           customPresets: normalizeCustomPresets(imported.customPresets),
           noiseTrackers: normalizeNoiseTrackerMap(imported.noiseTrackers),
           beautifyUndo: null,
+          canvasHistoryPast: [],
+          canvasHistoryFuture: [],
         })
       },
       setNoiseVoiceLevel: (trackerId, voiceLevel) =>
@@ -520,12 +613,14 @@ export const useBoardStore = create<BoardStore>()(
           customPresets: [],
           noiseTrackers: structuredClone(DEFAULT_NOISE_TRACKERS) as BoardState['noiseTrackers'],
           beautifyUndo: null,
+          canvasHistoryPast: [],
+          canvasHistoryFuture: [],
         })
       },
     }),
     {
       name: 'classroom-command-center-lite',
-      version: 7,
+      version: 8,
       migrate: (persisted, version) => {
         const state = (persisted ?? {}) as Partial<BoardState> & {
           themeId?: string
@@ -544,8 +639,14 @@ export const useBoardStore = create<BoardStore>()(
           version < 5 ? undefined : state.cardVisibility,
         )
 
-        const workspaces = buildClassWorkspaces()
         const normalizedScreen = normalizeScreenIdForBoard(state.activeScreen)
+        // < 8: classWorkspaces were always rebuilt from scratch on migration
+        // (the Studio Canvas widget-geometry model did not exist yet), so
+        // there is nothing page-specific to preserve beyond what
+        // normalizeClassWorkspacesGeometry already seeds by default.
+        const workspaces = normalizeClassWorkspacesGeometry(
+          version < 8 ? undefined : (state.classWorkspaces as never),
+        )
         const ws = workspaces[normalizedScreen]
 
         return {

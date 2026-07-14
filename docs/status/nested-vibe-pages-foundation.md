@@ -158,13 +158,22 @@ Random Reader and Group Maker remain placeholders.
 
 ### Limitations
 
-- **Full drag-and-drop is not yet implemented** — the `PageWidget` data model supports
-  position/size fields, but there is no visual editor.
+- **Superseded by Studio Canvas Foundation** (see
+  `docs/status/studio-canvas-foundation.md`): drag-and-drop, seeded
+  per-preset widget geometry, snap-to-grid, alignment guides, lock/unlock,
+  keyboard movement, undo/redo, reset-page-layout, and widget-based
+  Classroom Mode rendering are now implemented. The two items below are
+  no longer accurate as written — kept for historical context:
+  - ~~Full drag-and-drop is not yet implemented~~ → implemented.
+  - ~~Display mode slides show only primaryMessage/supportingContent~~ →
+    Classroom Mode now renders full per-widget content via the persisted
+    widget geometry (falls back to a single `message` widget carrying
+    primaryMessage/supportingContent only for pages with no declared
+    content widgets).
 - **Tauri is not included** — no desktop/native wrapper.
 - **Spotify is not included** — music launcher is a placeholder.
 - **Group Maker is not implemented** — no group generation algorithm.
 - **Random Reader is not implemented** — placeholder page exists.
 - **Automatic class/page switching is not enabled** — teacher must navigate manually.
-- **Layout preset selector** — not yet exposed as a UI control in Studio mode.
-- **Display mode slides** — show only the page's `primaryMessage` and support content;
-  full widget-based slide rendering is deferred to future Studio Canvas.
+- **Layout preset selector** — still not exposed as a UI control; changing
+  a page's `layoutPreset` requires editing `src/data/pageSequences.ts`.
