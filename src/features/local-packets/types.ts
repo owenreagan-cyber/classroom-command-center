@@ -105,6 +105,11 @@ import type { PickerClassId, MysterySession } from '../student-picker/types'
 export interface BackupBoardContent {
   mode?: string
   activeScreen?: string
+  activePageId?: string | null
+  /** Per-class ordered pages, including Studio Canvas widget geometry
+   * (position/size/zIndex/locked/visible). Selection, transient drag
+   * state, alignment guides, and undo/redo history are never included. */
+  classWorkspaces?: Record<string, unknown>
   backgroundId?: string
   contents?: Record<string, unknown>
   teacherNotes?: unknown[]

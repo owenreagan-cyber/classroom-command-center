@@ -37,6 +37,10 @@ Completed:
 - Lesson Card + Vocabulary Card
 - Random Picker + Mystery Star Student Tracker
 - Local Packet Backup & Restore (Daily Brief import/export, full backup/restore, validation, undo, privacy boundary)
+- Studio Canvas Foundation (seeded per-preset widget geometry, bounded
+  16:9 drag/snap/guide/lock/keyboard authoring canvas, undo/redo,
+  reset-page-layout, Classroom Mode read-only render, migration + Local
+  Packet round-trip) — see `docs/status/studio-canvas-foundation.md`
 - Build and lint passing
 
 Parked:
@@ -562,8 +566,20 @@ Level 3:
 
 ### Layout Editor
 
-Level 1:
-- Fixed screen templates
+Level 1: **done — Studio Canvas Foundation**
+- Fixed screen templates → seeded per-`layoutPreset` widget geometry
+- Drag/resize widgets (Pointer Events, commit-on-release)
+- Snap grid (on by default, Alt bypasses)
+- Alignment guides (canvas center + other widget edges/centers)
+- Lock layers (lock/unlock, undoable)
+- Save custom layouts (persisted per-page geometry; Reset Page Layout to
+  restore seeded defaults)
+- Session-only undo/redo for layout changes (bounded 50 entries)
+
+Not yet done (still Level 1/2 scope for a future pass):
+- Show/hide cards per widget (the `visible` field exists end-to-end but
+  has no toggle UI yet)
+- Layout template picker / switching `layoutPreset` from the UI
 
 Level 2:
 - Choose layout templates
@@ -571,10 +587,9 @@ Level 2:
 - Show/hide cards
 
 Level 3:
-- Drag/resize widgets
-- Snap grid
-- Lock layers
-- Save custom layouts
+- Multi-select / group move
+- Layer inspector with reordering
+- Save named custom-layout presets (beyond the one persisted layout per page)
 
 ---
 

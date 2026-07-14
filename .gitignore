@@ -28,3 +28,11 @@ dist-ssr
 .cursor/mcp.json
 .local/student-picker-tests
 .local/local-packet-tests
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/
+*.spec.ts-snapshots/

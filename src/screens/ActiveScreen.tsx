@@ -1,9 +1,5 @@
 import type {
   AppMode,
-  CardId,
-  NoiseTrackerId,
-  NoiseTrackerState,
-  ScreenCardVisibility,
   ScreenContents,
   ScreenId,
   VibePageId,
@@ -17,15 +13,12 @@ interface ActiveScreenProps {
   classWorkspace: ClassWorkspace | undefined
   mode: AppMode
   contents: ScreenContents
-  cardVisibility: ScreenCardVisibility
-  noiseTrackers: Record<NoiseTrackerId, NoiseTrackerState>
   onContentsChange: (contents: ScreenContents) => void
-  onNavigateSuggestedScreen: (screenId: ScreenId) => void
-  onCardVisibleChange: (screenId: ScreenId, cardId: CardId, visible: boolean) => void
   onNavigateToPage: (pageId: VibePageId) => void
   onNavigatePrevious: () => void
   onNavigateNext: () => void
   onBeautify?: () => void
+  onPreviewClassroom?: () => void
 }
 
 export function ActiveScreen(props: ActiveScreenProps) {
@@ -39,15 +32,12 @@ export function ActiveScreen(props: ActiveScreenProps) {
       pages={pages}
       mode={props.mode}
       contents={props.contents}
-      cardVisibility={props.cardVisibility}
-      noiseTrackers={props.noiseTrackers}
       onContentsChange={props.onContentsChange}
-      onNavigateSuggestedScreen={props.onNavigateSuggestedScreen}
-      onCardVisibleChange={props.onCardVisibleChange}
       onNavigateToPage={props.onNavigateToPage}
       onNavigatePrevious={props.onNavigatePrevious}
       onNavigateNext={props.onNavigateNext}
       onBeautify={props.onBeautify}
+      onPreviewClassroom={props.onPreviewClassroom}
     />
   )
 }

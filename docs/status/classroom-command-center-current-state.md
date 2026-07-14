@@ -1,15 +1,18 @@
 # Classroom Command Center — Current State Audit
 
-Status: corrective pass in progress
-Date: 2026-07-12
+Status: corrective pass completed
+Date: 2026-07-13
 Project: `~/Projects/classroom-command-center`
 
 ## Validation
 
 Latest confirmed local checks:
-- `npm run test:routines` — PASS
-- `npm run test:student-picker` — PASS
-- `npm run test:local-packets` — PASS
+- `npm run test:routines` — PASS (87)
+- `npm run test:pages` — PASS (148)
+- `npm run test:student-picker` — PASS (68)
+- `npm run test:local-packets` — PASS (68 integration + 85 unit)
+- `npm run test:studio-canvas` — PASS (81)
+- `npm run test:e2e` — PASS (7) [chromium only, requires dev server]
 - `npm run lint` — PASS
 - `npm run build` — PASS
 
@@ -172,6 +175,12 @@ Implemented:
 - Local Packet Backup & Restore (Daily Brief import/export, full backup/restore, validation, undo, privacy boundary)
 - Deterministic routine tests for date-driven coverage
 - Page architecture tests (148 tests, all passing)
+- Studio Canvas Foundation — bounded 16:9 authoring surface in Studio Mode
+  with draggable/seeded page widgets, snap-to-grid, alignment guides,
+  lock/unlock, keyboard movement, undo/redo, reset-page-layout, and
+  responsive coordinate scaling; Classroom Mode now renders the same
+  persisted widget geometry read-only. See
+  `docs/status/studio-canvas-foundation.md`.
 - Build and lint currently passing locally
 - widget evolution roadmap
 - Reward Maker Studio parking-lot doc

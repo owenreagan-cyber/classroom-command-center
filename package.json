@@ -11,7 +11,9 @@
     "test:routines": "bash scripts/test-routines.sh",
     "test:student-picker": "bash scripts/test-student-picker.sh",
     "test:local-packets": "bash scripts/test-local-packets.sh",
-    "test:pages": "bash scripts/test-pages.sh"
+    "test:pages": "bash scripts/test-pages.sh",
+    "test:studio-canvas": "bash scripts/test-studio-canvas.sh",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "react": "^19.2.7",
@@ -20,6 +22,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.61.1",
     "@tailwindcss/vite": "^4.3.2",
     "@types/node": "^24.13.2",
     "@types/react": "^19.2.17",
