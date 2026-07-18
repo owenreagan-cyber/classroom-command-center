@@ -533,6 +533,179 @@ function assertEq(label: string, a: unknown, b: unknown) {
   assert('Test 11ac: Homeroom and Reading class IDs distinct', currentHR.classId !== currentReading.classId)
 })()
 
+// ═══════════════════════════════════════════════════════════════════════
+// Studio Canvas layout backup/restore round trip (production path)
+//
+// LocalPacketPanel's Full Backup export previously omitted classWorkspaces
+// entirely (the "board" source object built from component props never
+// included it, even though restoreBackupToStores/normalizeClassWorkspacesGeometry
+// on the import side always supported it) — layouts a teacher customized in
+// Studio silently vanished from every downloaded backup file. These tests
+// exercise the real production functions (createBackupPayload,
+// restoreBackupToStores) the way the fixed LocalPacketPanel now calls them.
+// ═══════════════════════════════════════════════════════════════════════
+
+;(() => {
+  useBoardStore.getState().resetToDefaults()
+
+  const HOMEROOM = 'homeroom'
+  const MATH = 'math'
+  const hrWs = useBoardStore.getState().classWorkspaces[HOMEROOM]!
+  const mathWs = useBoardStore.getState().classWorkspaces[MATH]!
+  const hrPageId = hrWs.pages[0].id
+  const hrWidgetId = hrWs.pages[0].widgets[0].id
+  const mathPageId = mathWs.pages[0].id
+  const mathWidgetId = mathWs.pages[0].widgets[0].id
+
+  // Customize layouts on two different classes/pages via the real store action.
+  // Geometry is set before locking — setWidgetGeometry is a no-op on a
+  // locked widget, matching the product's own "locked widgets cannot move" rule.
+  useBoardStore.getState().updatePageWidgetGeometry(HOMEROOM, hrPageId, hrWidgetId, { x: 222, y: 111 })
+  useBoardStore.getState().updatePageWidgetGeometry(MATH, mathPageId, mathWidgetId, { x: 333, y: 44 })
+  useBoardStore.getState().setPageWidgetLocked(MATH, mathPageId, mathWidgetId, true)
+
+  const hrCustomX = useBoardStore.getState().classWorkspaces[HOMEROOM]!.pages[0].widgets.find(w => w.id === hrWidgetId)!.x
+  assert('STUDIO-01: Homeroom widget geometry customized before export', hrCustomX === 222)
+
+  // Export exactly like the (fixed) LocalPacketPanel BackupTab does: pull
+  // classWorkspaces from board state into the "board" source category.
+  const boardState = useBoardStore.getState()
+  const packet = createBackupPayload(
+    {
+      board: {
+        mode: boardState.mode,
+        activeScreen: boardState.activeScreen,
+        activePageId: boardState.activePageId,
+        classWorkspaces: boardState.classWorkspaces as unknown,
+        backgroundId: boardState.backgroundId,
+        contents: boardState.contents as unknown,
+        teacherNotes: boardState.teacherNotes as unknown[],
+        cardVisibility: boardState.cardVisibility as unknown,
+        customPresets: boardState.customPresets as unknown[],
+        noiseTrackers: boardState.noiseTrackers as unknown,
+      },
+    },
+    ['board'],
+  )
+
+  assert('STUDIO-02: Full Backup export includes classWorkspaces', packet.categories.board?.classWorkspaces !== undefined)
+
+  // Mutate the layouts away from what was exported.
+  useBoardStore.getState().updatePageWidgetGeometry(HOMEROOM, hrPageId, hrWidgetId, { x: 999, y: 999 })
+  useBoardStore.getState().setPageWidgetLocked(MATH, mathPageId, mathWidgetId, false)
+
+  const restoreResult = restoreBackupToStores({
+    packet,
+    selectedCategories: ['board'],
+    replaceTimerRuntime: false,
+    replaceActiveMystery: false,
+  })
+  assert('STUDIO-03: Restore of Studio layout backup succeeds', restoreResult.success === true)
+
+  const restoredHr = useBoardStore.getState().classWorkspaces[HOMEROOM]!.pages.find(p => p.id === hrPageId)!.widgets.find(w => w.id === hrWidgetId)!
+  const restoredMath = useBoardStore.getState().classWorkspaces[MATH]!.pages.find(p => p.id === mathPageId)!.widgets.find(w => w.id === mathWidgetId)!
+
+  assertEq('STUDIO-04: Homeroom layout restored to exported x under its stable page/class id', restoredHr.x, 222)
+  assertEq('STUDIO-05: Math layout restored to exported x under its stable page/class id', restoredMath.x, 333)
+  assert('STUDIO-06: Math lock state restored', restoredMath.locked === true)
+
+  // Restoring the board category must not touch picker/timer state unless
+  // those categories were also selected.
+  usePickerStore.setState({ fairnessHistory: [{ id: 'guard-1', studentId: 'x', classId: 'homeroom', timestamp: 1, role: 'quick-pick', outcome: 'quick-picked' }] })
+  const guardHistory = usePickerStore.getState().fairnessHistory
+  useTimerStore.setState({ simpleTimers: { ...useTimerStore.getState().simpleTimers, homeroom: { ...useTimerStore.getState().simpleTimers.homeroom, label: 'Guard Label' } } })
+  const guardTimerLabel = useTimerStore.getState().simpleTimers.homeroom.label
+
+  restoreBackupToStores({
+    packet,
+    selectedCategories: ['board'],
+    replaceTimerRuntime: false,
+    replaceActiveMystery: false,
+  })
+  assert('STUDIO-07: Board-only restore leaves picker history unchanged', usePickerStore.getState().fairnessHistory === guardHistory)
+  assertEq('STUDIO-08: Board-only restore leaves timer state unchanged', useTimerStore.getState().simpleTimers.homeroom.label, guardTimerLabel)
+})()
+
+;(() => {
+  // An old backup exported before Studio Canvas existed has no
+  // classWorkspaces field at all on its "board" category. It must still
+  // restore successfully and must not wipe out the current Studio layout.
+  useBoardStore.getState().resetToDefaults()
+  const HOMEROOM = 'homeroom'
+  const hrWs = useBoardStore.getState().classWorkspaces[HOMEROOM]!
+  const hrPageId = hrWs.pages[0].id
+  const hrWidget = hrWs.pages[0].widgets[0]
+  const hrWidgetId = hrWidget.id
+  // Small in-bounds offset relative to the widget's own seeded position —
+  // an absolute target could legitimately get clamped back on-canvas for a
+  // wide/tall seeded widget, which would make this a false failure.
+  const targetX = hrWidget.x + 12
+  useBoardStore.getState().updatePageWidgetGeometry(HOMEROOM, hrPageId, hrWidgetId, { x: targetX, y: hrWidget.y })
+
+  const oldBackup: FullBackupPacketPayload = {
+    categories: {
+      board: { mode: 'display', activeScreen: 'homeroom' }, // no classWorkspaces key
+    },
+    exportedCategories: ['board'],
+  }
+
+  const result = restoreBackupToStores({
+    packet: oldBackup,
+    selectedCategories: ['board'],
+    replaceTimerRuntime: false,
+    replaceActiveMystery: false,
+  })
+  assert('STUDIO-09: Old backup without classWorkspaces restores successfully', result.success === true)
+
+  const widgetAfter = useBoardStore.getState().classWorkspaces[HOMEROOM]!.pages.find(p => p.id === hrPageId)!.widgets.find(w => w.id === hrWidgetId)!
+  assertEq('STUDIO-10: Old backup without classWorkspaces does not wipe the existing Studio layout', widgetAfter.x, targetX)
+})()
+
+;(() => {
+  // Malformed Studio layout data (non-finite coordinates, an unknown extra
+  // widget) must be repaired rather than applied verbatim or crashing the
+  // restore.
+  useBoardStore.getState().resetToDefaults()
+  const HOMEROOM = 'homeroom'
+  const hrWs = useBoardStore.getState().classWorkspaces[HOMEROOM]!
+  const hrPageId = hrWs.pages[0].id
+  const hrWidgetId = hrWs.pages[0].widgets[0].id
+
+  const malformedWorkspaces = structuredClone(useBoardStore.getState().classWorkspaces) as Record<string, unknown>
+  const hrPage = (malformedWorkspaces[HOMEROOM] as { pages: { id: string; widgets: { id: string; x: number; y: number; width: number; height: number }[] }[] }).pages.find(p => p.id === hrPageId)!
+  const widget = hrPage.widgets.find(w => w.id === hrWidgetId)!
+  widget.x = Number.NaN
+  widget.y = Number.POSITIVE_INFINITY
+  widget.width = -5
+  widget.height = 0
+
+  const malformedBackup: FullBackupPacketPayload = {
+    categories: {
+      board: { mode: 'edit', activeScreen: 'homeroom', classWorkspaces: malformedWorkspaces },
+    },
+    exportedCategories: ['board'],
+  }
+
+  let threw = false
+  let result
+  try {
+    result = restoreBackupToStores({
+      packet: malformedBackup,
+      selectedCategories: ['board'],
+      replaceTimerRuntime: false,
+      replaceActiveMystery: false,
+    })
+  } catch {
+    threw = true
+  }
+  assert('STUDIO-11: Malformed Studio layout backup does not crash restore', !threw)
+  assert('STUDIO-12: Malformed Studio layout backup restore reports success (repaired, not rejected)', result?.success === true)
+
+  const repaired = useBoardStore.getState().classWorkspaces[HOMEROOM]!.pages.find(p => p.id === hrPageId)!.widgets.find(w => w.id === hrWidgetId)!
+  assert('STUDIO-13: Malformed widget geometry repaired to finite values', Number.isFinite(repaired.x) && Number.isFinite(repaired.y) && Number.isFinite(repaired.width) && Number.isFinite(repaired.height))
+  assert('STUDIO-14: Malformed widget geometry repaired to positive size', repaired.width > 0 && repaired.height > 0)
+})()
+
 // ── Report ───────────────────────────────────────────────────────────
 
 console.log(`\n=== Local Packets Integration Tests ===`)

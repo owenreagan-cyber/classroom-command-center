@@ -198,12 +198,14 @@ export function TeacherDock({
       <LocalPacketPanel
         boardContents={boardState.contents as unknown as Record<string, unknown>}
         boardActiveScreen={boardState.activeScreen}
+        boardActivePageId={boardState.activePageId}
         boardMode={boardState.mode}
         boardBackgroundId={boardState.backgroundId}
         boardTeacherNotes={boardState.teacherNotes}
         boardCardVisibility={boardState.cardVisibility}
         boardCustomPresets={boardState.customPresets}
         boardNoiseTrackers={boardState.noiseTrackers}
+        boardClassWorkspaces={boardState.classWorkspaces as unknown as Record<string, unknown>}
         timerSimpleTimers={timerSimpleTimers}
         timerPhaseTimer={timerPhaseTimer}
         pickerStudents={pickerStudents.filter(s => s.isActive)}

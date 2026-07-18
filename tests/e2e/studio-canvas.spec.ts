@@ -157,6 +157,53 @@ test.describe('Studio Canvas', () => {
     expect(undoEnabled).toBe(true)
   })
 
+  test('undo history does not intermix across pages', async ({ page }) => {
+    await openMorningArrival(page)
+
+    // Drag the widget on Homeroom > Morning Arrival to create a history entry.
+    const widget = page.locator('[data-widget-type="do-now"]').first()
+    await widget.focus()
+    const handle = widget.locator('[aria-label*="Drag handle"]')
+    const handleBox = await handle.boundingBox()
+    expect(handleBox).not.toBeNull()
+    await page.mouse.move(handleBox!.x + 5, handleBox!.y + 5)
+    await page.mouse.down()
+    await page.mouse.move(handleBox!.x + 90, handleBox!.y + 40, { steps: 10 })
+    await page.mouse.up()
+
+    const undoEnabledOnHomeroom = await page.evaluate(() => {
+      const undo = document.querySelector('[aria-label="Undo last layout change"]') as HTMLButtonElement | null
+      return undo && !undo.disabled
+    })
+    expect(undoEnabledOnHomeroom).toBe(true)
+
+    // Switch to Math — a different class with no edits made yet. The Undo
+    // button must not report a change available here, and must not be able
+    // to silently revert the Homeroom edit while the teacher is looking at
+    // a different class.
+    await page.getByRole('button', { name: /^Math$/ }).click()
+    await page.waitForTimeout(300)
+
+    const undoDisabledOnMath = await page.evaluate(() => {
+      const undo = document.querySelector('[aria-label="Undo last layout change"]') as HTMLButtonElement | null
+      return undo?.disabled
+    })
+    expect(undoDisabledOnMath).toBe(true)
+
+    // Navigating back to Homeroom > Morning Arrival, the earlier edit must
+    // still be there (untouched by anything done while viewing Math) and
+    // Undo must still be available for it.
+    await page.getByRole('button', { name: /^Homeroom$/ }).click()
+    await page.getByRole('button', { name: /Morning Arrival/i }).first().click()
+    await page.waitForSelector('[data-widget-type="do-now"]', { timeout: 5000 })
+
+    const undoEnabledBackOnHomeroom = await page.evaluate(() => {
+      const undo = document.querySelector('[aria-label="Undo last layout change"]') as HTMLButtonElement | null
+      return undo && !undo.disabled
+    })
+    expect(undoEnabledBackOnHomeroom).toBe(true)
+  })
+
   test('classroom mode hides studio toolbar', async ({ page }) => {
     await page.goto(APP_URL)
     // Enter studio mode via DOM click

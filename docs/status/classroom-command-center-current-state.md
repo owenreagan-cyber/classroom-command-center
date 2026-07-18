@@ -1,22 +1,23 @@
 # Classroom Command Center — Current State Audit
 
-Status: corrective pass completed
-Date: 2026-07-13
+Status: corrective pass completed; Studio Canvas adversarial audit and repair validation completed 2026-07-18
+Date: 2026-07-13 (see `docs/status/studio-canvas-foundation.md` for the 2026-07-18 audit)
 Project: `~/Projects/classroom-command-center`
 
 ## Validation
 
-Latest confirmed local checks:
+Latest confirmed local checks (2026-07-18, post-audit):
 - `npm run test:routines` — PASS (87)
 - `npm run test:pages` — PASS (148)
 - `npm run test:student-picker` — PASS (68)
-- `npm run test:local-packets` — PASS (68 integration + 85 unit)
-- `npm run test:studio-canvas` — PASS (81)
-- `npm run test:e2e` — PASS (7) [chromium only, requires dev server]
+- `npm run test:local-packets` — PASS (82 integration + 85 unit)
+- `npm run test:studio-canvas` — PASS (92)
+- `npm run test:e2e` — PASS (6) [chromium only, requires dev server]
 - `npm run lint` — PASS
 - `npm run build` — PASS
+- `git diff --check` / `git diff --cached --check` — PASS
 
-Final git hygiene evidence is captured in the thread report after the last corrective edit.
+The 2026-07-18 audit found and repaired two defects: cross-page undo/redo bleed and Full Backup export silently omitting Studio layouts. See `docs/status/studio-canvas-foundation.md` for details.
 
 ## Dependency State
 

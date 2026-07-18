@@ -24,6 +24,7 @@ import {
   snapValue,
 } from './studioCanvasGeometry'
 import {
+  clearFutureForPage,
   moveWidget,
   pushHistory,
   redoCanvasHistory,
@@ -196,14 +197,14 @@ assert('shift+arrow moves by one grid step', keyboardMoveDelta('ArrowDown', true
   const afterCommit = findWidget(ws, HOMEROOM, homeroomFirstPageId, homeroomFirstWidgetId)!
   assert('drag commit updates geometry', afterCommit.x === targetX && afterCommit.y === targetY)
 
-  const undone = undoCanvasHistory(ws, past, future)
+  const undone = undoCanvasHistory(ws, past, future, HOMEROOM, homeroomFirstPageId)
   ws = undone.workspaces
   past = undone.past
   future = undone.future
   const afterUndo = findWidget(ws, HOMEROOM, homeroomFirstPageId, homeroomFirstWidgetId)!
   assert('drag commit is undoable', afterUndo.x === originalWidget.x && afterUndo.y === originalWidget.y)
 
-  const redone = redoCanvasHistory(ws, past, future)
+  const redone = redoCanvasHistory(ws, past, future, HOMEROOM, homeroomFirstPageId)
   ws = redone.workspaces
   past = redone.past
   future = redone.future
@@ -211,7 +212,7 @@ assert('shift+arrow moves by one grid step', keyboardMoveDelta('ArrowDown', true
   assert('redo restores the edit', afterRedo.x === targetX && afterRedo.y === targetY)
 
   // New edit after undo should clear redo.
-  const undo2 = undoCanvasHistory(ws, past, future)
+  const undo2 = undoCanvasHistory(ws, past, future, HOMEROOM, homeroomFirstPageId)
   ws = undo2.workspaces
   past = undo2.past
   future = undo2.future
@@ -221,20 +222,116 @@ assert('shift+arrow moves by one grid step', keyboardMoveDelta('ArrowDown', true
   const newEdit = setWidgetGeometry(ws, HOMEROOM, homeroomFirstPageId, homeroomFirstWidgetId, { x: secondTargetX, y: secondTargetY })
   ws = newEdit.workspaces
   past = pushHistory(past, newEdit.historyEntry!)
-  future = [] // caller (boardStore) always clears future on a new committed edit
+  future = clearFutureForPage(future, HOMEROOM, homeroomFirstPageId) // caller (boardStore) clears this page's redo on a new committed edit
   assert('new edit clears redo', future.length === 0)
 
   // Lock is undoable
   const lockResult = setWidgetLocked(ws, HOMEROOM, homeroomFirstPageId, homeroomFirstWidgetId, true)
-  const lockUndo = undoCanvasHistory(lockResult.workspaces, pushHistory(past, lockResult.historyEntry!), [])
+  const lockUndo = undoCanvasHistory(lockResult.workspaces, pushHistory(past, lockResult.historyEntry!), [], HOMEROOM, homeroomFirstPageId)
   const afterLockUndo = findWidget(lockUndo.workspaces, HOMEROOM, homeroomFirstPageId, homeroomFirstWidgetId)!
   assert('lock is undoable', afterLockUndo.locked === false)
 
   // Reset is undoable
   const resetResult = resetActivePageLayout(ws, HOMEROOM, homeroomFirstPageId)
-  const resetUndo = undoCanvasHistory(resetResult.workspaces, pushHistory(past, resetResult.historyEntry!), [])
+  const resetUndo = undoCanvasHistory(resetResult.workspaces, pushHistory(past, resetResult.historyEntry!), [], HOMEROOM, homeroomFirstPageId)
   const afterResetUndo = findWidget(resetUndo.workspaces, HOMEROOM, homeroomFirstPageId, homeroomFirstWidgetId)!
   assert('reset is undoable', afterResetUndo.x === secondTargetX && afterResetUndo.y === secondTargetY)
+}
+
+// ── 67-72. Undo/redo history does not intermix across pages or classes ──
+{
+  // Interleave a Homeroom edit and a Math edit into one combined history
+  // (exactly as boardStore's single canvasHistoryPast/Future would after a
+  // teacher edits one page, switches classes, then edits another) and
+  // verify undo/redo scoped to one page never touches the other.
+  let ws = cloneWorkspaces(baseWorkspaces)
+  let past: CanvasHistoryEntry[] = []
+  const future: CanvasHistoryEntry[] = []
+
+  const mathFirstWidgetId = ws[MATH]!.pages[0].widgets[0].id
+  const homeroomOriginal = structuredClone(findWidget(ws, HOMEROOM, homeroomFirstPageId, homeroomFirstWidgetId)!)
+  const mathOriginal = structuredClone(findWidget(ws, MATH, mathFirstPageId, mathFirstWidgetId)!)
+
+  const hrEdit = setWidgetGeometry(ws, HOMEROOM, homeroomFirstPageId, homeroomFirstWidgetId, {
+    x: homeroomOriginal.x + 30,
+    y: homeroomOriginal.y,
+  })
+  ws = hrEdit.workspaces
+  past = pushHistory(past, hrEdit.historyEntry!)
+
+  const mathEdit = setWidgetGeometry(ws, MATH, mathFirstPageId, mathFirstWidgetId, {
+    x: mathOriginal.x + 50,
+    y: mathOriginal.y,
+  })
+  ws = mathEdit.workspaces
+  past = pushHistory(past, mathEdit.historyEntry!)
+
+  // Undo scoped to Homeroom while Math's edit is the most recent entry in
+  // the combined `past` array — must revert Homeroom, not Math.
+  const undoHomeroom = undoCanvasHistory(ws, past, future, HOMEROOM, homeroomFirstPageId)
+  assert(
+    'undo scoped to Homeroom reverts Homeroom even when Math was edited more recently',
+    findWidget(undoHomeroom.workspaces, HOMEROOM, homeroomFirstPageId, homeroomFirstWidgetId)!.x === homeroomOriginal.x,
+  )
+  assert(
+    'undo scoped to Homeroom leaves Math untouched',
+    findWidget(undoHomeroom.workspaces, MATH, mathFirstPageId, mathFirstWidgetId)!.x === mathOriginal.x + 50,
+  )
+  assert(
+    "undo scoped to Homeroom leaves Math's past entry in place",
+    undoHomeroom.past.some((e) => e.classId === MATH && e.pageId === mathFirstPageId),
+  )
+  assert(
+    'undo scoped to Homeroom pushes only a Homeroom entry to future',
+    undoHomeroom.future.length === 1 && undoHomeroom.future[0].classId === HOMEROOM,
+  )
+
+  // Redo scoped to Homeroom restores it without touching Math.
+  const redoHomeroom = redoCanvasHistory(undoHomeroom.workspaces, undoHomeroom.past, undoHomeroom.future, HOMEROOM, homeroomFirstPageId)
+  assert(
+    'redo scoped to Homeroom restores Homeroom',
+    findWidget(redoHomeroom.workspaces, HOMEROOM, homeroomFirstPageId, homeroomFirstWidgetId)!.x === homeroomOriginal.x + 30,
+  )
+  assert(
+    'redo scoped to Homeroom leaves Math untouched',
+    findWidget(redoHomeroom.workspaces, MATH, mathFirstPageId, mathFirstWidgetId)!.x === mathOriginal.x + 50,
+  )
+
+  // Undo with no matching entry for the given page is a safe no-op.
+  const noMatchUndo = undoCanvasHistory(ws, past, future, 'reading', ws.reading!.pages[0].id)
+  assert('undo with no matching page entry is a no-op', noMatchUndo.workspaces === ws && noMatchUndo.past === past)
+}
+
+// ── 73. A new edit only clears redo for its own page, not other pages' ──
+{
+  let ws = cloneWorkspaces(baseWorkspaces)
+  let past: CanvasHistoryEntry[] = []
+  let future: CanvasHistoryEntry[] = []
+
+  const mathFirstWidgetId = ws[MATH]!.pages[0].widgets[0].id
+
+  const hrEdit = setWidgetGeometry(ws, HOMEROOM, homeroomFirstPageId, homeroomFirstWidgetId, { x: 250, y: 150 })
+  ws = hrEdit.workspaces
+  past = pushHistory(past, hrEdit.historyEntry!)
+
+  const mathEdit = setWidgetGeometry(ws, MATH, mathFirstPageId, mathFirstWidgetId, { x: 260, y: 160 })
+  ws = mathEdit.workspaces
+  past = pushHistory(past, mathEdit.historyEntry!)
+
+  // Undo both, so both pages have a pending redo entry.
+  const undoMath = undoCanvasHistory(ws, past, future, MATH, mathFirstPageId)
+  const undoBoth = undoCanvasHistory(undoMath.workspaces, undoMath.past, undoMath.future, HOMEROOM, homeroomFirstPageId)
+  future = undoBoth.future
+  ws = undoBoth.workspaces
+  assert('both pages have a pending redo entry before the new edit', future.length === 2)
+
+  // A brand-new edit on Homeroom should only clear Homeroom's redo.
+  const newHrEdit = setWidgetGeometry(ws, HOMEROOM, homeroomFirstPageId, homeroomFirstWidgetId, { x: 400, y: 300 })
+  future = clearFutureForPage(future, HOMEROOM, homeroomFirstPageId)
+
+  assert('new Homeroom edit committed', newHrEdit.historyEntry !== null)
+  assert('new Homeroom edit clears only Homeroom redo', !future.some((e) => e.classId === HOMEROOM))
+  assert("new Homeroom edit leaves Math's redo entry intact", future.some((e) => e.classId === MATH && e.pageId === mathFirstPageId))
 }
 
 // ── 23. Bounded history ────────────────────────────────────────────────
