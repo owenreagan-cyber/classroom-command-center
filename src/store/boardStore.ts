@@ -51,6 +51,7 @@ import {
   setWidgetLocked,
   undoCanvasHistory,
   pushHistory,
+  clearFutureForPage,
   type CanvasHistoryEntry,
 } from '../lib/studioCanvasActions'
 import { normalizeClassWorkspacesGeometry } from '../lib/studioCanvasMigration'
@@ -80,8 +81,8 @@ interface BoardStore extends BoardState {
   ) => void
   setPageWidgetLocked: (classId: ScreenId, pageId: VibePageId, widgetId: string, locked: boolean) => void
   resetActivePageLayout: (classId: ScreenId, pageId: VibePageId) => void
-  undoCanvasLayout: () => void
-  redoCanvasLayout: () => void
+  undoCanvasLayout: (classId: ScreenId, pageId: VibePageId) => void
+  redoCanvasLayout: (classId: ScreenId, pageId: VibePageId) => void
   setMode: (mode: AppMode) => void
   setActiveScreen: (screen: ScreenId) => void
   setActivePageId: (pageId: VibePageId) => void
@@ -347,53 +348,53 @@ export const useBoardStore = create<BoardStore>()(
       studioSnapEnabled: true,
       setStudioSnapEnabled: (enabled) => set({ studioSnapEnabled: enabled }),
       updatePageWidgetGeometry: (classId, pageId, widgetId, geometry) => {
-        const { classWorkspaces, canvasHistoryPast } = get()
+        const { classWorkspaces, canvasHistoryPast, canvasHistoryFuture } = get()
         const result = setWidgetGeometry(classWorkspaces, classId, pageId, widgetId, geometry)
         if (!result.historyEntry) return
         set({
           classWorkspaces: result.workspaces,
           canvasHistoryPast: pushHistory(canvasHistoryPast, result.historyEntry),
-          canvasHistoryFuture: [],
+          canvasHistoryFuture: clearFutureForPage(canvasHistoryFuture, classId, pageId),
         })
       },
       movePageWidget: (classId, pageId, widgetId, key, shiftKey) => {
-        const { classWorkspaces, canvasHistoryPast } = get()
+        const { classWorkspaces, canvasHistoryPast, canvasHistoryFuture } = get()
         const result = moveWidget(classWorkspaces, classId, pageId, widgetId, key, shiftKey)
         if (!result.historyEntry) return
         set({
           classWorkspaces: result.workspaces,
           canvasHistoryPast: pushHistory(canvasHistoryPast, result.historyEntry),
-          canvasHistoryFuture: [],
+          canvasHistoryFuture: clearFutureForPage(canvasHistoryFuture, classId, pageId),
         })
       },
       setPageWidgetLocked: (classId, pageId, widgetId, locked) => {
-        const { classWorkspaces, canvasHistoryPast } = get()
+        const { classWorkspaces, canvasHistoryPast, canvasHistoryFuture } = get()
         const result = setWidgetLocked(classWorkspaces, classId, pageId, widgetId, locked)
         if (!result.historyEntry) return
         set({
           classWorkspaces: result.workspaces,
           canvasHistoryPast: pushHistory(canvasHistoryPast, result.historyEntry),
-          canvasHistoryFuture: [],
+          canvasHistoryFuture: clearFutureForPage(canvasHistoryFuture, classId, pageId),
         })
       },
       resetActivePageLayout: (classId, pageId) => {
-        const { classWorkspaces, canvasHistoryPast } = get()
+        const { classWorkspaces, canvasHistoryPast, canvasHistoryFuture } = get()
         const result = resetActivePageLayoutPure(classWorkspaces, classId, pageId)
         if (!result.historyEntry) return
         set({
           classWorkspaces: result.workspaces,
           canvasHistoryPast: pushHistory(canvasHistoryPast, result.historyEntry),
-          canvasHistoryFuture: [],
+          canvasHistoryFuture: clearFutureForPage(canvasHistoryFuture, classId, pageId),
         })
       },
-      undoCanvasLayout: () => {
+      undoCanvasLayout: (classId, pageId) => {
         const { classWorkspaces, canvasHistoryPast, canvasHistoryFuture } = get()
-        const result = undoCanvasHistory(classWorkspaces, canvasHistoryPast, canvasHistoryFuture)
+        const result = undoCanvasHistory(classWorkspaces, canvasHistoryPast, canvasHistoryFuture, classId, pageId)
         set({ classWorkspaces: result.workspaces, canvasHistoryPast: result.past, canvasHistoryFuture: result.future })
       },
-      redoCanvasLayout: () => {
+      redoCanvasLayout: (classId, pageId) => {
         const { classWorkspaces, canvasHistoryPast, canvasHistoryFuture } = get()
-        const result = redoCanvasHistory(classWorkspaces, canvasHistoryPast, canvasHistoryFuture)
+        const result = redoCanvasHistory(classWorkspaces, canvasHistoryPast, canvasHistoryFuture, classId, pageId)
         set({ classWorkspaces: result.workspaces, canvasHistoryPast: result.past, canvasHistoryFuture: result.future })
       },
       setMode: (mode) => set({ mode }),

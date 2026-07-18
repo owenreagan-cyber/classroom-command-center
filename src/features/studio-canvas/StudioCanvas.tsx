@@ -59,6 +59,14 @@ export function StudioCanvas({ screenId, page, contents, onContentsChange, onBea
   const selectedWidget = page.widgets.find((w) => w.id === selectedWidgetId) ?? null
   const visibleWidgets = page.widgets.filter((w) => w.visible !== false)
 
+  // Undo/redo availability (and the actions themselves) are scoped to the
+  // page currently open in Studio — canvasHistoryPast/Future may hold
+  // interleaved entries from other pages/classes edited earlier in the
+  // session, and those must not bleed into this page's toolbar or be
+  // silently reverted by it.
+  const canUndo = canvasHistoryPast.some((entry) => entry.classId === screenId && entry.pageId === page.id)
+  const canRedo = canvasHistoryFuture.some((entry) => entry.classId === screenId && entry.pageId === page.id)
+
   function handleDragHandlePointerDown(widgetId: string, e: ReactPointerEvent<HTMLDivElement>) {
     const widget = page.widgets.find((w) => w.id === widgetId)
     if (!widget || widget.locked) return
@@ -150,10 +158,10 @@ export function StudioCanvas({ screenId, page, contents, onContentsChange, onBea
   return (
     <div className="flex h-full min-h-0 flex-col gap-2">
       <StudioToolbar
-        canUndo={canvasHistoryPast.length > 0}
-        canRedo={canvasHistoryFuture.length > 0}
-        onUndo={undoCanvasLayout}
-        onRedo={redoCanvasLayout}
+        canUndo={canUndo}
+        canRedo={canRedo}
+        onUndo={() => undoCanvasLayout(screenId, page.id)}
+        onRedo={() => redoCanvasLayout(screenId, page.id)}
         snapEnabled={snapEnabled}
         onToggleSnap={() => setStudioSnapEnabled(!snapEnabled)}
         onResetLayout={handleResetLayout}

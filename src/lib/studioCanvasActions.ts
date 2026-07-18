@@ -209,38 +209,74 @@ export function pushHistory(
   return next
 }
 
+/** Entries for every other page/class are left in place and in their
+ * original relative order — only the current page's redo stack should be
+ * invalidated by a fresh edit (see `clearFutureForPage`). */
+export function clearFutureForPage(
+  future: CanvasHistoryEntry[],
+  classId: ScreenId,
+  pageId: VibePageId,
+): CanvasHistoryEntry[] {
+  return future.filter((entry) => !(entry.classId === classId && entry.pageId === pageId))
+}
+
+/** Index of the most recent entry in `entries` belonging to the given
+ * class/page, or -1. History entries for other pages/classes may be
+ * interleaved in the same array, so this is not simply `entries.length - 1`. */
+function findLastEntryIndexForPage(
+  entries: CanvasHistoryEntry[],
+  classId: ScreenId,
+  pageId: VibePageId,
+): number {
+  for (let i = entries.length - 1; i >= 0; i--) {
+    if (entries[i].classId === classId && entries[i].pageId === pageId) return i
+  }
+  return -1
+}
+
 export interface HistoryStepResult {
   workspaces: Workspaces
   past: CanvasHistoryEntry[]
   future: CanvasHistoryEntry[]
 }
 
+/** Undo the most recent committed action for the given class/page. Entries
+ * belonging to other pages/classes in `past`/`future` are left untouched,
+ * so undo history from one page never intermixes with another's. */
 export function undoCanvasHistory(
   workspaces: Workspaces,
   past: CanvasHistoryEntry[],
   future: CanvasHistoryEntry[],
+  classId: ScreenId,
+  pageId: VibePageId,
 ): HistoryStepResult {
-  if (past.length === 0) return { workspaces, past, future }
-  const entry = past[past.length - 1]
+  const index = findLastEntryIndexForPage(past, classId, pageId)
+  if (index < 0) return { workspaces, past, future }
+  const entry = past[index]
   const nextWorkspaces = replacePageWidgets(workspaces, entry.classId, entry.pageId, entry.before)
   return {
     workspaces: nextWorkspaces,
-    past: past.slice(0, -1),
+    past: [...past.slice(0, index), ...past.slice(index + 1)],
     future: pushHistory(future, entry),
   }
 }
 
+/** Redo the most recently undone action for the given class/page. Entries
+ * belonging to other pages/classes in `past`/`future` are left untouched. */
 export function redoCanvasHistory(
   workspaces: Workspaces,
   past: CanvasHistoryEntry[],
   future: CanvasHistoryEntry[],
+  classId: ScreenId,
+  pageId: VibePageId,
 ): HistoryStepResult {
-  if (future.length === 0) return { workspaces, past, future }
-  const entry = future[future.length - 1]
+  const index = findLastEntryIndexForPage(future, classId, pageId)
+  if (index < 0) return { workspaces, past, future }
+  const entry = future[index]
   const nextWorkspaces = replacePageWidgets(workspaces, entry.classId, entry.pageId, entry.after)
   return {
     workspaces: nextWorkspaces,
     past: pushHistory(past, entry),
-    future: future.slice(0, -1),
+    future: [...future.slice(0, index), ...future.slice(index + 1)],
   }
 }

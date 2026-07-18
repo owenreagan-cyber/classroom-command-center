@@ -1,8 +1,69 @@
 # Studio Canvas Foundation
 
-Status: implemented and validated (adversarial audit pass completed)
-Date: 2026-07-13
-Branch: `studio-canvas-foundation`
+Status: implemented and validated (adversarial audit + repair pass completed)
+Date: 2026-07-18
+Audit baseline: Studio Canvas Foundation as merged in commit `e35d42b`; repairs validated against that merged implementation.
+
+## Adversarial audit + repair pass (2026-07-18)
+
+A follow-up adversarial audit of the merged implementation found two
+confirmed defects, both repaired and validated. The rest of
+this document describes the **current, post-repair** behavior; the two
+sections below call out specifically what was wrong and what changed.
+
+1. **Undo/redo history intermixed across pages and classes.** `StudioCanvas.tsx`
+   computed `canUndo`/`canRedo` from the raw length of the single global
+   `canvasHistoryPast`/`canvasHistoryFuture` arrays, and `undoCanvasLayout`/
+   `redoCanvasLayout` always acted on the most recent entry in those arrays
+   regardless of which page was open. Concretely: editing Homeroom, then
+   switching to Math with no edits made there, showed an enabled Undo
+   button on Math — clicking it silently reverted the Homeroom edit while
+   the teacher was looking at Math. Fixed by scoping `canUndo`/`canRedo`
+   and the undo/redo actions themselves to the active `classId`/`pageId`
+   (`src/lib/studioCanvasActions.ts`'s `undoCanvasHistory`/
+   `redoCanvasHistory` now take `classId`/`pageId` and search for the most
+   recent matching entry rather than always popping the array's tail;
+   `clearFutureForPage` replaces the old blanket
+   `canvasHistoryFuture: []` so a new edit only invalidates redo for its
+   own page). See "Undo / redo" below for the corrected model. Covered by
+   `studio-canvas-tests.ts` tests 67–73 and a new Playwright test, "undo
+   history does not intermix across pages."
+2. **Full Backup export silently dropped Studio layouts.** The original
+   commit's documentation (this file) claimed the Local Packet "board"
+   category round-tripped `classWorkspaces`. The import side
+   (`packetStoreAdapter.ts`'s `restoreBackupToStores`) genuinely did, and
+   the internal restore-undo snapshot (`snapshotCategory('board')`) did
+   too — but the actual **export** UI never did: `LocalPacketPanel`'s
+   `BackupTab.handleBackup` built its `board` source object from React
+   props, and `TeacherDock.tsx` never passed `classWorkspaces` (or
+   `activePageId`) into `LocalPacketPanel` in the first place. Every Full
+   Backup a teacher downloaded therefore silently omitted their Studio
+   layouts, even though restoring a (different, hand-built) backup that
+   did contain `classWorkspaces` worked correctly. Fixed by threading
+   `boardState.classWorkspaces`/`activePageId` through
+   `TeacherDock.tsx` → `LocalPacketPanel.tsx` → the exported `board`
+   category. See "Local Packet behavior" below. Covered by 6 new
+   integration tests (`STUDIO-01`–`STUDIO-14` in
+   `src/features/local-packets/integration-tests.ts`) exercising the real
+   `createBackupPayload`/`restoreBackupToStores` production functions,
+   including an old-backup-without-`classWorkspaces` case and a malformed-geometry
+   repair case.
+
+No other defects were confirmed. In particular, the audit specifically
+checked and found **no regression** in: Display-mode gating of Studio
+chrome (enforced by mounting a different component tree, not an internal
+flag — `StudioCanvas`/its toolbar/inspector/guides are simply never
+instantiated in Display mode), Previous/Next page navigation, routine
+selection/`ActiveScreen` routing, `ClassroomCanvas` vs `StudioCanvas`
+geometry parity, timer widget data flow (self-subscribes to the timer
+store, unaffected by the refactor), privacy boundaries (no
+`dangerouslySetInnerHTML` anywhere in the app; Mystery Star/coaching data
+has no code path into Studio Canvas or widget content), and Local Packet
+category isolation (restoring `board` does not touch picker/timer state).
+`PhaseTimerCard`/`VoiceLevelWidget`/`NoiseStatusCard` and the six
+pre-Studio per-screen dashboard components remain dead code, as already
+documented below — this predates Studio Canvas (from the earlier nested-vibe-pages
+phase) and is not a regression it introduced.
 
 ## Summary
 
@@ -169,18 +230,32 @@ separate and untouched.
 
 - One committed action (drag release, lock toggle, keyboard move, reset)
   = one history entry.
-- Bounded to **50** entries (`MAX_HISTORY_ENTRIES`); oldest entries drop
-  off the front.
-- A new committed edit clears the redo stack.
-- **Chosen behavior for page switching:** history is a single global
-  session stack, not per-page. Undo/redo always operate on whichever page
-  the recorded entry belongs to (each entry carries its own
-  `classId`/`pageId`), so undoing while viewing a different page than the
-  one that was edited still correctly reverts that page's widgets — the
-  change just won't be visually apparent until you navigate back to it.
-  This was the simpler of the two documented-acceptable options; a
-  per-page stack is a reasonable follow-up if it proves confusing in
-  practice.
+- Bounded to **50** entries (`MAX_HISTORY_ENTRIES`) **across the whole
+  session** (all pages/classes share one budget, not 50 per page); oldest
+  entries drop off the front regardless of which page they belong to.
+- **Undo/redo are scoped to the active page.** `canvasHistoryPast`/
+  `canvasHistoryFuture` remain single session-wide arrays (entries from
+  different pages/classes can be interleaved in them), but
+  `undoCanvasHistory(workspaces, past, future, classId, pageId)` /
+  `redoCanvasHistory(...)` search for the most recent entry matching the
+  given `classId`/`pageId` rather than always acting on the array's last
+  element, and `StudioCanvas.tsx`'s `canUndo`/`canRedo` are computed by
+  filtering for entries matching the currently open page. Concretely:
+  editing Homeroom, then switching to Math with no edits there, shows
+  Undo **disabled** on Math (previously it showed enabled and would have
+  silently reverted the Homeroom edit). Navigating back to Homeroom still
+  offers Undo for that earlier edit.
+- A new committed edit clears redo **only for its own page**
+  (`clearFutureForPage`), not for other pages' pending redo entries — a
+  teacher who undid an edit on Math, then switched to Homeroom and made a
+  new edit there, does not lose the ability to redo on Math.
+- This was previously a single-global-stack design (documented as an
+  accepted limitation, "a per-page stack is a reasonable follow-up if it
+  proves confusing in practice") — the adversarial audit on 2026-07-18
+  concluded the cross-page bleed was a real defect, not just a UX
+  rough edge, since it let Undo silently mutate a page the teacher wasn't
+  looking at. The per-page scoping described above is now the
+  implemented behavior, not a follow-up.
 
 ## Reset Page Layout
 
@@ -213,15 +288,28 @@ is undoable before applying it.
 
 ## Local Packet behavior
 
-`BackupBoardContent` (`src/features/local-packets/types.ts`) gained
-`activePageId` and `classWorkspaces` fields — **this closes a pre-existing
-gap**: the Local Packet "board" category previously did not round-trip
-`classWorkspaces` or `activePageId` at all (only the flat `contents`
-object). `packetStoreAdapter.ts`'s `snapshotCategory('board')`,
-`restoreCategory('board', …)`, and `restoreBackupToStores(...)` now
-include them, and imported `classWorkspaces` are always run through
+`BackupBoardContent` (`src/features/local-packets/types.ts`) has
+`activePageId` and `classWorkspaces` fields, and the **import/restore**
+side has always correctly handled them: `packetStoreAdapter.ts`'s
+`snapshotCategory('board')` (used for the internal restore-undo snapshot)
+and `restoreBackupToStores(...)` both read/write `classWorkspaces`, and
+imported `classWorkspaces` are always run through
 `normalizeClassWorkspacesGeometry()` before being applied, so a
 hand-edited or corrupted packet can't inject invalid/off-canvas geometry.
+
+**The export side did not, until the 2026-07-18 adversarial audit.**
+`LocalPacketPanel`'s `BackupTab.handleBackup` builds its `board` source
+object from component props, not from the store directly, and
+`TeacherDock.tsx` was never passing `boardState.classWorkspaces` (or
+`activePageId`) down to it — so every Full Backup a teacher actually
+downloaded through the UI silently omitted their Studio layouts, despite
+this document's earlier (incorrect) claim that the gap was closed. This
+is now fixed: `TeacherDock.tsx` passes `boardClassWorkspaces={boardState.classWorkspaces}`
+and `boardActivePageId={boardState.activePageId}` to `LocalPacketPanel`,
+which includes them in the exported `board` category. The separate
+"Legacy" `BoardBackupPanel`'s "Export board JSON" button was never
+affected by this — it clones the entire `BoardState` object (which always
+included `classWorkspaces`), not individually-threaded props.
 
 Local Packets explicitly do **not** export: selection state, transient
 drag state, alignment guides, undo/redo stacks, or pointer coordinates —
@@ -292,15 +380,15 @@ the existing `test:pages` checks.
    of headroom show more content instead of "+N more".
 2. Per-widget visibility toggle in the Studio Inspector.
 3. Live-updating inspector readout during an active drag.
-4. Per-page undo/redo history (if the shared global stack proves
-   confusing in practice).
+4. ~~Per-page undo/redo history~~ — done as of the 2026-07-18 adversarial
+   audit (see above).
 5. Delete the now-unreferenced legacy per-screen dashboard components.
 6. Bring the routine-block strip / voice-level indicator into the Studio
    Canvas toolbar or inspector as compact, non-widget chrome.
 
 ## Test coverage
 
-`npm run test:studio-canvas` — **66 tests** across:
+`npm run test:studio-canvas` — **92 tests** across:
 pixel/logical conversion, grid snapping, snap-disabled movement, canvas/
 safe-area clamping, minimum-size enforcement, alignment-guide detection
 (center/edge/out-of-tolerance), lock enforcement (both pointer and
@@ -313,23 +401,49 @@ repair, idempotency, new widget type seeding, unknown old widget safety),
 Local Packet round-trip and transient-state exclusion, Classroom
 render-model field/privacy safety, page-switch isolation, resize
 stability, non-interference with routine/fairness/Mystery/absence state,
-class-specific layout isolation, and restore-round-trip with unrelated
-state preservation.
+class-specific layout isolation, restore-round-trip with unrelated
+state preservation, **and (added 2026-07-18) cross-page/cross-class
+undo/redo isolation with interleaved history entries (tests 67–73)**.
 
-All pre-existing suites continue to pass unmodified: `test:routines` (87),
-`test:pages` (148), `test:local-packets` (68 integration + 85 unit),
-`test:student-picker` (68), `test:e2e` (7), `lint`, `build`,
-`git diff --check`.
+`npm run test:local-packets` — **82 integration + 85 unit tests**,
+including (added 2026-07-18) a Studio-layout Full Backup round trip
+through the real `createBackupPayload`/`restoreBackupToStores` production
+functions, an old-backup-without-`classWorkspaces` restore, and a
+malformed-geometry repair-on-restore case (`STUDIO-01`–`STUDIO-14` in
+`integration-tests.ts`).
+
+All other pre-existing suites continue to pass unmodified: `test:routines`
+(87), `test:pages` (148), `test:student-picker` (68), `lint`, `build`,
+`git diff --check`, `git diff --cached --check`.
 
 ## E2E test coverage
 
-`npm run test:e2e` runs Playwright tests against the live dev server:
+`npm run test:e2e` runs Playwright tests against the live dev server —
+**6 tests**, all in `tests/e2e/studio-canvas.spec.ts`:
 1. Select, drag, lock, unlock, undo, redo
 2. Widget geometry and lock state survive reload
 3. Snap toggle affects grid overlay
 4. Reset page layout restores seeded geometry (undoable)
-5. Page switching preserves layout isolation
-6-8. Classroom Mode hides Studio chrome at 1920×1080, 1440×900, 1024×768
+5. Classroom Mode hides Studio chrome (toolbar/Undo/Redo/Reset)
+6. **(added 2026-07-18)** Undo history does not intermix across pages —
+   edits Homeroom, confirms Undo is disabled on a freshly-opened Math page
+   with no edits, then confirms the Homeroom edit is still intact and
+   undoable after navigating back. Directly exercises the cross-page
+   undo-bleed defect described above.
+
+This project's Playwright setup was audited for readiness rather than
+assumed: `playwright.config.ts` points `testDir` at `tests/e2e`, uses a
+single deterministic `chromium` project, and starts its own dev server
+(`reuseExistingServer` only outside CI) rather than depending on one
+already running; `.github/workflows/playwright.yml` runs `npx playwright
+test` with least-privilege permissions (`contents: read`, `checks:
+write`) and uploads the HTML report only on failure; `.gitignore` already
+excludes `playwright-report/`, `test-results/`, traces, and snapshots.
+There is no root-level or `tests/e2e/example.spec.ts` scaffold test in
+this repo (that concern, raised going into the audit, did not apply here)
+— `tests/e2e/studio-canvas.spec.ts` is the only spec file and every test
+in it asserts real product behavior. Playwright is genuinely ready and is
+retained as-is.
 
 All tests use deterministic seeded local state — no real student data,
 no external network access.
