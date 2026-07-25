@@ -13,6 +13,7 @@ interface ActiveScreenProps {
   classWorkspace: ClassWorkspace | undefined
   mode: AppMode
   contents: ScreenContents
+  studentDisplay?: boolean
   onContentsChange: (contents: ScreenContents) => void
   onNavigateToPage: (pageId: VibePageId) => void
   onNavigatePrevious: () => void
@@ -31,6 +32,7 @@ export function ActiveScreen(props: ActiveScreenProps) {
       activePage={activePage}
       pages={pages}
       mode={props.mode}
+      studentDisplay={props.studentDisplay ?? false}
       contents={props.contents}
       onContentsChange={props.onContentsChange}
       onNavigateToPage={props.onNavigateToPage}

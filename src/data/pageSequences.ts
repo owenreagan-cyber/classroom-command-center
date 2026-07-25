@@ -72,8 +72,8 @@ const HOMEROOM_SEQUENCE: PageSequenceDefinition = {
       backgroundId: 'homeroom-morning-briefing',
       primaryMessage: 'Unpack, turn in homework, begin silently',
       supportingContent: ['Hang up backpack', 'Put away jacket', 'Turn in homework'],
-      layoutPreset: 'message-plus-materials',
-      widgetTypes: ['do-now', 'materials'],
+      layoutPreset: 'full-focus',
+      widgetTypes: ['do-now'],
       routinePhaseIds: ['silent-work'],
     },
     {
@@ -83,8 +83,8 @@ const HOMEROOM_SEQUENCE: PageSequenceDefinition = {
       backgroundId: 'homeroom-morning-briefing',
       primaryMessage: 'Complete your morning work silently',
       supportingContent: ['Work independently', 'Stay in your seat', 'Raise hand for help'],
-      layoutPreset: 'centered-message',
-      widgetTypes: ['timer'],
+      layoutPreset: 'message-plus-materials',
+      widgetTypes: ['timer', 'materials'],
       routinePhaseIds: ['silent-work'],
     },
     {

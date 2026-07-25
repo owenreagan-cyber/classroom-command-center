@@ -78,7 +78,7 @@ test.describe('Display launch controls', () => {
   test('/control shows display launch controls', async ({ page }) => {
     await page.goto('/control')
     await enterEditMode(page)
-    await expect(page.getByText('Teacher Control')).toBeVisible()
+    await expect(page.getByLabel('Student display launch').getByText('Teacher Control')).toBeVisible()
     await expect(page.getByRole('button', { name: 'Open Student Display' })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Copy Display Link' })).toBeVisible()
   })

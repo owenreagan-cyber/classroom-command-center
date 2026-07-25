@@ -1,5 +1,25 @@
 import type { AppMode, ScreenId } from '../data/types'
 
+/**
+ * Projector-safe design rules (Phase 9A).
+ * Prefer CSS variables in index.css; use these helpers in TS/JSX.
+ */
+export const DISPLAY_DESIGN = {
+  outerPaddingX: 'var(--board-safe-x)',
+  safeBottom: 'var(--board-safe-bottom)',
+  maxContentWidth: 'var(--display-max-content-width)',
+  cardGap: 'var(--display-card-gap)',
+  sectionGap: 'var(--display-section-gap)',
+  cardRadius: 'var(--display-card-radius)',
+  titleRangePx: [42, 64] as const,
+  cardTitleRangePx: [28, 40] as const,
+  bodyRangePx: [22, 30] as const,
+  timerRangePx: [64, 120] as const,
+  labelMinPx: 18,
+  maxPrimaryCards: 4,
+  safeLineLengthChars: 72,
+} as const
+
 /** Shared spacing and card shell tokens for projector-readable display mode. */
 export const BOARD_GAP = {
   display: 'gap-5 md:gap-6',

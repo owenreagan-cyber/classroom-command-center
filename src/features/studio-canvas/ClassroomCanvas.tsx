@@ -21,7 +21,7 @@ export function ClassroomCanvas({ screenId, page, contents }: ClassroomCanvasPro
   }
 
   return (
-    <div className="relative h-full w-full">
+    <div className="classroom-canvas-frame relative h-full w-full">
       {visibleWidgets.map((widget) => {
         const percent = rectToPercent(widget)
         return (
