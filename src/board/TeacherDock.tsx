@@ -25,6 +25,7 @@ import { CardVisibilityPanel } from './CardVisibilityPanel'
 import { DailyBriefPanel } from './DailyBriefPanel'
 import { NoiseControlPanel } from './NoiseControlPanel'
 import { TeacherNotesPanel } from './TeacherNotesPanel'
+import { DisplayLaunchPanel } from './DisplayLaunchPanel'
 import { StudentPickerPanel } from '../features/student-picker/StudentPickerPanel'
 import { LocalPacketPanel } from '../features/local-packets/LocalPacketPanel'
 
@@ -130,6 +131,8 @@ export function TeacherDock({
           />
         </div>
       </section>
+
+      <DisplayLaunchPanel />
 
       <section className="space-y-2">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-400">

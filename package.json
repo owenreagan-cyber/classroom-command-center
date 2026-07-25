@@ -14,6 +14,7 @@
     "test:pages": "bash scripts/test-pages.sh",
     "test:studio-canvas": "bash scripts/test-studio-canvas.sh",
     "test:app-route": "bash scripts/test-app-route.sh && bash scripts/test-app-route-shell.sh",
+    "test:display-launch": "bash scripts/test-display-launch.sh",
     "test:e2e": "playwright test"
   },
   "dependencies": {
