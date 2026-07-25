@@ -73,3 +73,43 @@ test.describe('Control / Display route split', () => {
     await expect(page.getByRole('complementary', { name: 'Teacher controls' })).toBeVisible()
   })
 })
+
+test.describe('Display launch controls', () => {
+  test('/control shows display launch controls', async ({ page }) => {
+    await page.goto('/control')
+    await enterEditMode(page)
+    await expect(page.getByText('Teacher Control')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Open Student Display' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Copy Display Link' })).toBeVisible()
+  })
+
+  test('/display hides display launch controls', async ({ page }) => {
+    await page.goto('/display')
+    await expect(page.getByText('Teacher Control')).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Open Student Display' })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Copy Display Link' })).toHaveCount(0)
+  })
+
+  test('copy display link shows success message', async ({ page, context }) => {
+    await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+    await page.goto('/control')
+    await enterEditMode(page)
+    await page.getByRole('button', { name: 'Copy Display Link' }).click()
+    await expect(page.getByRole('status')).toHaveText('Display link copied')
+  })
+
+  test('open student display opens /display in a new tab', async ({ page, context }) => {
+    await page.goto('/control')
+    await enterEditMode(page)
+
+    const popupPromise = context.waitForEvent('page')
+    await page.getByRole('button', { name: 'Open Student Display' }).click()
+    const popup = await popupPromise
+
+    await popup.waitForLoadState('domcontentloaded')
+    expect(popup.url()).toContain('/display')
+    await expect(popup.locator('.board-screen-title')).toBeVisible()
+    await popup.close()
+    expect(page.url()).toContain('/control')
+  })
+})
