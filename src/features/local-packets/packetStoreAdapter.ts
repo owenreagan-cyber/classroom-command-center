@@ -1,4 +1,4 @@
-import type { ScreenContents, BoardState, ScreenCardVisibility, TeacherNote, CustomBoardPreset, ScreenId } from '../../data/types'
+import type { ScreenContents, BoardState, ScreenCardVisibility, TeacherNote, TodayPrepState, CustomBoardPreset, ScreenId } from '../../data/types'
 import type { SimpleTimerState, SimpleTimerScreenId, PhaseTimerState } from '../../data/timerTypes'
 import type { RoutineControlState } from '../../data/routineTypes'
 import type { DailyBriefPacketPayload, FullBackupPacketPayload } from './types'
@@ -15,7 +15,7 @@ interface InternalUndoState {
   label: string
   timestamp: number
   categories: string[]
-  board?: Pick<BoardState, 'mode' | 'activeScreen' | 'backgroundId' | 'contents' | 'teacherNotes' | 'cardVisibility' | 'customPresets' | 'noiseTrackers' | 'activePageId' | 'classWorkspaces'> & { beautifyUndo: ScreenContents | null }
+  board?: Pick<BoardState, 'mode' | 'activeScreen' | 'backgroundId' | 'contents' | 'teacherNotes' | 'todayPrep' | 'cardVisibility' | 'customPresets' | 'noiseTrackers' | 'activePageId' | 'classWorkspaces'> & { beautifyUndo: ScreenContents | null }
   timers?: { simpleTimers: Record<SimpleTimerScreenId, SimpleTimerState>; phaseTimer: PhaseTimerState; routineControls?: Record<string, RoutineControlState> }
   rosters?: Student[]
   pickerHistory?: FairnessEntry[]
@@ -47,6 +47,7 @@ export function snapshotCategory(cat: string): unknown {
         backgroundId: bs.backgroundId,
         contents: structuredClone(bs.contents),
         teacherNotes: structuredClone(bs.teacherNotes),
+        todayPrep: structuredClone(bs.todayPrep),
         cardVisibility: structuredClone(bs.cardVisibility),
         customPresets: structuredClone(bs.customPresets),
         noiseTrackers: structuredClone(bs.noiseTrackers),
@@ -115,6 +116,7 @@ function restoreCategory(cat: string, snapshot: unknown): boolean {
           backgroundId: s.backgroundId,
           contents: structuredClone(s.contents),
           teacherNotes: structuredClone(s.teacherNotes),
+          todayPrep: structuredClone(s.todayPrep ?? { checklistItems: [], resourceLinks: [] }) as TodayPrepState,
           cardVisibility: structuredClone(s.cardVisibility),
           customPresets: structuredClone(s.customPresets),
           noiseTrackers: normalizeNoiseTrackerMap(s.noiseTrackers),
@@ -403,6 +405,7 @@ export function restoreBackupToStores(input: BackupRestoreInput): ApplyResult {
       if (b.backgroundId !== undefined) next.backgroundId = b.backgroundId as BoardState['backgroundId']
       if (b.contents !== undefined) next.contents = structuredClone(b.contents as unknown as ScreenContents)
       if (b.teacherNotes !== undefined) next.teacherNotes = structuredClone(b.teacherNotes) as TeacherNote[]
+      if (b.todayPrep !== undefined) next.todayPrep = structuredClone(b.todayPrep) as TodayPrepState
       if (b.cardVisibility !== undefined) next.cardVisibility = structuredClone(b.cardVisibility) as ScreenCardVisibility
       if (b.customPresets !== undefined) next.customPresets = structuredClone(b.customPresets) as CustomBoardPreset[]
       if (b.noiseTrackers !== undefined) next.noiseTrackers = normalizeNoiseTrackerMap(b.noiseTrackers as never)

@@ -20,6 +20,7 @@ interface LocalPacketPanelProps {
   boardNoiseTrackers?: unknown
   boardClassWorkspaces?: unknown
   boardActivePageId?: string | null
+  boardTodayPrep?: unknown
   // Timer state
   timerSimpleTimers?: Record<string, { status: string }>
   timerPhaseTimer?: { status: string }
@@ -332,6 +333,7 @@ function BackupTab(props: LocalPacketPanelProps & { onStatus: (s: string) => voi
           backgroundId: props.boardBackgroundId,
           contents: props.boardContents,
           teacherNotes: props.boardTeacherNotes,
+          todayPrep: props.boardTodayPrep,
           cardVisibility: props.boardCardVisibility,
           customPresets: props.boardCustomPresets,
           noiseTrackers: props.boardNoiseTrackers,

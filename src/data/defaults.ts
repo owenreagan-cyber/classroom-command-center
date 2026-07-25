@@ -7,6 +7,7 @@ import type {
   ScreenContents,
   ScreenMeta,
   TeacherNote,
+  TodayPrepState,
   LessonContent,
   VocabularyContent,
 } from './types'
@@ -335,6 +336,24 @@ export const DEFAULT_CONTENTS: ScreenContents = {
     lesson: { title: 'Spelling Goal', objective: 'Spell words correctly.', successCriteria: ['I can spell each word.', 'I can use words in sentences.'] },
     vocabulary: { title: 'Word Parts', entries: [{ term: 'vowel' }, { term: 'consonant' }, { term: 'syllable' }] },
   },
+}
+
+export const DEFAULT_TODAY_PREP: TodayPrepState = {
+  checklistItems: [
+    {
+      id: 'prep-review-board',
+      text: 'Review board content for the active screen before display mode.',
+    },
+    {
+      id: 'prep-materials-ready',
+      text: 'Confirm materials and links are ready for this block.',
+    },
+    {
+      id: 'prep-display-check',
+      text: 'Preview student display — no teacher-only notes visible.',
+    },
+  ].map((item) => ({ ...item, completed: false })),
+  resourceLinks: [],
 }
 
 export const DEFAULT_TEACHER_NOTES: TeacherNote[] = [

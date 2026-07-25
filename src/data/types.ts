@@ -345,6 +345,29 @@ export interface TeacherResourceLink extends WithVisibility {
   url: string
 }
 
+/** Manual teacher resource link for the Material Launcher (control route only). */
+export interface TeacherMaterialLink extends WithVisibility {
+  id: string
+  label: string
+  url: string
+  note?: string
+  screenId?: ScreenId
+  pageId?: VibePageId
+}
+
+export interface PrepChecklistItem {
+  id: string
+  text: string
+  completed: boolean
+  screenId?: ScreenId
+  pageId?: VibePageId
+}
+
+export interface TodayPrepState {
+  checklistItems: PrepChecklistItem[]
+  resourceLinks: TeacherMaterialLink[]
+}
+
 export type BoardPresetId =
   | 'morning-arrival'
   | 'math-warm-up'
@@ -409,6 +432,7 @@ export interface BoardState {
   backgroundId: BackgroundAssetId
   contents: ScreenContents
   teacherNotes: TeacherNote[]
+  todayPrep: TodayPrepState
   cardVisibility: ScreenCardVisibility
   customPresets: CustomBoardPreset[]
   noiseTrackers: Record<NoiseTrackerId, NoiseTrackerState>

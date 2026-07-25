@@ -13,6 +13,7 @@ import {
   DEFAULT_NOISE_TRACKERS,
   DEFAULT_SCREEN_ID,
   DEFAULT_TEACHER_NOTES,
+  DEFAULT_TODAY_PREP,
 } from '../data/defaults'
 import { getBackgroundForScreen, normalizeBackgroundId } from '../data/backgroundAssets'
 import { buildClassWorkspaces } from '../data/pageSequences'
@@ -24,10 +25,13 @@ import type {
   BoardState,
   CardId,
   NoiseTrackerId,
+  PrepChecklistItem,
   ScreenCardVisibility,
   ScreenContents,
   ScreenId,
+  TeacherMaterialLink,
   TeacherNote,
+  TodayPrepState,
   VibePageId,
 } from '../data/types'
 import {
@@ -106,6 +110,12 @@ interface BoardStore extends BoardState {
   beautifyActiveScreen: () => void
   undoBeautify: () => void
   resetToDefaults: () => void
+  addPrepChecklistItem: (text: string, scope?: { screenId?: ScreenId; pageId?: VibePageId }) => void
+  updatePrepChecklistItem: (id: string, updates: Partial<Pick<PrepChecklistItem, 'text' | 'completed' | 'screenId' | 'pageId'>>) => void
+  removePrepChecklistItem: (id: string) => void
+  addMaterialLink: (link: Omit<TeacherMaterialLink, 'id'>) => void
+  updateMaterialLink: (id: string, updates: Partial<Omit<TeacherMaterialLink, 'id'>>) => void
+  removeMaterialLink: (id: string) => void
 }
 
 const defaultWorkspaces = buildClassWorkspaces()
@@ -118,6 +128,7 @@ const initialState: BoardState = {
   backgroundId: DEFAULT_BACKGROUND_ID,
   contents: structuredClone(DEFAULT_CONTENTS),
   teacherNotes: structuredClone(DEFAULT_TEACHER_NOTES),
+  todayPrep: structuredClone(DEFAULT_TODAY_PREP),
   cardVisibility: structuredClone(DEFAULT_CARD_VISIBILITY),
   customPresets: [],
   noiseTrackers: structuredClone(DEFAULT_NOISE_TRACKERS) as BoardState['noiseTrackers'],
@@ -204,6 +215,38 @@ function normalizeCustomPresets(presets: BoardState['customPresets'] | undefined
     ...preset,
     screenId: normalizeScreenIdForBoard(preset.screenId),
   }))
+}
+
+function normalizeTodayPrep(todayPrep: TodayPrepState | undefined): TodayPrepState {
+  if (!todayPrep) return structuredClone(DEFAULT_TODAY_PREP)
+
+  const checklistItems = Array.isArray(todayPrep.checklistItems)
+    ? todayPrep.checklistItems.map((item) => ({
+        id: String(item.id),
+        text: String(item.text ?? ''),
+        completed: Boolean(item.completed),
+        screenId: item.screenId ? normalizeScreenIdForBoard(item.screenId) : undefined,
+        pageId: item.pageId ?? undefined,
+      }))
+    : structuredClone(DEFAULT_TODAY_PREP.checklistItems)
+
+  const resourceLinks = Array.isArray(todayPrep.resourceLinks)
+    ? todayPrep.resourceLinks.map((link) => ({
+        id: String(link.id),
+        label: String(link.label ?? ''),
+        url: String(link.url ?? ''),
+        note: link.note ? String(link.note) : undefined,
+        visibility: link.visibility ?? 'teacherOnly',
+        screenId: link.screenId ? normalizeScreenIdForBoard(link.screenId) : undefined,
+        pageId: link.pageId ?? undefined,
+      }))
+    : []
+
+  return { checklistItems, resourceLinks }
+}
+
+function createPrepItemId(prefix: string): string {
+  return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`
 }
 
 function mergeCardVisibility(
@@ -523,6 +566,7 @@ export const useBoardStore = create<BoardStore>()(
           backgroundId: normalizeBackgroundId(imported.backgroundId),
           contents: normalizeBoardContents(imported.contents),
           teacherNotes: normalizeTeacherNotes(imported.teacherNotes),
+          todayPrep: normalizeTodayPrep(imported.todayPrep),
           cardVisibility: mergeCardVisibility(imported.cardVisibility),
           customPresets: normalizeCustomPresets(imported.customPresets),
           noiseTrackers: normalizeNoiseTrackerMap(imported.noiseTrackers),
@@ -610,6 +654,7 @@ export const useBoardStore = create<BoardStore>()(
           backgroundId: DEFAULT_BACKGROUND_ID,
           contents: structuredClone(DEFAULT_CONTENTS),
           teacherNotes: structuredClone(DEFAULT_TEACHER_NOTES),
+          todayPrep: structuredClone(DEFAULT_TODAY_PREP),
           cardVisibility: structuredClone(DEFAULT_CARD_VISIBILITY),
           customPresets: [],
           noiseTrackers: structuredClone(DEFAULT_NOISE_TRACKERS) as BoardState['noiseTrackers'],
@@ -618,10 +663,72 @@ export const useBoardStore = create<BoardStore>()(
           canvasHistoryFuture: [],
         })
       },
+      addPrepChecklistItem: (text, scope) =>
+        set((state) => ({
+          todayPrep: {
+            ...state.todayPrep,
+            checklistItems: [
+              ...state.todayPrep.checklistItems,
+              {
+                id: createPrepItemId('prep'),
+                text: text.trim(),
+                completed: false,
+                screenId: scope?.screenId,
+                pageId: scope?.pageId,
+              },
+            ],
+          },
+        })),
+      updatePrepChecklistItem: (id, updates) =>
+        set((state) => ({
+          todayPrep: {
+            ...state.todayPrep,
+            checklistItems: state.todayPrep.checklistItems.map((item) =>
+              item.id === id ? { ...item, ...updates } : item,
+            ),
+          },
+        })),
+      removePrepChecklistItem: (id) =>
+        set((state) => ({
+          todayPrep: {
+            ...state.todayPrep,
+            checklistItems: state.todayPrep.checklistItems.filter((item) => item.id !== id),
+          },
+        })),
+      addMaterialLink: (link) =>
+        set((state) => ({
+          todayPrep: {
+            ...state.todayPrep,
+            resourceLinks: [
+              ...state.todayPrep.resourceLinks,
+              {
+                ...link,
+                id: createPrepItemId('link'),
+                visibility: link.visibility ?? 'teacherOnly',
+              },
+            ],
+          },
+        })),
+      updateMaterialLink: (id, updates) =>
+        set((state) => ({
+          todayPrep: {
+            ...state.todayPrep,
+            resourceLinks: state.todayPrep.resourceLinks.map((link) =>
+              link.id === id ? { ...link, ...updates } : link,
+            ),
+          },
+        })),
+      removeMaterialLink: (id) =>
+        set((state) => ({
+          todayPrep: {
+            ...state.todayPrep,
+            resourceLinks: state.todayPrep.resourceLinks.filter((link) => link.id !== id),
+          },
+        })),
     }),
     {
       name: 'classroom-command-center-lite',
-      version: 8,
+      version: 9,
       migrate: (persisted, version) => {
         const state = (persisted ?? {}) as Partial<BoardState> & {
           themeId?: string
@@ -635,6 +742,11 @@ export const useBoardStore = create<BoardStore>()(
           version < 4
             ? structuredClone(DEFAULT_TEACHER_NOTES)
             : normalizeTeacherNotes(state.teacherNotes)
+
+        const todayPrep =
+          version < 9
+            ? structuredClone(DEFAULT_TODAY_PREP)
+            : normalizeTodayPrep(state.todayPrep)
 
         const cardVisibility = mergeCardVisibility(
           version < 5 ? undefined : state.cardVisibility,
@@ -658,6 +770,7 @@ export const useBoardStore = create<BoardStore>()(
           backgroundId: normalizeBackgroundId(state.backgroundId),
           contents: normalizeBoardContents(contents as ScreenContents),
           teacherNotes,
+          todayPrep,
           cardVisibility,
           customPresets: normalizeCustomPresets(state.customPresets),
           noiseTrackers: normalizeNoiseTrackerMap(state.noiseTrackers),
@@ -671,6 +784,7 @@ export const useBoardStore = create<BoardStore>()(
         backgroundId: state.backgroundId,
         contents: state.contents,
         teacherNotes: state.teacherNotes,
+        todayPrep: state.todayPrep,
         cardVisibility: state.cardVisibility,
         customPresets: state.customPresets,
         noiseTrackers: state.noiseTrackers,
