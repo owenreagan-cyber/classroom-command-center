@@ -10,7 +10,7 @@
 
 import { test, expect } from '@playwright/test'
 
-const APP_URL = 'http://localhost:5173/'
+const APP_URL = 'http://localhost:5173/control'
 
 async function openMorningArrival(page: import('@playwright/test').Page) {
   await page.goto(APP_URL)
@@ -205,7 +205,7 @@ test.describe('Studio Canvas', () => {
   })
 
   test('classroom mode hides studio toolbar', async ({ page }) => {
-    await page.goto(APP_URL)
+    await page.goto('/control')
     // Enter studio mode via DOM click
     await page.evaluate(() => {
       const editBtn = document.querySelector('[aria-label="Enter edit mode"]') as HTMLButtonElement | null

@@ -1,6 +1,6 @@
 # Classroom Command Center — Current State Audit
 
-Status: reconciled after Studio Canvas repair pass  
+Status: reconciled after Phase 8B route split  
 Date: 2026-07-24  
 Project: `~/Projects/classroom-command-center`
 
@@ -125,6 +125,7 @@ Implemented:
 - Studio Canvas cross-page undo/redo repair
 - Agent Eyes visual QA planning docs
 - build/lint validation
+- Teacher Control / Student Display route split (`/control`, `/display`)
 
 ## Current Source Areas
 
@@ -133,6 +134,9 @@ Core app:
 - `src/App.tsx`
 - `src/main.tsx`
 - `src/app/AppShell.tsx`
+- `src/app/appRoute.ts`
+- `src/app/useAppRoute.ts`
+- `src/app/RootRedirect.tsx`
 
 Board and teacher panels:
 
@@ -170,7 +174,6 @@ Studio Canvas logic:
 
 High-value remaining work:
 
-- true Teacher Control / Student Display route split
 - Today Prep dashboard
 - Teacher Material Launcher
 - Open With resource menu
@@ -202,26 +205,18 @@ Deferred future work:
 
 Recommended next implementation phase:
 
-**Phase 8B — Teacher Control / Student Display Route Split**
+**Phase 8C — Today Prep + Teacher Material Launcher**
 
 Rationale:
 
-The app now has strong teacher controls, editable Studio Canvas layouts, backup/restore, random picker, and routine-aware classroom pages. A route split would make the teacher-vs-projector boundary safer and clearer before adding more media/resource features.
+Phase 8B added `/control` and `/display` route safety. The next high-value step is daily classroom workflow: a Today Prep dashboard and teacher material launcher before media/PDF features.
 
-Suggested Phase 8B scope:
+Suggested Phase 8C scope:
 
-- `/control` teacher workspace
-- `/display` student-facing projector route
-- shared local state
-- Display route hides Teacher Dock, editing UI, backup controls, picker controls, and Studio Canvas editing chrome
-- Control route can switch active screen/page
-- preserve current local-first behavior
-- no backend
-- no cloud
-- no new heavy dependencies
-
-Alternative next phase:
-
-**Phase 8C — Today Prep + Teacher Material Launcher**
-
-Choose this if daily classroom workflow is the priority over display-route hardening.
+- Today Prep dashboard
+- Teacher Material Launcher
+- Open With resource menu
+- manual resources per class/page
+- missing-link warnings
+- preserve `/control` / `/display` route safety
+- no backend, no cloud, no new heavy dependencies

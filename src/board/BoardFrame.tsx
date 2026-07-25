@@ -10,7 +10,9 @@ interface BoardChromeProps {
   mode: AppMode
   activeScreen: ScreenId
   backgroundId: BackgroundAssetId
-  onEnterEdit: () => void
+  /** When true, hide teacher-only board overlays regardless of display mode. */
+  studentDisplay?: boolean
+  onEnterEdit?: () => void
   children: ReactNode
 }
 
@@ -32,6 +34,7 @@ export function BoardFrame({
   mode,
   activeScreen,
   backgroundId,
+  studentDisplay = false,
   onEnterEdit,
   children,
 }: BoardChromeProps) {
@@ -39,6 +42,7 @@ export function BoardFrame({
   const screenLabel =
     SCREEN_META.find((screen) => screen.id === activeScreen)?.label ?? 'Board'
   const isDisplay = mode === 'display'
+  const showTeacherChrome = !studentDisplay
 
   return (
     <div className="relative flex min-h-0 min-w-0 flex-1 items-center justify-center overflow-hidden bg-slate-950 p-2 md:p-3">
@@ -87,7 +91,7 @@ export function BoardFrame({
               {screenLabel}
             </h1>
           </div>
-          {isDisplay && (
+          {isDisplay && showTeacherChrome && onEnterEdit && (
             <button
               type="button"
               onClick={onEnterEdit}
@@ -101,16 +105,18 @@ export function BoardFrame({
 
         <main className="board-main-safe">{children}</main>
 
-        <div className="absolute bottom-4 left-4 z-30 max-w-[22rem] pointer-events-none">
-          <div className="pointer-events-auto">
-            <CoachingCard
-              screenId={activeScreen}
-              presentation={isDisplay ? 'compact' : 'expanded'}
-            />
+        {showTeacherChrome && (
+          <div className="absolute bottom-4 left-4 z-30 max-w-[22rem] pointer-events-none">
+            <div className="pointer-events-auto">
+              <CoachingCard
+                screenId={activeScreen}
+                presentation={isDisplay ? 'compact' : 'expanded'}
+              />
+            </div>
           </div>
-        </div>
+        )}
 
-        <MysteryRevealStage screenId={activeScreen} />
+        {showTeacherChrome && <MysteryRevealStage screenId={activeScreen} />}
       </div>
     </div>
   )
