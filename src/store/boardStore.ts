@@ -46,6 +46,10 @@ import type {
   VibePageId,
 } from '../data/types'
 import {
+  DEFAULT_RESOURCE_OPEN_PRESET,
+  normalizeResourceOpenPreset,
+} from '../lib/resourcePresets'
+import {
   applyNoisyPointToTracker,
   applyRepairTickToTracker,
   normalizeNoiseTrackerMap,
@@ -258,6 +262,7 @@ function normalizeTodayPrep(todayPrep: TodayPrepState | undefined): TodayPrepSta
         id: String(link.id),
         label: String(link.label ?? ''),
         url: String(link.url ?? ''),
+        preset: normalizeResourceOpenPreset(link.preset),
         note: link.note ? String(link.note) : undefined,
         visibility: link.visibility ?? 'teacherOnly',
         screenId: link.screenId ? normalizeScreenIdForBoard(link.screenId) : undefined,
@@ -729,6 +734,7 @@ export const useBoardStore = create<BoardStore>()(
               {
                 ...link,
                 id: createPrepItemId('link'),
+                preset: link.preset ?? DEFAULT_RESOURCE_OPEN_PRESET,
                 visibility: link.visibility ?? 'teacherOnly',
               },
             ],

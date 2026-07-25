@@ -347,11 +347,23 @@ export interface TeacherResourceLink extends WithVisibility {
   url: string
 }
 
+/** Teacher Open With preset for Material Launcher links (control route only). */
+export type ResourceOpenPreset =
+  | 'google-slides'
+  | 'google-docs'
+  | 'google-drive'
+  | 'youtube'
+  | 'pdf'
+  | 'website'
+  | 'other'
+
 /** Manual teacher resource link for the Material Launcher (control route only). */
 export interface TeacherMaterialLink extends WithVisibility {
   id: string
   label: string
   url: string
+  /** Open With preset — defaults to website when missing from older backups. */
+  preset?: ResourceOpenPreset
   note?: string
   screenId?: ScreenId
   pageId?: VibePageId
