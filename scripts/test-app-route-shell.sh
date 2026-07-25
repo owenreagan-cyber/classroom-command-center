@@ -24,11 +24,14 @@ trap cleanup EXIT
   "$ROOT/src/data/types.ts" \
   "$ROOT/src/app/appRoute.ts" \
   "$ROOT/src/app/appRouteShell.ts" \
-  "$ROOT/src/lib/app-route-shell-tests.ts"
+  "$ROOT/src/lib/app-route-shell-tests.ts" \
+  "$ROOT/src/lib/today-prep-tests.ts" \
+  "$ROOT/src/lib/resourceUrl.ts"
 
 printf '{"type":"commonjs"}\n' > "$OUT/package.json"
 
 TEST_FILE="$(find "$OUT" -type f -path "*/lib/app-route-shell-tests.js" -print -quit)"
+PREP_TEST_FILE="$(find "$OUT" -type f -path "*/lib/today-prep-tests.js" -print -quit)"
 
 if [ -z "$TEST_FILE" ]; then
   echo "FAIL: compiled app route shell test file was not found."
@@ -37,3 +40,11 @@ if [ -z "$TEST_FILE" ]; then
 fi
 
 node "$TEST_FILE"
+
+if [ -z "$PREP_TEST_FILE" ]; then
+  echo "FAIL: compiled today prep test file was not found."
+  find "$OUT" -type f -print
+  exit 1
+fi
+
+node "$PREP_TEST_FILE"

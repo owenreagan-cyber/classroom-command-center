@@ -18,6 +18,7 @@ import type {
   ScreenId,
   ScreenContents,
   TeacherNote,
+  VibePageId,
 } from '../data/types'
 import { BoardBackupPanel } from './BoardBackupPanel'
 import { BoardPresetPanel } from './BoardPresetPanel'
@@ -26,12 +27,15 @@ import { DailyBriefPanel } from './DailyBriefPanel'
 import { NoiseControlPanel } from './NoiseControlPanel'
 import { TeacherNotesPanel } from './TeacherNotesPanel'
 import { DisplayLaunchPanel } from './DisplayLaunchPanel'
+import { TodayPrepPanel } from './TodayPrepPanel'
 import { StudentPickerPanel } from '../features/student-picker/StudentPickerPanel'
 import { LocalPacketPanel } from '../features/local-packets/LocalPacketPanel'
 
 interface TeacherDockProps {
   mode: AppMode
   activeScreen: ScreenId
+  activePageId: VibePageId | null
+  classWorkspaces: BoardState['classWorkspaces']
   backgroundId: BackgroundAssetId
   teacherNotes: TeacherNote[]
   boardState: BoardState
@@ -71,6 +75,8 @@ interface TeacherDockProps {
 export function TeacherDock({
   mode,
   activeScreen,
+  activePageId,
+  classWorkspaces,
   backgroundId,
   teacherNotes,
   boardState,
@@ -133,6 +139,12 @@ export function TeacherDock({
       </section>
 
       <DisplayLaunchPanel />
+
+      <TodayPrepPanel
+        activeScreen={activeScreen}
+        activePageId={activePageId}
+        classWorkspaces={classWorkspaces}
+      />
 
       <section className="space-y-2">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-400">
@@ -202,6 +214,7 @@ export function TeacherDock({
         boardContents={boardState.contents as unknown as Record<string, unknown>}
         boardActiveScreen={boardState.activeScreen}
         boardActivePageId={boardState.activePageId}
+        boardTodayPrep={boardState.todayPrep}
         boardMode={boardState.mode}
         boardBackgroundId={boardState.backgroundId}
         boardTeacherNotes={boardState.teacherNotes}

@@ -61,13 +61,15 @@ const TEACHER_ONLY_SURFACES = [
   'LocalPacketPanel',
   'StudentPickerPanel',
   'TeacherNotesPanel',
+  'TodayPrepPanel',
+  'DisplayLaunchPanel',
   'StudioToolbar',
   'StudioInspector',
 ] as const
 
 assert(
   'teacher-only surfaces list is documented',
-  TEACHER_ONLY_SURFACES.length === 7,
+  TEACHER_ONLY_SURFACES.length === 9,
 )
 
 console.log(`App route shell tests: ${passed} passed, ${failed} failed`)

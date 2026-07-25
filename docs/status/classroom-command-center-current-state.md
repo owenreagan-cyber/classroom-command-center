@@ -1,7 +1,7 @@
 # Classroom Command Center — Current State Audit
 
-Status: reconciled after Phase 8B route split  
-Date: 2026-07-24  
+Status: reconciled after Phase 8C Today Prep + Material Launcher
+Date: 2026-07-25
 Project: `~/Projects/classroom-command-center`
 
 ## Current Repo State
@@ -126,6 +126,7 @@ Implemented:
 - Agent Eyes visual QA planning docs
 - build/lint validation
 - Teacher Control / Student Display route split (`/control`, `/display`)
+- Today Prep dashboard and Teacher Material Launcher (Phase 8C)
 
 ## Current Source Areas
 
@@ -174,11 +175,7 @@ Studio Canvas logic:
 
 High-value remaining work:
 
-- Today Prep dashboard
-- Teacher Material Launcher
 - Open With resource menu
-- manual resources per class/page
-- missing-link warnings
 - YouTube/media page
 - PDF/HTML viewer
 - basic annotation layer
@@ -187,6 +184,13 @@ High-value remaining work:
 - Studio Canvas template packs
 - visual QA screenshot run against the current UI
 - production teacher workflow smoke test
+
+Deferred from Phase 8C (now complete):
+
+- ~~Today Prep dashboard~~
+- ~~Teacher Material Launcher~~
+- ~~manual resources per class/page~~
+- ~~missing-link warnings~~
 
 Deferred future work:
 
@@ -205,18 +209,15 @@ Deferred future work:
 
 Recommended next implementation phase:
 
-**Phase 8C — Today Prep + Teacher Material Launcher**
+**Phase 8D — Media workflow or Open With launcher**
 
 Rationale:
 
-Phase 8B added `/control` and `/display` route safety. The next high-value step is daily classroom workflow: a Today Prep dashboard and teacher material launcher before media/PDF features.
+Phase 8C added Today Prep and Material Launcher on `/control`. The next high-value step is richer media opening (Open With menu, YouTube/media page, or PDF viewer) while preserving route safety.
 
-Suggested Phase 8C scope:
+Suggested Phase 8D scope:
 
-- Today Prep dashboard
-- Teacher Material Launcher
 - Open With resource menu
-- manual resources per class/page
-- missing-link warnings
+- YouTube/media page (no embedded player if constraints remain)
 - preserve `/control` / `/display` route safety
 - no backend, no cloud, no new heavy dependencies

@@ -18,6 +18,7 @@ export function TeacherControlShell() {
   const backgroundId = useBoardStore((state) => state.backgroundId)
   const contents = useBoardStore((state) => state.contents)
   const teacherNotes = useBoardStore((state) => state.teacherNotes)
+  const todayPrep = useBoardStore((state) => state.todayPrep)
   const cardVisibility = useBoardStore((state) => state.cardVisibility)
   const customPresets = useBoardStore((state) => state.customPresets)
   const noiseTrackers = useBoardStore((state) => state.noiseTrackers)
@@ -56,6 +57,7 @@ export function TeacherControlShell() {
     backgroundId,
     contents,
     teacherNotes,
+    todayPrep,
     cardVisibility,
     customPresets,
     noiseTrackers,
@@ -66,6 +68,8 @@ export function TeacherControlShell() {
       <TeacherDock
         mode={mode}
         activeScreen={activeScreen}
+        activePageId={activePageId}
+        classWorkspaces={classWorkspaces}
         backgroundId={backgroundId}
         teacherNotes={teacherNotes}
         boardState={boardState}
