@@ -17,6 +17,7 @@
     "test:display-launch": "bash scripts/test-display-launch.sh",
     "test:display-polish": "bash scripts/test-display-polish.sh",
     "test:morning-message": "bash scripts/test-morning-message.sh",
+    "test:visual-qa": "bash scripts/test-visual-qa.sh",
     "test:e2e": "playwright test"
   },
   "dependencies": {

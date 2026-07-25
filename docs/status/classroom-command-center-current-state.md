@@ -1,6 +1,6 @@
 # Classroom Command Center — Current State Audit
 
-Status: reconciled after Phase 9B Morning Message Studio
+Status: reconciled after Phase 9C Automated Visual QA
 Date: 2026-07-25
 Project: `~/Projects/classroom-command-center`
 
@@ -8,13 +8,15 @@ Project: `~/Projects/classroom-command-center`
 
 Latest phase branch:
 
-- `command-center-phase-9b-morning-message-studio` (from Phase 9A `3f7ace6`)
+- `command-center-phase-9c-automated-visual-qa` (from Phase 9B / main `1533967`)
+- Phase 9C: Playwright visual QA screenshots, viewport privacy checks, `/control` workflow smoke tests
 - Phase 9B: Morning Message Studio, templates, student display widget, backup integration
 - Phase 9A: projector-safe design tokens, vibe-page navigation polish, fullscreen workflow, Homeroom density fix, Mystery Student active badge
 - `npm run build` — PASS
 - `npm run lint` — PASS
 - `npm run test:display-polish` — PASS
-- `npm run test:e2e` — PASS (23)
+- `npm run test:visual-qa` — PASS (8)
+- `npm run test:e2e` — PASS (36)
 
 Important: this repo is now beyond the older Phase 4C/4D roadmap. Basic inline editing, widget visibility, routine-aware pages, backup/restore, random picker/Mystery Star, local packets, noise widgets, Studio Canvas, and Studio Canvas repair work have already been implemented or superseded.
 
@@ -29,7 +31,13 @@ Latest confirmed local checks:
 - `npm run build` — PASS
 - `npm run lint` — PASS
 - `npm run test:display-polish` — PASS
-- `npm run test:e2e` — PASS (23)
+- `npm run test:visual-qa` — PASS (8)
+- `npm run test:e2e` — PASS (36)
+
+Phase 9C docs:
+
+- `docs/phases/phase-9c-automated-visual-qa.md`
+- `docs/status/phase-9c-automated-visual-qa.md`
 
 Phase 9B docs:
 
@@ -140,6 +148,7 @@ Implemented:
 - Studio Canvas backup integrity repair
 - Studio Canvas cross-page undo/redo repair
 - Agent Eyes visual QA planning docs
+- automated Playwright visual QA (`test:visual-qa`) with `/display` screenshots at 1920×1080, 1366×768, 1024×768
 - build/lint validation
 - Teacher Control / Student Display route split (`/control`, `/display`)
 - Today Prep dashboard and Teacher Material Launcher (Phase 8C)
@@ -198,8 +207,7 @@ High-value remaining work:
 - Classroom Audio / Spotify Level 1 launcher
 - richer widget library
 - Studio Canvas template packs
-- visual QA screenshot run against the current UI
-- production teacher workflow smoke test
+- Playwright snapshot baselines for approved display scenes (optional follow-up)
 
 Deferred from Phase 8C (now complete):
 
@@ -229,7 +237,7 @@ Recommended next implementation phase:
 
 Rationale:
 
-Phase 8C added Today Prep and Material Launcher on `/control`. The next high-value step is richer media opening (Open With menu, YouTube/media page, or PDF viewer) while preserving route safety.
+Phase 9C added automated Playwright visual QA and workflow smoke tests. The next high-value step is richer media opening (Open With menu, YouTube/media page, or PDF viewer) while preserving route safety.
 
 Suggested Phase 8D scope:
 
