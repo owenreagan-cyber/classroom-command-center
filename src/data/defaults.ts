@@ -356,6 +356,7 @@ export const DEFAULT_TODAY_PREP: TodayPrepState = {
     },
   ].map((item) => ({ ...item, completed: false })),
   resourceLinks: [],
+  nowShowingResourceId: null,
 }
 
 export const DEFAULT_MORNING_MESSAGE: MorningMessageState = createDefaultMorningMessageState()

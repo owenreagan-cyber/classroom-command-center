@@ -380,6 +380,8 @@ export interface PrepChecklistItem {
 export interface TodayPrepState {
   checklistItems: PrepChecklistItem[]
   resourceLinks: TeacherMaterialLink[]
+  /** Id of the Material Launcher resource shown on /display (label only). */
+  nowShowingResourceId?: string | null
 }
 
 export type BoardPresetId =

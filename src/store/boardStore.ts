@@ -131,6 +131,8 @@ interface BoardStore extends BoardState {
   addMaterialLink: (link: Omit<TeacherMaterialLink, 'id'>) => void
   updateMaterialLink: (id: string, updates: Partial<Omit<TeacherMaterialLink, 'id'>>) => void
   removeMaterialLink: (id: string) => void
+  setNowShowingResourceId: (id: string | null) => void
+  clearNowShowing: () => void
   updateMorningMessageText: (sectionId: MorningMessageSectionId, text: string) => void
   updateMorningMessageBullets: (sectionId: MorningMessageSectionId, items: string[]) => void
   setMorningMessageSectionVisible: (sectionId: MorningMessageSectionId, visible: boolean) => void
@@ -270,7 +272,14 @@ function normalizeTodayPrep(todayPrep: TodayPrepState | undefined): TodayPrepSta
       }))
     : []
 
-  return { checklistItems, resourceLinks }
+  return {
+    checklistItems,
+    resourceLinks,
+    nowShowingResourceId:
+      todayPrep.nowShowingResourceId === null || todayPrep.nowShowingResourceId === undefined
+        ? null
+        : String(todayPrep.nowShowingResourceId),
+  }
 }
 
 function createPrepItemId(prefix: string): string {
@@ -754,7 +763,28 @@ export const useBoardStore = create<BoardStore>()(
           todayPrep: {
             ...state.todayPrep,
             resourceLinks: state.todayPrep.resourceLinks.filter((link) => link.id !== id),
+            nowShowingResourceId:
+              state.todayPrep.nowShowingResourceId === id
+                ? null
+                : (state.todayPrep.nowShowingResourceId ?? null),
           },
+        })),
+      setNowShowingResourceId: (id) =>
+        set((state) => {
+          if (id === null) {
+            return {
+              todayPrep: { ...state.todayPrep, nowShowingResourceId: null },
+            }
+          }
+          const exists = state.todayPrep.resourceLinks.some((link) => link.id === id)
+          if (!exists) return state
+          return {
+            todayPrep: { ...state.todayPrep, nowShowingResourceId: id },
+          }
+        }),
+      clearNowShowing: () =>
+        set((state) => ({
+          todayPrep: { ...state.todayPrep, nowShowingResourceId: null },
         })),
       updateMorningMessageText: (sectionId, text) =>
         set((state) => ({
@@ -932,7 +962,7 @@ export const useBoardStore = create<BoardStore>()(
     }),
     {
       name: 'classroom-command-center-lite',
-      version: 10,
+      version: 11,
       migrate: (persisted, version) => {
         const state = (persisted ?? {}) as Partial<BoardState> & {
           themeId?: string
@@ -947,10 +977,15 @@ export const useBoardStore = create<BoardStore>()(
             ? structuredClone(DEFAULT_TEACHER_NOTES)
             : normalizeTeacherNotes(state.teacherNotes)
 
-        const todayPrep =
+        const todayPrepRaw =
           version < 9
             ? structuredClone(DEFAULT_TODAY_PREP)
             : normalizeTodayPrep(state.todayPrep)
+
+        const todayPrep =
+          version < 11
+            ? { ...todayPrepRaw, nowShowingResourceId: null }
+            : todayPrepRaw
 
         const morningMessage =
           version < 10

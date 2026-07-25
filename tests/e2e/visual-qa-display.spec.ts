@@ -43,6 +43,8 @@ async function assertDisplayPrivacy(page: Page) {
   await expect(page.getByLabel('Open With')).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Open With' })).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Copy Link' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Show on Display' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Clear Now Showing' })).toHaveCount(0)
   await expect(page.getByRole('heading', { name: 'Morning Message Studio' })).toHaveCount(0)
   await expect(page.getByLabel('Morning Message Studio')).toHaveCount(0)
   await expect(page.getByText('Student Picker & Stars')).toHaveCount(0)
@@ -166,5 +168,37 @@ test.describe('Phase 9C /control workflow smoke', () => {
     await page.goto('/display')
     await expect(page.getByLabel('Resource type preset')).toHaveCount(0)
     await expect(page.locator('option[value="google-slides"]')).toHaveCount(0)
+  })
+
+  test('Now Showing label appears on /display without exposing URLs', async ({ page }) => {
+    const secretUrl = 'https://docs.google.com/presentation/d/phase10b-secret/edit'
+    const secretNote = 'Teacher-only prep note for phase 10B'
+
+    await page.goto('/control')
+    await enterEditMode(page)
+
+    const prepPanel = page.getByLabel('Today Prep and Material Launcher')
+    await prepPanel.getByLabel('Resource type preset').first().selectOption('google-slides')
+    await prepPanel.getByPlaceholder('Resource label').fill('Chapter 2 Slides')
+    await prepPanel.getByPlaceholder('https://docs.google.com/presentation/d/...').fill(secretUrl)
+    await prepPanel.getByPlaceholder('Optional note').fill(secretNote)
+    await prepPanel.getByRole('button', { name: 'Add resource link' }).click()
+    await prepPanel.getByRole('button', { name: 'Show on Display' }).click()
+
+    await page.goto('/display')
+
+    const nowShowing = page.getByTestId('now-showing-display')
+    await expect(nowShowing).toBeVisible()
+    await expect(nowShowing).toContainText('Now Showing')
+    await expect(nowShowing).toContainText('Chapter 2 Slides')
+    await expect(nowShowing).toContainText('Google Slides')
+
+    const bodyText = await page.locator('body').innerText()
+    expect(bodyText).not.toContain(secretUrl)
+    expect(bodyText).not.toContain(secretNote)
+    expect(bodyText).not.toContain('Open With')
+    expect(bodyText).not.toContain('Copy Link')
+
+    await assertDisplayPrivacy(page)
   })
 })
