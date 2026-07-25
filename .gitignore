@@ -38,3 +38,5 @@ dist-ssr
 *.spec.ts-snapshots/
 !tests/e2e/display-snapshots.spec.ts-snapshots/
 !tests/e2e/display-snapshots.spec.ts-snapshots/**
+
+.local/
