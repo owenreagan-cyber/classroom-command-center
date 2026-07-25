@@ -1,0 +1,50 @@
+{
+  "schoolYear": "2026-sample",
+  "privacy": "safe-fixture-for-tests-and-docs",
+  "classes": {
+    "homeroom": {
+      "label": "Homeroom",
+      "uses": ["morning time", "snack", "Shurley", "lunch", "history or science", "dismissal"],
+      "students": [
+        { "firstName": "Jordan", "lastName": "Sample", "preferredName": "Jo" },
+        { "firstName": "Taylor", "lastName": "Example" },
+        { "firstName": "Morgan", "lastName": "Demo", "preferredName": "Mo" },
+        { "firstName": "Casey", "lastName": "Fixture" },
+        { "firstName": "Riley", "lastName": "Practice", "preferredName": "Rye" }
+      ]
+    },
+    "math": {
+      "label": "Math",
+      "uses": ["math"],
+      "students": [
+        { "firstName": "Jordan", "lastName": "Sample", "preferredName": "Jo" },
+        { "firstName": "Taylor", "lastName": "Example" },
+        { "firstName": "Morgan", "lastName": "Demo", "preferredName": "Mo" },
+        { "firstName": "Casey", "lastName": "Fixture" },
+        { "firstName": "Riley", "lastName": "Practice", "preferredName": "Rye" }
+      ]
+    },
+    "reading": {
+      "label": "Reading",
+      "uses": ["spelling", "reading"],
+      "sections": {
+        "RM4": [
+          { "firstName": "Jordan", "lastName": "Sample", "preferredName": "Jo" },
+          { "firstName": "Taylor", "lastName": "Example" },
+          { "firstName": "Morgan", "lastName": "Demo", "preferredName": "Mo" }
+        ],
+        "SM5": [
+          { "firstName": "Casey", "lastName": "Fixture" },
+          { "firstName": "Riley", "lastName": "Practice", "preferredName": "Rye" },
+          { "firstName": "Avery", "lastName": "Mock", "preferredName": "Avi" }
+        ]
+      }
+    }
+  },
+  "scheduleChanges": [
+    {
+      "change": "Shurley and History/Science swapped places and times",
+      "status": "times swapped; exact schedule pending teacher confirmation"
+    }
+  ]
+}

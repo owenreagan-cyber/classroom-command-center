@@ -1,28 +1,90 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type {
-  PickerStoreState,
-  Student,
-  FairnessEntry,
-  MysterySlotId,
-} from './types'
+import { getPoolKey } from '../roster/poolKey'
+import type { FairnessEntry, MysteryRevealStatus, MysterySlotId, PickerPoolKey, PickerStoreState, Student } from './types'
 import { DEFAULT_COACHING_STATE } from './defaults'
+
+const STORAGE_KEY = 'classroom-picker-storage-v3'
 
 const generateSimpleId = () => Math.random().toString(36).slice(2, 9)
 
+const defaultSessions: Record<string, null> = {
+  homeroom: null,
+  math: null,
+  reading: null,
+  'reading:RM4': null,
+  'reading:SM5': null,
+}
+
 const initialState = {
-  students: [],
-  fairnessHistory: [],
-  activeMysterySessions: {
-    homeroom: null,
-    math: null,
-    reading: null,
-  },
+  students: [] as Student[],
+  fairnessHistory: [] as FairnessEntry[],
+  activeMysterySessions: { ...defaultSessions },
   coachingConfig: DEFAULT_COACHING_STATE,
   settings: {
     reducedMotion: false,
     skipAnimation: false,
   },
+  importedRosterMeta: undefined,
+}
+
+function touchSession<T extends { updatedAt: number }>(session: T): T {
+  return { ...session, updatedAt: Date.now() }
+}
+
+function migrateLegacySession(session: Record<string, unknown>): Record<string, unknown> {
+  const classId = session.classId as string
+  const readingSection = session.readingSection as string | undefined
+  const poolKey = (session.poolKey as PickerPoolKey | undefined)
+    ?? getPoolKey(classId as 'homeroom' | 'math' | 'reading', readingSection as 'RM4' | 'SM5' | undefined)
+
+  return {
+    ...session,
+    poolKey,
+    createdAt: (session.createdAt as number | undefined) ?? Date.now(),
+    updatedAt: (session.updatedAt as number | undefined) ?? Date.now(),
+  }
+}
+
+function migrateStudent(student: Record<string, unknown>): Student {
+  const displayName = String(student.displayName ?? '').trim()
+  const firstName = String(student.firstName ?? displayName).trim()
+  const lastName = String(student.lastName ?? '').trim()
+  const preferredName = student.preferredName
+    ? String(student.preferredName).trim() || undefined
+    : undefined
+
+  return {
+    id: String(student.id),
+    firstName,
+    lastName,
+    preferredName,
+    displayName: preferredName || firstName || displayName,
+    isActive: student.isActive !== false,
+    classes: (student.classes as Student['classes']) ?? ['homeroom'],
+    section: student.section as Student['section'],
+    isAbsent: Boolean(student.isAbsent),
+    note: student.note ? String(student.note) : undefined,
+  }
+}
+
+function migrateHistoryEntry(entry: Record<string, unknown>): FairnessEntry {
+  const classId = String(entry.classId ?? 'homeroom')
+  const poolKey = (entry.poolKey as PickerPoolKey | undefined) ?? (classId as PickerPoolKey)
+  return {
+    id: String(entry.id),
+    studentId: String(entry.studentId),
+    studentDisplayName: entry.studentDisplayName ? String(entry.studentDisplayName) : undefined,
+    poolKey,
+    classId,
+    timestamp: Number(entry.timestamp ?? Date.now()),
+    role: entry.role as FairnessEntry['role'],
+    outcome: entry.outcome as FairnessEntry['outcome'],
+    date: entry.date ? String(entry.date) : undefined,
+    reason: entry.reason ? String(entry.reason) : undefined,
+    originalOutcome: entry.originalOutcome as FairnessEntry['originalOutcome'],
+    correctedAt: entry.correctedAt ? Number(entry.correctedAt) : undefined,
+  }
 }
 
 export const usePickerStore = create<PickerStoreState>()(
@@ -32,9 +94,12 @@ export const usePickerStore = create<PickerStoreState>()(
 
       addStudent: (displayName, classIds, note) => {
         set((state) => {
+          const trimmed = displayName.trim()
           const newStudent: Student = {
             id: generateSimpleId(),
-            displayName: displayName.trim(),
+            firstName: trimmed,
+            lastName: '',
+            displayName: trimmed,
             isActive: true,
             classes: classIds,
             isAbsent: false,
@@ -49,6 +114,8 @@ export const usePickerStore = create<PickerStoreState>()(
           const lines = names.split('\n').map((l) => l.trim()).filter(Boolean)
           const newStudents: Student[] = lines.map((name) => ({
             id: generateSimpleId(),
+            firstName: name,
+            lastName: '',
             displayName: name,
             isActive: true,
             classes: [classId],
@@ -58,9 +125,29 @@ export const usePickerStore = create<PickerStoreState>()(
         })
       },
 
+      importRosterStudents: (students, meta) => {
+        set(() => ({
+          students,
+          importedRosterMeta: meta
+            ? {
+                schoolYear: meta.schoolYear,
+                importedAt: Date.now(),
+                sectionsFound: meta.sectionsFound ?? [],
+              }
+            : undefined,
+        }))
+      },
+
       updateStudent: (id, updates) => {
         set((state) => ({
-          students: state.students.map((s) => (s.id === id ? { ...s, ...updates } : s)),
+          students: state.students.map((s) => {
+            if (s.id !== id) return s
+            const next = { ...s, ...updates }
+            if (updates.preferredName !== undefined || updates.firstName !== undefined) {
+              next.displayName = (next.preferredName?.trim() || next.firstName.trim())
+            }
+            return next
+          }),
         }))
       },
 
@@ -76,53 +163,82 @@ export const usePickerStore = create<PickerStoreState>()(
         }))
       },
 
-      startMysterySession: (classId, date, studentIds) => {
+      startMysterySession: (poolKey, classId, date, studentIds, readingSection) => {
         if (studentIds.length !== 3) return
+        const existing = get().activeMysterySessions[poolKey]
+        if (existing && existing.status !== 'completed') return
+
+        const now = Date.now()
         set((state) => ({
           activeMysterySessions: {
             ...state.activeMysterySessions,
-            [classId]: {
+            [poolKey]: {
               id: generateSimpleId(),
+              poolKey,
               classId,
+              readingSection,
               date,
               status: 'active',
+              createdAt: now,
+              updatedAt: now,
               slots: {
                 'high-flier-1': { studentId: studentIds[0], status: 'hidden', observations: [] },
                 'high-flier-2': { studentId: studentIds[1], status: 'hidden', observations: [] },
-                'star': { studentId: studentIds[2], status: 'hidden', observations: [] },
+                star: { studentId: studentIds[2], status: 'hidden', observations: [] },
               },
             },
           },
         }))
       },
 
-      updateMysterySlot: (classId, slotId, status, reason) => {
+      updateMysterySlot: (poolKey, slotId, status, reason) => {
         set((state) => {
-          const session = state.activeMysterySessions[classId]
+          const session = state.activeMysterySessions[poolKey]
           if (!session) return state
           return {
             activeMysterySessions: {
               ...state.activeMysterySessions,
-              [classId]: {
+              [poolKey]: touchSession({
                 ...session,
                 slots: {
                   ...session.slots,
                   [slotId]: { ...session.slots[slotId]!, status, reason },
                 },
-              },
+              }),
             },
           }
         })
       },
 
-      updateSlotObservation: (classId, slotId, behaviorId, value, context) => {
+      clearMysterySlotOutcome: (poolKey, slotId) => {
         set((state) => {
-          const session = state.activeMysterySessions[classId]
+          const session = state.activeMysterySessions[poolKey]
+          if (!session) return state
+          const slot = session.slots[slotId]
+          if (!slot) return state
+          return {
+            activeMysterySessions: {
+              ...state.activeMysterySessions,
+              [poolKey]: touchSession({
+                ...session,
+                slots: {
+                  ...session.slots,
+                  [slotId]: { ...slot, status: 'hidden', reason: undefined },
+                },
+              }),
+            },
+          }
+        })
+      },
+
+      updateSlotObservation: (poolKey, slotId, behaviorId, value, context) => {
+        set((state) => {
+          const session = state.activeMysterySessions[poolKey]
           if (!session) return state
           const slot = session.slots[slotId]
           if (!slot) return state
 
-          const existingIdx = slot.observations.findIndex(o => o.behaviorId === behaviorId)
+          const existingIdx = slot.observations.findIndex((o) => o.behaviorId === behaviorId)
           const newObservations = [...slot.observations]
 
           if (existingIdx >= 0) {
@@ -134,82 +250,77 @@ export const usePickerStore = create<PickerStoreState>()(
           return {
             activeMysterySessions: {
               ...state.activeMysterySessions,
-              [classId]: {
+              [poolKey]: touchSession({
                 ...session,
                 slots: {
                   ...session.slots,
                   [slotId]: { ...slot, observations: newObservations },
                 },
-              },
+              }),
             },
           }
         })
       },
 
-      replaceAbsentMysteryStudent: (classId, slotId, newStudentId) => {
+      replaceAbsentMysteryStudent: (poolKey, classId, slotId, newStudentId) => {
         set((state) => {
-          const session = state.activeMysterySessions[classId]
+          const session = state.activeMysterySessions[poolKey]
           if (!session) return state
           const oldSlot = session.slots[slotId]
           if (!oldSlot) return state
 
-          // 1. Mark original student absent
           const newStudents = state.students.map((s) =>
-            s.id === oldSlot.studentId ? { ...s, isAbsent: true } : s
+            s.id === oldSlot.studentId ? { ...s, isAbsent: true } : s,
           )
 
-          // 2. We don't add to fairness history here, it's just a replacement event.
-          // Or we can add an absent-replacement entry to track it, but it won't count as an opportunity.
           const newEntry: FairnessEntry = {
             id: generateSimpleId(),
             studentId: oldSlot.studentId,
-            studentDisplayName: state.students.find(s => s.id === oldSlot.studentId)?.displayName,
+            studentDisplayName: state.students.find((s) => s.id === oldSlot.studentId)?.displayName,
+            poolKey,
             classId,
             timestamp: Date.now(),
             role: slotId === 'star' ? 'mystery-star' : 'mystery-high-flier',
             outcome: 'absent-replaced',
           }
 
-          // 3. Update the slot: reset to hidden, clear observations & reason, set new studentId
           return {
             students: newStudents,
             fairnessHistory: [...state.fairnessHistory, newEntry],
             activeMysterySessions: {
               ...state.activeMysterySessions,
-              [classId]: {
+              [poolKey]: touchSession({
                 ...session,
                 slots: {
                   ...session.slots,
                   [slotId]: { studentId: newStudentId, status: 'hidden', observations: [] },
                 },
-              },
+              }),
             },
           }
         })
       },
 
-      updateSessionContext: (classId, context) => {
+      updateSessionContext: (poolKey, context) => {
         set((state) => {
-          const session = state.activeMysterySessions[classId]
+          const session = state.activeMysterySessions[poolKey]
           if (!session) return state
           return {
             activeMysterySessions: {
               ...state.activeMysterySessions,
-              [classId]: { ...session, currentContext: context },
-            }
+              [poolKey]: touchSession({ ...session, currentContext: context }),
+            },
           }
         })
       },
 
-      canStartReveal: (classId) => {
-        const state = get()
-        const session = state.activeMysterySessions[classId]
+      canStartReveal: (poolKey) => {
+        const session = get().activeMysterySessions[poolKey]
         if (!session || session.status !== 'active') return false
 
-        // check that all slots are finalized
         const s1 = session.slots['high-flier-1']
         const s2 = session.slots['high-flier-2']
-        const s3 = session.slots['star']
+        const s3 = session.slots.star
 
         if (!s1 || !s2 || !s3) return false
         if (s1.status === 'hidden' || s2.status === 'hidden' || s3.status === 'hidden') return false
@@ -217,14 +328,14 @@ export const usePickerStore = create<PickerStoreState>()(
         return true
       },
 
-      advanceMysteryReveal: (classId) => {
+      advanceMysteryReveal: (poolKey) => {
         set((state) => {
-          const session = state.activeMysterySessions[classId]
+          const session = state.activeMysterySessions[poolKey]
           if (!session) return state
 
-          let newStatus = session.status
+          let newStatus: MysteryRevealStatus = session.status
           if (session.status === 'active') {
-            if (!get().canStartReveal(classId)) return state // protection
+            if (!get().canStartReveal(poolKey)) return state
             newStatus = 'revealed-1'
           } else if (session.status === 'revealed-1') newStatus = 'revealed-2'
           else if (session.status === 'revealed-2') newStatus = 'revealed-3'
@@ -233,39 +344,65 @@ export const usePickerStore = create<PickerStoreState>()(
           return {
             activeMysterySessions: {
               ...state.activeMysterySessions,
-              [classId]: { ...session, status: newStatus },
+              [poolKey]: touchSession({ ...session, status: newStatus }),
             },
           }
         })
       },
 
-      replayReveal: (classId) => {
+      revealMysteryStep: (poolKey, step) => {
         set((state) => {
-          const session = state.activeMysterySessions[classId]
-          if (!session || session.status !== 'completed') return state
+          const session = state.activeMysterySessions[poolKey]
+          if (!session) return state
+
+          const order: Array<'active' | 'revealed-1' | 'revealed-2' | 'revealed-3'> = [
+            'active',
+            'revealed-1',
+            'revealed-2',
+            'revealed-3',
+          ]
+          const currentIdx = order.indexOf(session.status as typeof order[number])
+          const targetIdx = order.indexOf(step)
+          if (targetIdx < 0 || targetIdx <= currentIdx) return state
+
+          if (session.status === 'active' && !get().canStartReveal(poolKey)) return state
+
           return {
             activeMysterySessions: {
               ...state.activeMysterySessions,
-              [classId]: { ...session, status: 'revealed-1' },
-            }
+              [poolKey]: touchSession({ ...session, status: step as MysteryRevealStatus }),
+            },
           }
         })
       },
 
-      cancelMysterySession: (classId) => {
+      replayReveal: (poolKey) => {
+        set((state) => {
+          const session = state.activeMysterySessions[poolKey]
+          if (!session || session.status !== 'completed') return state
+          return {
+            activeMysterySessions: {
+              ...state.activeMysterySessions,
+              [poolKey]: touchSession({ ...session, status: 'revealed-1' as MysteryRevealStatus }),
+            },
+          }
+        })
+      },
+
+      cancelMysterySession: (poolKey) => {
         set((state) => ({
-          activeMysterySessions: { ...state.activeMysterySessions, [classId]: null },
+          activeMysterySessions: { ...state.activeMysterySessions, [poolKey]: null },
         }))
       },
 
-      commitMysterySession: (classId) => {
+      commitMysterySession: (poolKey) => {
         set((state) => {
-          const session = state.activeMysterySessions[classId]
+          const session = state.activeMysterySessions[poolKey]
           if (!session || session.status !== 'completed') return state
 
           const newEntries: FairnessEntry[] = []
           const now = Date.now()
-          const roles = ['high-flier-1', 'high-flier-2', 'star'] as MysterySlotId[]
+          const roles: MysterySlotId[] = ['high-flier-1', 'high-flier-2', 'star']
 
           for (const slotId of roles) {
             const slot = session.slots[slotId]
@@ -273,8 +410,9 @@ export const usePickerStore = create<PickerStoreState>()(
               newEntries.push({
                 id: generateSimpleId(),
                 studentId: slot.studentId,
-                studentDisplayName: state.students.find(s => s.id === slot.studentId)?.displayName,
-                classId,
+                studentDisplayName: state.students.find((s) => s.id === slot.studentId)?.displayName,
+                poolKey,
+                classId: session.classId,
                 timestamp: now,
                 role: slotId === 'star' ? 'mystery-star' : 'mystery-high-flier',
                 outcome: slot.status,
@@ -286,19 +424,26 @@ export const usePickerStore = create<PickerStoreState>()(
 
           return {
             fairnessHistory: [...state.fairnessHistory, ...newEntries],
-            activeMysterySessions: { ...state.activeMysterySessions, [classId]: null },
+            activeMysterySessions: { ...state.activeMysterySessions, [poolKey]: null },
           }
         })
       },
 
-      recordQuickPick: (classId, studentId) => {
+      resetPool: (poolKey) => {
+        set((state) => ({
+          fairnessHistory: state.fairnessHistory.filter((h) => (h.poolKey ?? h.classId) !== poolKey),
+        }))
+      },
+
+      recordQuickPick: (poolKey, classId, studentId) => {
         set((state) => ({
           fairnessHistory: [
             ...state.fairnessHistory,
             {
               id: generateSimpleId(),
               studentId,
-              studentDisplayName: state.students.find(s => s.id === studentId)?.displayName,
+              studentDisplayName: state.students.find((s) => s.id === studentId)?.displayName,
+              poolKey,
               classId,
               timestamp: Date.now(),
               role: 'quick-pick',
@@ -308,18 +453,18 @@ export const usePickerStore = create<PickerStoreState>()(
         }))
       },
 
-      clearQuickPickHistory: (classId) => {
+      clearQuickPickHistory: (poolKey) => {
         set((state) => ({
           fairnessHistory: state.fairnessHistory.filter(
-            (h) => !(h.classId === classId && h.role === 'quick-pick')
+            (h) => !((h.poolKey ?? h.classId) === poolKey && h.role === 'quick-pick'),
           ),
         }))
       },
 
-      correctOutcome: (classId, eventId, nextOutcome) => {
+      correctOutcome: (poolKey, eventId, nextOutcome) => {
         set((state) => ({
           fairnessHistory: state.fairnessHistory.map((h) => {
-            if (h.id === eventId && h.classId === classId) {
+            if (h.id === eventId && (h.poolKey ?? h.classId) === poolKey) {
               return {
                 ...h,
                 originalOutcome: h.originalOutcome || h.outcome,
@@ -342,20 +487,40 @@ export const usePickerStore = create<PickerStoreState>()(
         set((state) => ({
           settings: { ...state.settings, ...updates },
         }))
-      }
+      },
     }),
     {
-      name: 'classroom-picker-storage',
-      version: 2,
+      name: STORAGE_KEY,
+      version: 1,
       migrate: (persisted) => {
-        const state = persisted as Partial<PickerStoreState>
+        const state = persisted as Partial<PickerStoreState> & {
+          students?: Array<Record<string, unknown>>
+          fairnessHistory?: Array<Record<string, unknown>>
+          activeMysterySessions?: Record<string, Record<string, unknown> | null>
+        }
+
+        const migratedStudents = (state.students ?? []).map(migrateStudent)
+        const migratedHistory = (state.fairnessHistory ?? []).map(migrateHistoryEntry)
+
+        const migratedSessions: Record<string, ReturnType<typeof migrateLegacySession> | null> = {
+          ...defaultSessions,
+        }
+        for (const [key, session] of Object.entries(state.activeMysterySessions ?? {})) {
+          migratedSessions[key] = session ? migrateLegacySession(session) : null
+        }
+
         return {
           ...initialState,
           ...state,
+          students: migratedStudents,
+          fairnessHistory: migratedHistory,
+          activeMysterySessions: migratedSessions,
           coachingConfig: { ...initialState.coachingConfig, ...(state.coachingConfig || {}) },
           settings: { ...initialState.settings, ...(state.settings || {}) },
         }
       },
-    }
-  )
+    },
+  ),
 )
+
+export { STORAGE_KEY as PICKER_STORAGE_KEY }

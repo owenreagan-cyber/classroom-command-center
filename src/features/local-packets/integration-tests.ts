@@ -24,13 +24,52 @@ globalObj.localStorage = {
 import { takePreImportSnapshot, applyUndo, getUndoSlot, clearUndoSlot, applyDailyBriefToStores, restoreBackupToStores, getActiveState } from './packetStoreAdapter'
 import { createBackupPayload } from './packetExport'
 import type { DailyBriefPacketPayload, FullBackupPacketPayload, FullBackupCategories } from './types'
-import type { PickerClassId, MysterySession } from '../student-picker/types'
+import type { PickerClassId, MysterySession, Student, FairnessEntry } from '../student-picker/types'
 import { useBoardStore } from '../../store/boardStore'
 import { useTimerStore } from '../../store/timerStore'
 import { usePickerStore } from '../student-picker/pickerStore'
 
 let passed = 0
 let failed = 0
+
+function testStudent(
+  id: string,
+  displayName: string,
+  classes: PickerClassId[],
+): Student {
+  return {
+    id,
+    firstName: displayName,
+    lastName: '',
+    displayName,
+    isActive: true,
+    classes,
+    isAbsent: false,
+  }
+}
+
+function testHistory(
+  partial: Omit<FairnessEntry, 'poolKey'> & { poolKey?: FairnessEntry['poolKey'] },
+): FairnessEntry {
+  return {
+    ...partial,
+    poolKey: partial.poolKey ?? (partial.classId as FairnessEntry['poolKey']),
+  }
+}
+
+function testMysterySession(
+  partial: Omit<MysterySession, 'poolKey' | 'createdAt' | 'updatedAt'> & {
+    poolKey?: MysterySession['poolKey']
+  },
+): MysterySession {
+  const now = Date.now()
+  return {
+    ...partial,
+    poolKey: partial.poolKey ?? (partial.classId as MysterySession['poolKey']),
+    createdAt: now,
+    updatedAt: now,
+  }
+}
 
 function assert(label: string, condition: boolean) {
   if (condition) {
@@ -172,9 +211,9 @@ function assertEq(label: string, a: unknown, b: unknown) {
   useTimerStore.getState().resetAllTimers()
   usePickerStore.setState({
     students: [
-      { id: 'johnny', displayName: 'Johnny', isActive: true, classes: ['homeroom', 'math'], isAbsent: false },
-      { id: 'sarah', displayName: 'Sarah', isActive: true, classes: ['homeroom', 'reading'], isAbsent: false },
-      { id: 'bobby', displayName: 'Bobby', isActive: true, classes: ['homeroom', 'math', 'reading'], isAbsent: false },
+      testStudent('johnny', 'Johnny', ['homeroom', 'math']),
+      testStudent('sarah', 'Sarah', ['homeroom', 'reading']),
+      testStudent('bobby', 'Bobby', ['homeroom', 'math', 'reading']),
     ],
     fairnessHistory: [],
     activeMysterySessions: { homeroom: null, math: null, reading: null },
@@ -223,11 +262,11 @@ function assertEq(label: string, a: unknown, b: unknown) {
 
   // 3. Category replacement semantics (pickerHistory)
   usePickerStore.setState({
-    fairnessHistory: [{ id: 'h1', studentId: 'johnny', classId: 'homeroom', timestamp: 100, role: 'quick-pick', outcome: 'quick-picked' }]
+    fairnessHistory: [testHistory({ id: 'h1', studentId: 'johnny', classId: 'homeroom', timestamp: 100, role: 'quick-pick', outcome: 'quick-picked' })]
   })
   const historyBackup: FullBackupPacketPayload = {
     categories: {
-      pickerHistory: [{ id: 'h2', studentId: 'sarah', classId: 'homeroom', timestamp: 200, role: 'quick-pick', outcome: 'quick-picked' }]
+      pickerHistory: [testHistory({ id: 'h2', studentId: 'sarah', classId: 'homeroom', timestamp: 200, role: 'quick-pick', outcome: 'quick-picked' })]
     },
     exportedCategories: ['pickerHistory']
   }
@@ -383,17 +422,17 @@ function assertEq(label: string, a: unknown, b: unknown) {
   // Reset picker store to known state
   usePickerStore.setState({
     students: [
-      { id: 'sid-a', displayName: 'Alice', isActive: true, classes: ['homeroom', 'math'], isAbsent: false },
-      { id: 'sid-b', displayName: 'Bob', isActive: true, classes: ['homeroom', 'reading'], isAbsent: false },
-      { id: 'sid-c', displayName: 'Carol', isActive: true, classes: ['homeroom', 'math', 'reading'], isAbsent: false },
-      { id: 'sid-d', displayName: 'Dave', isActive: true, classes: ['math', 'reading'], isAbsent: false },
+      testStudent('sid-a', 'Alice', ['homeroom', 'math']),
+      testStudent('sid-b', 'Bob', ['homeroom', 'reading']),
+      testStudent('sid-c', 'Carol', ['homeroom', 'math', 'reading']),
+      testStudent('sid-d', 'Dave', ['math', 'reading']),
     ],
     fairnessHistory: [],
     activeMysterySessions: { homeroom: null, math: null, reading: null },
   })
 
   // Build three distinct Mystery sessions
-  const homeroomSession: MysterySession = {
+  const homeroomSession: MysterySession = testMysterySession({
     id: 'ms-hr-1',
     classId: 'homeroom',
     date: '2026-07-12',
@@ -407,9 +446,9 @@ function assertEq(label: string, a: unknown, b: unknown) {
         observations: [{ behaviorId: 'b1', value: 'positive' as const, context: 'Helped peer' }],
       },
     },
-  }
+  })
 
-  const mathSession: MysterySession = {
+  const mathSession: MysterySession = testMysterySession({
     id: 'ms-m-1',
     classId: 'math',
     date: '2026-07-12',
@@ -419,9 +458,9 @@ function assertEq(label: string, a: unknown, b: unknown) {
       'high-flier-2': { studentId: 'sid-c', status: 'hidden' as const, observations: [] },
       'star': { studentId: 'sid-d', status: 'earned' as const, reason: 'Math whiz', observations: [] },
     },
-  }
+  })
 
-  const readingSession: MysterySession = {
+  const readingSession: MysterySession = testMysterySession({
     id: 'ms-r-1',
     classId: 'reading',
     date: '2026-07-12',
@@ -431,7 +470,7 @@ function assertEq(label: string, a: unknown, b: unknown) {
       'high-flier-2': { studentId: 'sid-c', status: 'earned' as const, observations: [{ behaviorId: 'b2', value: 'positive' as const }] },
       'star': { studentId: 'sid-d', status: 'hidden' as const, observations: [] },
     },
-  }
+  })
 
   const exportSessions: Record<PickerClassId, MysterySession | null> = {
     homeroom: homeroomSession,
@@ -460,7 +499,7 @@ function assertEq(label: string, a: unknown, b: unknown) {
   const expectedReading = readingSession
 
   // Now change current store: Homeroom gets a different session, Math null, Reading null
-  const currentHRSession: MysterySession = {
+  const currentHRSession: MysterySession = testMysterySession({
     id: 'ms-hr-current',
     classId: 'homeroom',
     date: '2026-07-12',
@@ -470,7 +509,7 @@ function assertEq(label: string, a: unknown, b: unknown) {
       'high-flier-2': { studentId: 'sid-c', status: 'hidden' as const, observations: [] },
       'star': { studentId: 'sid-a', status: 'hidden' as const, observations: [] },
     },
-  }
+  })
 
   usePickerStore.setState({
     activeMysterySessions: {
@@ -611,7 +650,7 @@ function assertEq(label: string, a: unknown, b: unknown) {
 
   // Restoring the board category must not touch picker/timer state unless
   // those categories were also selected.
-  usePickerStore.setState({ fairnessHistory: [{ id: 'guard-1', studentId: 'x', classId: 'homeroom', timestamp: 1, role: 'quick-pick', outcome: 'quick-picked' }] })
+  usePickerStore.setState({ fairnessHistory: [testHistory({ id: 'guard-1', studentId: 'x', classId: 'homeroom', timestamp: 1, role: 'quick-pick', outcome: 'quick-picked' })] })
   const guardHistory = usePickerStore.getState().fairnessHistory
   useTimerStore.setState({ simpleTimers: { ...useTimerStore.getState().simpleTimers, homeroom: { ...useTimerStore.getState().simpleTimers.homeroom, label: 'Guard Label' } } })
   const guardTimerLabel = useTimerStore.getState().simpleTimers.homeroom.label

@@ -76,6 +76,16 @@ export function normalizeRoutineControlState(
   }
 }
 
+export const SCHEDULE_CHANGE_NOTES = [
+  'Shurley and History/Science swapped places and times; exact schedule pending teacher confirmation.',
+] as const
+
+export const CLASS_MODE_USES: Record<'homeroom' | 'math' | 'reading', string[]> = {
+  homeroom: ['morning time', 'snack', 'Shurley', 'lunch', 'history/science', 'dismissal'],
+  math: ['math'],
+  reading: ['spelling', 'reading'],
+}
+
 export const CANONICAL_DAILY_BLOCKS: DailyBlockDefinition[] = [
   {
     id: 'carpool-homeroom',
