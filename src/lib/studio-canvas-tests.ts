@@ -576,18 +576,17 @@ assert('shift+arrow moves by one grid step', keyboardMoveDelta('ArrowDown', true
 
 // ── 50-51. New widget type seeding ──────────────────────────────────────
 {
-  // Simulate adding a new widget type: fresh definition has a widget that
-  // persisted data does not. Migration should seed it without destroying old ones.
+  // Use silent-work page (timer + materials) — morning arrival is do-now only.
   const ws = cloneWorkspaces(baseWorkspaces)
-  const freshPageCount = ws[HOMEROOM]!.pages[0].widgets.length
-  // Remove last widget to simulate pre-existing save without it
-  const reducedWidgets = ws[HOMEROOM]!.pages[0].widgets.slice(0, -1)
-  ws[HOMEROOM]!.pages[0].widgets = reducedWidgets
-  ws[HOMEROOM]!.pages[0].widgetIds = reducedWidgets.map((w) => w.id)
+  const pageIndex = 1
+  const freshPageCount = ws[HOMEROOM]!.pages[pageIndex].widgets.length
+  assert('silent-work has multiple widgets for seeding test', freshPageCount >= 2)
+  const reducedWidgets = ws[HOMEROOM]!.pages[pageIndex].widgets.slice(0, -1)
+  ws[HOMEROOM]!.pages[pageIndex].widgets = reducedWidgets
+  ws[HOMEROOM]!.pages[pageIndex].widgetIds = reducedWidgets.map((w) => w.id)
   const migrated = normalizeClassWorkspacesGeometry(ws)
-  const migratedWidgets = migrated[HOMEROOM]!.pages[0].widgets
+  const migratedWidgets = migrated[HOMEROOM]!.pages[pageIndex].widgets
   assert('new widget seeded by migration', migratedWidgets.length === freshPageCount)
-  // First widget geometry preserved
   assert('existing widget geometry preserved during new-type seeding', migratedWidgets[0].x === reducedWidgets[0].x)
 }
 

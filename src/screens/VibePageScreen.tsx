@@ -8,6 +8,7 @@ interface VibePageScreenProps {
   activePage: VibePage | null
   pages: VibePage[]
   mode: AppMode
+  studentDisplay: boolean
   contents: ScreenContents
   onContentsChange: (contents: ScreenContents) => void
   onNavigateToPage: (pageId: VibePageId) => void
@@ -22,6 +23,7 @@ export function VibePageScreen({
   activePage,
   pages,
   mode,
+  studentDisplay,
   contents,
   onContentsChange,
   onNavigateToPage,
@@ -31,40 +33,36 @@ export function VibePageScreen({
   onPreviewClassroom,
 }: VibePageScreenProps) {
   const isDisplay = mode === 'display'
+  const showPageControls = !studentDisplay
 
   if (!activePage) {
     return <div className="text-white p-8">No page selected</div>
   }
 
-  // Classroom Mode: clean, student-facing render of the persisted widget
-  // geometry. No grid, drag handles, selection, alignment guides,
-  // toolbar, or page-editing chrome inside the canvas itself.
   if (isDisplay) {
     return (
       <div className="flex h-full min-h-0 flex-col gap-2">
         <PageNavigation
           pages={pages}
           activePageId={activePage.id}
-          mode={mode}
+          showControls={showPageControls}
           onNavigateToPage={onNavigateToPage}
           onNavigatePrevious={onNavigatePrevious}
           onNavigateNext={onNavigateNext}
         />
-        <div className="flex-1 min-h-0">
+        <div key={activePage.id} className="vibe-page-transition flex-1 min-h-0">
           <ClassroomCanvas screenId={screenId} page={activePage} contents={contents} />
         </div>
       </div>
     )
   }
 
-  // Studio Mode: the dedicated authoring canvas replaces the old
-  // screen-specific dashboard editors.
   return (
     <div className="flex h-full min-h-0 flex-col gap-2">
       <PageNavigation
         pages={pages}
         activePageId={activePage.id}
-        mode={mode}
+        showControls={showPageControls}
         onNavigateToPage={onNavigateToPage}
         onNavigatePrevious={onNavigatePrevious}
         onNavigateNext={onNavigateNext}

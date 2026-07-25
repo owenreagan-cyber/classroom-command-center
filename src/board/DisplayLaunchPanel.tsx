@@ -18,7 +18,8 @@ export function DisplayLaunchPanel() {
       setNoticeTone('error')
       return
     }
-    setNotice(null)
+    setNotice('Student display opened. Use Fullscreen on Display in that window when ready.')
+    setNoticeTone('success')
   }
 
   const handleCopyLink = async () => {
@@ -29,6 +30,17 @@ export function DisplayLaunchPanel() {
       return
     }
     setNotice(DISPLAY_LINK_COPIED_MESSAGE)
+    setNoticeTone('success')
+  }
+
+  const handleFocusDisplay = () => {
+    const result = openStudentDisplay(window, window.location)
+    if (!result.ok) {
+      setNotice(POPUP_BLOCKED_MESSAGE)
+      setNoticeTone('error')
+      return
+    }
+    setNotice('Display window opened. Click Enter Fullscreen on the projector screen.')
     setNoticeTone('success')
   }
 
@@ -52,6 +64,13 @@ export function DisplayLaunchPanel() {
         </button>
         <button
           type="button"
+          onClick={handleFocusDisplay}
+          className="rounded-xl border border-cyan-400/35 bg-cyan-950/25 px-3 py-3 text-left text-sm font-semibold text-cyan-100 transition hover:bg-cyan-900/35"
+        >
+          Open Display for Fullscreen
+        </button>
+        <button
+          type="button"
           onClick={() => {
             void handleCopyLink()
           }}
@@ -60,6 +79,10 @@ export function DisplayLaunchPanel() {
           Copy Display Link
         </button>
       </div>
+      <p className="text-[11px] leading-relaxed text-slate-500">
+        Fullscreen runs on the display window via a projector-safe button there.
+        This panel never forces fullscreen automatically.
+      </p>
       {notice && (
         <p
           role="status"

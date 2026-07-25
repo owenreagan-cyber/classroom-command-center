@@ -5,6 +5,7 @@ import type { AppMode, BackgroundAssetId, ScreenId } from '../data/types'
 
 import { CoachingCard } from '../features/student-picker/widgets/CoachingCard'
 import { MysteryRevealStage } from '../features/student-picker/widgets/MysteryRevealStage'
+import { MysteryStudentActiveBadge } from '../features/student-picker/widgets/MysteryStudentActiveBadge'
 
 interface BoardChromeProps {
   mode: AppMode
@@ -104,6 +105,10 @@ export function BoardFrame({
         </header>
 
         <main className="board-main-safe">{children}</main>
+
+        {studentDisplay && isDisplay && (
+          <MysteryStudentActiveBadge screenId={activeScreen} />
+        )}
 
         {showTeacherChrome && (
           <div className="absolute bottom-4 left-4 z-30 max-w-[22rem] pointer-events-none">

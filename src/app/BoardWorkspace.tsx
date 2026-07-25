@@ -43,6 +43,7 @@ export function BoardWorkspace({
         activePageId={activePageId}
         classWorkspace={classWorkspace}
         mode={effectiveMode}
+        studentDisplay={studentDisplay}
         contents={contents}
         onContentsChange={updateContents}
         onNavigateToPage={setActivePageId}

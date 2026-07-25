@@ -14,15 +14,12 @@ const APP_URL = 'http://localhost:5173/control'
 
 async function openMorningArrival(page: import('@playwright/test').Page) {
   await page.goto(APP_URL)
-  // Click Edit to enter studio mode
   await page.evaluate(() => {
     const btn = document.querySelector('[aria-label="Enter edit mode"]') as HTMLButtonElement | null
     btn?.click()
   })
   await page.waitForTimeout(300)
-  // Navigate to Homeroom > Morning Arrival
-  await page.getByRole('button', { name: /^Homeroom$/ }).click()
-  await page.getByRole('button', { name: /Morning Arrival/i }).first().click()
+  // Homeroom > Morning Arrival is the default active page after load.
   await page.waitForSelector('[data-widget-type="do-now"]', { timeout: 5000 })
 }
 
@@ -160,16 +157,14 @@ test.describe('Studio Canvas', () => {
   test('undo history does not intermix across pages', async ({ page }) => {
     await openMorningArrival(page)
 
-    // Drag the widget on Homeroom > Morning Arrival to create a history entry.
+    // Lock the widget to create a layout history entry (reliable vs flaky drag timing).
     const widget = page.locator('[data-widget-type="do-now"]').first()
     await widget.focus()
-    const handle = widget.locator('[aria-label*="Drag handle"]')
-    const handleBox = await handle.boundingBox()
-    expect(handleBox).not.toBeNull()
-    await page.mouse.move(handleBox!.x + 5, handleBox!.y + 5)
-    await page.mouse.down()
-    await page.mouse.move(handleBox!.x + 90, handleBox!.y + 40, { steps: 10 })
-    await page.mouse.up()
+    await page.evaluate(() => {
+      const lockBtn = document.querySelector('[aria-label="Lock selected widget"]') as HTMLButtonElement | null
+      lockBtn?.click()
+    })
+    await page.waitForTimeout(300)
 
     const undoEnabledOnHomeroom = await page.evaluate(() => {
       const undo = document.querySelector('[aria-label="Undo last layout change"]') as HTMLButtonElement | null
@@ -194,7 +189,6 @@ test.describe('Studio Canvas', () => {
     // still be there (untouched by anything done while viewing Math) and
     // Undo must still be available for it.
     await page.getByRole('button', { name: /^Homeroom$/ }).click()
-    await page.getByRole('button', { name: /Morning Arrival/i }).first().click()
     await page.waitForSelector('[data-widget-type="do-now"]', { timeout: 5000 })
 
     const undoEnabledBackOnHomeroom = await page.evaluate(() => {

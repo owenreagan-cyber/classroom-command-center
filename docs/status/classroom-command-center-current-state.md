@@ -1,16 +1,19 @@
 # Classroom Command Center — Current State Audit
 
-Status: reconciled after Phase 8C Today Prep + Material Launcher
+Status: reconciled after Phase 9A Display and Screen Polish
 Date: 2026-07-25
 Project: `~/Projects/classroom-command-center`
 
 ## Current Repo State
 
-Latest confirmed main before Phase 8A:
+Latest phase branch:
 
-- `1171c48 Fix Studio Canvas history and backup integrity (#7)`
+- `command-center-phase-9a-display-screen-polish` (from `8bd7f7d` Phase 8C)
+- Phase 9A: projector-safe design tokens, vibe-page navigation polish, fullscreen workflow, Homeroom density fix, Mystery Student active badge
 - `npm run build` — PASS
 - `npm run lint` — PASS
+- `npm run test:display-polish` — PASS
+- `npm run test:e2e` — PASS (23)
 
 Important: this repo is now beyond the older Phase 4C/4D roadmap. Basic inline editing, widget visibility, routine-aware pages, backup/restore, random picker/Mystery Star, local packets, noise widgets, Studio Canvas, and Studio Canvas repair work have already been implemented or superseded.
 
@@ -24,6 +27,13 @@ Latest confirmed local checks:
 
 - `npm run build` — PASS
 - `npm run lint` — PASS
+- `npm run test:display-polish` — PASS
+- `npm run test:e2e` — PASS (23)
+
+Phase 9A docs:
+
+- `docs/phases/phase-9a-display-screen-polish.md`
+- `docs/status/phase-9a-display-screen-polish.md`
 
 Previously documented broader validation after Studio Canvas repair:
 
