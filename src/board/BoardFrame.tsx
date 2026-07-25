@@ -2,6 +2,9 @@ import { useState, type ReactNode } from 'react'
 import { SCREEN_META } from '../data/defaults'
 import { getBackgroundAsset } from '../data/backgroundAssets'
 import type { AppMode, BackgroundAssetId, ScreenId } from '../data/types'
+import { NowShowingDisplayLabel } from '../features/display/NowShowingDisplayLabel'
+import { resolveNowShowingDisplay } from '../lib/nowShowing'
+import { useBoardStore } from '../store/boardStore'
 
 import { CoachingCard } from '../features/student-picker/widgets/CoachingCard'
 import { MysteryRevealStage } from '../features/student-picker/widgets/MysteryRevealStage'
@@ -44,6 +47,10 @@ export function BoardFrame({
     SCREEN_META.find((screen) => screen.id === activeScreen)?.label ?? 'Board'
   const isDisplay = mode === 'display'
   const showTeacherChrome = !studentDisplay
+  const todayPrep = useBoardStore((state) => state.todayPrep)
+  const nowShowing = studentDisplay && isDisplay
+    ? resolveNowShowingDisplay(todayPrep.nowShowingResourceId, todayPrep.resourceLinks)
+    : null
 
   return (
     <div className="relative flex min-h-0 min-w-0 flex-1 items-center justify-center overflow-hidden bg-slate-950 p-2 md:p-3">
@@ -103,6 +110,12 @@ export function BoardFrame({
             </button>
           )}
         </header>
+
+        {nowShowing && (
+          <div className="relative z-20 flex justify-center px-[var(--board-safe-x)] pb-2 md:pb-3">
+            <NowShowingDisplayLabel info={nowShowing} />
+          </div>
+        )}
 
         <main className="board-main-safe">{children}</main>
 

@@ -66,6 +66,9 @@ export function TodayPrepPanel({
   const addMaterialLink = useBoardStore((state) => state.addMaterialLink)
   const updateMaterialLink = useBoardStore((state) => state.updateMaterialLink)
   const removeMaterialLink = useBoardStore((state) => state.removeMaterialLink)
+  const setNowShowingResourceId = useBoardStore((state) => state.setNowShowingResourceId)
+  const clearNowShowing = useBoardStore((state) => state.clearNowShowing)
+  const nowShowingResourceId = todayPrep.nowShowingResourceId ?? null
 
   const [newChecklistText, setNewChecklistText] = useState('')
   const [scopeToActive, setScopeToActive] = useState(true)
@@ -101,6 +104,7 @@ export function TodayPrepPanel({
 
   const incompleteCount = scopedChecklist.filter((item) => !item.completed).length
   const invalidLinkCount = scopedLinks.filter((link) => !isValidResourceUrl(link.url)).length
+  const nowShowingLink = todayPrep.resourceLinks.find((link) => link.id === nowShowingResourceId)
 
   const handleAddChecklistItem = () => {
     const text = newChecklistText.trim()
@@ -266,15 +270,34 @@ export function TodayPrepPanel({
       </div>
 
       <div className="space-y-2" aria-label="Open With">
-        <div>
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-            Material Launcher
-          </h3>
-          <p className="mt-1 text-xs leading-relaxed text-slate-500">
-            Open With presets for lesson materials — opens safely in a new tab from teacher
-            control only.
-          </p>
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div>
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+              Material Launcher
+            </h3>
+            <p className="mt-1 text-xs leading-relaxed text-slate-500">
+              Open With presets for lesson materials — opens safely in a new tab from teacher
+              control only.
+            </p>
+          </div>
+          {nowShowingLink && (
+            <button
+              type="button"
+              onClick={() => clearNowShowing()}
+              className="shrink-0 rounded-lg border border-amber-400/40 bg-amber-950/30 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-amber-100 transition hover:bg-amber-900/40"
+            >
+              Clear Now Showing
+            </button>
+          )}
         </div>
+        {nowShowingLink && (
+          <p
+            role="status"
+            className="rounded-xl border border-cyan-400/30 bg-cyan-950/25 px-3 py-2 text-xs text-cyan-100/90"
+          >
+            On student display: <span className="font-semibold">{nowShowingLink.label}</span>
+          </p>
+        )}
         {scopedLinks.length === 0 ? (
           <p className="rounded-xl border border-slate-800 bg-slate-900/50 px-3 py-2 text-xs text-slate-400">
             No resource links for this screen/page yet.
@@ -286,10 +309,15 @@ export function TodayPrepPanel({
               const presetMeta = getResourcePresetMeta(preset)
               const warning = getResourceUrlWarning(link.url)
               const canOpen = isValidResourceUrl(link.url)
+              const isNowShowing = link.id === nowShowingResourceId
               return (
                 <li
                   key={link.id}
-                  className="space-y-2 rounded-xl border border-slate-700 bg-slate-900/60 px-3 py-2.5"
+                  className={`space-y-2 rounded-xl border px-3 py-2.5 ${
+                    isNowShowing
+                      ? 'border-cyan-400/50 bg-cyan-950/25'
+                      : 'border-slate-700 bg-slate-900/60'
+                  }`}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1 space-y-1">
@@ -297,6 +325,11 @@ export function TodayPrepPanel({
                         <span className="rounded-md border border-slate-600 bg-slate-950 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-300">
                           {presetMeta.label}
                         </span>
+                        {isNowShowing && (
+                          <span className="rounded-md border border-cyan-400/40 bg-cyan-950/50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-cyan-100">
+                            Now Showing
+                          </span>
+                        )}
                         {(link.screenId || link.pageId) && (
                           <span className="text-[10px] uppercase tracking-wide text-slate-500">
                             Scoped
@@ -395,6 +428,37 @@ export function TodayPrepPanel({
                       >
                         Copy Link
                       </button>
+                      {isNowShowing ? (
+                        <span className="inline-flex rounded-lg border border-cyan-400/40 bg-cyan-950/40 px-3 py-1.5 text-xs font-semibold text-cyan-100">
+                          On Display
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setNowShowingResourceId(link.id)}
+                          className="inline-flex rounded-lg border border-cyan-400/40 bg-cyan-950/30 px-3 py-1.5 text-xs font-semibold text-cyan-100 transition hover:bg-cyan-900/40"
+                        >
+                          Show on Display
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  {!canOpen && (
+                    <div className="flex flex-wrap items-center gap-2">
+                      {isNowShowing ? (
+                        <span className="inline-flex rounded-lg border border-cyan-400/40 bg-cyan-950/40 px-3 py-1.5 text-xs font-semibold text-cyan-100">
+                          On Display
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setNowShowingResourceId(link.id)}
+                          disabled={!link.label.trim()}
+                          className="inline-flex rounded-lg border border-cyan-400/40 bg-cyan-950/30 px-3 py-1.5 text-xs font-semibold text-cyan-100 transition hover:bg-cyan-900/40 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          Show on Display
+                        </button>
+                      )}
                     </div>
                   )}
                 </li>

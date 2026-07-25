@@ -45,6 +45,8 @@ async function assertDisplayPrivacy(page: Page) {
   await expect(page.getByLabel('Open With')).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Open With' })).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Copy Link' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Show on Display' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Clear Now Showing' })).toHaveCount(0)
   await expect(page.getByRole('heading', { name: 'Morning Message Studio' })).toHaveCount(0)
   await expect(page.getByLabel('Morning Message Studio')).toHaveCount(0)
   await expect(page.getByText('Student Picker & Stars')).toHaveCount(0)
@@ -107,5 +109,29 @@ test.describe('Phase 9C.1 Morning Message display snapshot', () => {
     await assertDisplayReadyForSnapshot(page)
 
     await expect(page).toHaveScreenshot('display-morning-message-1920x1080.png', SNAPSHOT_OPTIONS)
+  })
+})
+
+test.describe('Phase 10B Now Showing display snapshot', () => {
+  test('/display Now Showing label at 1920x1080', async ({ page }) => {
+    await page.setViewportSize({ width: 1920, height: 1080 })
+    await page.goto('/control')
+    await enterEditMode(page)
+
+    const prepPanel = page.getByLabel('Today Prep and Material Launcher')
+    await prepPanel.getByLabel('Resource type preset').first().selectOption('google-slides')
+    await prepPanel.getByPlaceholder('Resource label').fill('Chapter 2 Slides')
+    await prepPanel
+      .getByPlaceholder('https://docs.google.com/presentation/d/...')
+      .fill('https://docs.google.com/presentation/d/phase10b-snapshot/edit')
+    await prepPanel.getByRole('button', { name: 'Add resource link' }).click()
+    await prepPanel.getByRole('button', { name: 'Show on Display' }).click()
+
+    await page.goto('/display')
+
+    await expect(page.getByTestId('now-showing-display')).toBeVisible()
+    await assertDisplayReadyForSnapshot(page)
+
+    await expect(page).toHaveScreenshot('display-now-showing-1920x1080.png', SNAPSHOT_OPTIONS)
   })
 })
