@@ -1,7 +1,13 @@
 import { useMemo, useState } from 'react'
 import { SCREEN_META } from '../data/defaults'
-import type { ClassWorkspace, ScreenId, VibePageId } from '../data/types'
-import { getResourceUrlWarning, isValidResourceUrl } from '../lib/resourceUrl'
+import type { ClassWorkspace, ResourceOpenPreset, ScreenId, VibePageId } from '../data/types'
+import {
+  DEFAULT_RESOURCE_OPEN_PRESET,
+  getResourcePresetMeta,
+  inferResourceOpenPresetFromUrl,
+  RESOURCE_OPEN_PRESETS,
+} from '../lib/resourcePresets'
+import { copyResourceUrl, getResourceUrlWarning, isValidResourceUrl } from '../lib/resourceUrl'
 import { useBoardStore } from '../store/boardStore'
 
 interface TodayPrepPanelProps {
@@ -22,6 +28,32 @@ function matchesActiveContext(
   return true
 }
 
+function ResourcePresetSelect({
+  value,
+  onChange,
+  id,
+}: {
+  value: ResourceOpenPreset
+  onChange: (preset: ResourceOpenPreset) => void
+  id?: string
+}) {
+  return (
+    <select
+      id={id}
+      value={value}
+      onChange={(event) => onChange(event.target.value as ResourceOpenPreset)}
+      className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100"
+      aria-label="Resource type preset"
+    >
+      {RESOURCE_OPEN_PRESETS.map((preset) => (
+        <option key={preset.id} value={preset.id}>
+          {preset.label}
+        </option>
+      ))}
+    </select>
+  )
+}
+
 export function TodayPrepPanel({
   activeScreen,
   activePageId,
@@ -40,6 +72,10 @@ export function TodayPrepPanel({
   const [linkLabel, setLinkLabel] = useState('')
   const [linkUrl, setLinkUrl] = useState('')
   const [linkNote, setLinkNote] = useState('')
+  const [linkPreset, setLinkPreset] = useState<ResourceOpenPreset>(DEFAULT_RESOURCE_OPEN_PRESET)
+  const [copyFeedback, setCopyFeedback] = useState<string | null>(null)
+
+  const addFormPresetMeta = getResourcePresetMeta(linkPreset)
 
   const screenLabel =
     SCREEN_META.find((screen) => screen.id === activeScreen)?.label ?? activeScreen
@@ -82,6 +118,7 @@ export function TodayPrepPanel({
     addMaterialLink({
       label,
       url: linkUrl.trim(),
+      preset: linkPreset,
       note: linkNote.trim() || undefined,
       visibility: 'teacherOnly',
       screenId: scopeToActive ? activeScreen : undefined,
@@ -90,6 +127,28 @@ export function TodayPrepPanel({
     setLinkLabel('')
     setLinkUrl('')
     setLinkNote('')
+    setLinkPreset(DEFAULT_RESOURCE_OPEN_PRESET)
+  }
+
+  const handleLinkUrlChange = (nextUrl: string, currentPreset: ResourceOpenPreset) => {
+    const inferred = inferResourceOpenPresetFromUrl(nextUrl)
+    if (
+      inferred &&
+      (currentPreset === DEFAULT_RESOURCE_OPEN_PRESET || currentPreset === 'other')
+    ) {
+      setLinkPreset(inferred)
+    }
+  }
+
+  const handleCopyLink = async (url: string) => {
+    const result = await copyResourceUrl(navigator.clipboard, url)
+    if (result.ok) {
+      setCopyFeedback('Link copied')
+      window.setTimeout(() => setCopyFeedback(null), 1800)
+      return
+    }
+    setCopyFeedback('Copy unavailable — use Open With instead')
+    window.setTimeout(() => setCopyFeedback(null), 2200)
   }
 
   return (
@@ -206,10 +265,16 @@ export function TodayPrepPanel({
         </div>
       </div>
 
-      <div className="space-y-2">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-          Material Launcher
-        </h3>
+      <div className="space-y-2" aria-label="Open With">
+        <div>
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+            Material Launcher
+          </h3>
+          <p className="mt-1 text-xs leading-relaxed text-slate-500">
+            Open With presets for lesson materials — opens safely in a new tab from teacher
+            control only.
+          </p>
+        </div>
         {scopedLinks.length === 0 ? (
           <p className="rounded-xl border border-slate-800 bg-slate-900/50 px-3 py-2 text-xs text-slate-400">
             No resource links for this screen/page yet.
@@ -217,6 +282,8 @@ export function TodayPrepPanel({
         ) : (
           <ul className="space-y-2">
             {scopedLinks.map((link) => {
+              const preset = link.preset ?? DEFAULT_RESOURCE_OPEN_PRESET
+              const presetMeta = getResourcePresetMeta(preset)
               const warning = getResourceUrlWarning(link.url)
               const canOpen = isValidResourceUrl(link.url)
               return (
@@ -226,6 +293,22 @@ export function TodayPrepPanel({
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1 space-y-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="rounded-md border border-slate-600 bg-slate-950 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-300">
+                          {presetMeta.label}
+                        </span>
+                        {(link.screenId || link.pageId) && (
+                          <span className="text-[10px] uppercase tracking-wide text-slate-500">
+                            Scoped
+                          </span>
+                        )}
+                      </div>
+                      <ResourcePresetSelect
+                        value={preset}
+                        onChange={(nextPreset) =>
+                          updateMaterialLink(link.id, { preset: nextPreset })
+                        }
+                      />
                       <input
                         type="text"
                         value={link.label}
@@ -238,10 +321,21 @@ export function TodayPrepPanel({
                       <input
                         type="url"
                         value={link.url}
-                        onChange={(event) =>
-                          updateMaterialLink(link.id, { url: event.target.value })
-                        }
-                        placeholder="https://..."
+                        onChange={(event) => {
+                          const nextUrl = event.target.value
+                          const inferred = inferResourceOpenPresetFromUrl(nextUrl)
+                          const updates: { url: string; preset?: ResourceOpenPreset } = {
+                            url: nextUrl,
+                          }
+                          if (
+                            inferred &&
+                            (preset === DEFAULT_RESOURCE_OPEN_PRESET || preset === 'other')
+                          ) {
+                            updates.preset = inferred
+                          }
+                          updateMaterialLink(link.id, updates)
+                        }}
+                        placeholder={presetMeta.placeholder}
                         className="w-full rounded-lg border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 placeholder:text-slate-500"
                         aria-label="Resource URL"
                       />
@@ -284,21 +378,41 @@ export function TodayPrepPanel({
                     </p>
                   )}
                   {canOpen && (
-                    <a
-                      href={link.url.trim()}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex rounded-lg border border-emerald-400/40 bg-emerald-950/30 px-3 py-1.5 text-xs font-semibold text-emerald-100 transition hover:bg-emerald-900/40"
-                    >
-                      Open
-                    </a>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <a
+                        href={link.url.trim()}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex rounded-lg border border-emerald-400/40 bg-emerald-950/30 px-3 py-1.5 text-xs font-semibold text-emerald-100 transition hover:bg-emerald-900/40"
+                        aria-label={`Open With ${presetMeta.label}: ${link.label}`}
+                      >
+                        Open With
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => void handleCopyLink(link.url)}
+                        className="inline-flex rounded-lg border border-slate-600 bg-slate-900/80 px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:bg-slate-800"
+                      >
+                        Copy Link
+                      </button>
+                    </div>
                   )}
                 </li>
               )
             })}
           </ul>
         )}
+        {copyFeedback && (
+          <p role="status" className="text-xs text-slate-400">
+            {copyFeedback}
+          </p>
+        )}
         <div className="space-y-2 rounded-xl border border-slate-800 bg-slate-950/40 p-3">
+          <ResourcePresetSelect
+            value={linkPreset}
+            onChange={setLinkPreset}
+            id="open-with-add-preset"
+          />
           <input
             type="text"
             value={linkLabel}
@@ -309,8 +423,11 @@ export function TodayPrepPanel({
           <input
             type="url"
             value={linkUrl}
-            onChange={(event) => setLinkUrl(event.target.value)}
-            placeholder="https://..."
+            onChange={(event) => {
+              setLinkUrl(event.target.value)
+              handleLinkUrlChange(event.target.value, linkPreset)
+            }}
+            placeholder={addFormPresetMeta.placeholder}
             className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500"
           />
           <input
@@ -320,6 +437,14 @@ export function TodayPrepPanel({
             placeholder="Optional note"
             className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500"
           />
+          {getResourceUrlWarning(linkUrl) && linkUrl.trim() && (
+            <p
+              role="status"
+              className="rounded-lg border border-amber-400/30 bg-amber-950/20 px-2 py-1.5 text-xs text-amber-100/90"
+            >
+              {getResourceUrlWarning(linkUrl)}
+            </p>
+          )}
           <button
             type="button"
             onClick={handleAddLink}

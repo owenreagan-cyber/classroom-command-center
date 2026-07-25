@@ -40,6 +40,9 @@ async function assertDisplayPrivacy(page: Page) {
   await expect(page.getByText('Teacher Notes')).toHaveCount(0)
   await expect(page.getByLabel('Today Prep and Material Launcher')).toHaveCount(0)
   await expect(page.getByText('Material Launcher')).toHaveCount(0)
+  await expect(page.getByLabel('Open With')).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Open With' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Copy Link' })).toHaveCount(0)
   await expect(page.getByRole('heading', { name: 'Morning Message Studio' })).toHaveCount(0)
   await expect(page.getByLabel('Morning Message Studio')).toHaveCount(0)
   await expect(page.getByText('Student Picker & Stars')).toHaveCount(0)
@@ -140,8 +143,28 @@ test.describe('Phase 9C /control workflow smoke', () => {
 
     const prepPanel = page.getByLabel('Today Prep and Material Launcher')
     await expect(prepPanel.getByRole('button', { name: 'Add resource link' })).toBeVisible()
+    await expect(prepPanel.getByLabel('Open With')).toBeVisible()
+    await expect(prepPanel.getByLabel('Resource type preset')).toBeVisible()
 
     await page.goto('/display')
     await expect(page.getByRole('button', { name: 'Add resource link' })).toHaveCount(0)
+    await expect(page.getByLabel('Open With')).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Open With' })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Copy Link' })).toHaveCount(0)
+  })
+
+  test('Open With preset selector stays on /control only', async ({ page }) => {
+    await page.goto('/control')
+    await enterEditMode(page)
+
+    const prepPanel = page.getByLabel('Today Prep and Material Launcher')
+    const presetSelect = prepPanel.getByLabel('Resource type preset').first()
+    await expect(presetSelect).toBeVisible()
+    await expect(presetSelect.locator('option')).toHaveCount(7)
+    await expect(presetSelect.locator('option[value="google-slides"]')).toHaveCount(1)
+
+    await page.goto('/display')
+    await expect(page.getByLabel('Resource type preset')).toHaveCount(0)
+    await expect(page.locator('option[value="google-slides"]')).toHaveCount(0)
   })
 })

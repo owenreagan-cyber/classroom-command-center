@@ -1,6 +1,6 @@
 # Classroom Command Center — Current State Audit
 
-Status: reconciled after Phase 9C.1 Screenshot Baseline Snapshots
+Status: reconciled after Phase 10A Open With + Media Workflow
 Date: 2026-07-25
 Project: `~/Projects/classroom-command-center`
 
@@ -8,7 +8,8 @@ Project: `~/Projects/classroom-command-center`
 
 Latest phase branch:
 
-- `command-center-phase-9c1-screenshot-baselines` (from Phase 9C / main `b243c75`)
+- `command-center-phase-10a-open-with-media-workflow` (from main `fcea8cc`)
+- Phase 10A: teacher-only Open With workflow integrated into Material Launcher with resource type presets
 - Phase 9C.1: Playwright `toHaveScreenshot` baseline snapshots for `/display` at key viewports
 - Phase 9C: Playwright visual QA screenshots, viewport privacy checks, `/control` workflow smoke tests
 - Phase 9B: Morning Message Studio, templates, student display widget, backup integration
@@ -161,6 +162,7 @@ Implemented:
 - build/lint validation
 - Teacher Control / Student Display route split (`/control`, `/display`)
 - Today Prep dashboard and Teacher Material Launcher (Phase 8C)
+- Open With resource presets and safe launch workflow in Material Launcher (Phase 10A)
 
 ## Current Source Areas
 
@@ -209,13 +211,18 @@ Studio Canvas logic:
 
 High-value remaining work:
 
-- Open With resource menu
-- YouTube/media page
+- YouTube/media page (embedded player)
 - PDF/HTML viewer
 - basic annotation layer
 - Classroom Audio / Spotify Level 1 launcher
 - richer widget library
 - Studio Canvas template packs
+
+Deferred from Phase 10A (now complete):
+
+- ~~Open With resource menu~~
+- ~~resource type presets (Google Slides, Docs, Drive, YouTube, PDF, Website, Other)~~
+- ~~safe Open With launch from `/control`~~
 
 Deferred from Phase 9C.1 (now complete):
 
@@ -245,15 +252,15 @@ Deferred future work:
 
 Recommended next implementation phase:
 
-**Phase 8D — Media workflow or Open With launcher**
+**Phase 10B — Student-safe “Now Showing” or embedded media viewers**
 
 Rationale:
 
-Phase 9C added automated Playwright visual QA and workflow smoke tests. Phase 9C.1 added tracked snapshot baselines for `/display` regression testing. The next high-value step is richer media opening (Open With menu, YouTube/media page, or PDF viewer) while preserving route safety.
+Phase 10A added teacher-only Open With presets and safe external launch from Material Launcher. The next high-value step is either student-visible “now showing” labels (without exposing launcher controls) or embedded viewers (YouTube/PDF) while preserving `/display` privacy and snapshot stability.
 
-Suggested Phase 8D scope:
+Suggested Phase 10B scope:
 
-- Open With resource menu
-- YouTube/media page (no embedded player if constraints remain)
+- optional student-safe “Now Showing” card on `/display`
+- or embedded YouTube/PDF viewer phase
 - preserve `/control` / `/display` route safety
 - no backend, no cloud, no new heavy dependencies

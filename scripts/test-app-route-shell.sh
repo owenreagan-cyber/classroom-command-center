@@ -26,7 +26,8 @@ trap cleanup EXIT
   "$ROOT/src/app/appRouteShell.ts" \
   "$ROOT/src/lib/app-route-shell-tests.ts" \
   "$ROOT/src/lib/today-prep-tests.ts" \
-  "$ROOT/src/lib/resourceUrl.ts"
+  "$ROOT/src/lib/resourceUrl.ts" \
+  "$ROOT/src/lib/resourcePresets.ts"
 
 printf '{"type":"commonjs"}\n' > "$OUT/package.json"
 
