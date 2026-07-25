@@ -1,15 +1,20 @@
 import type { ScreenId } from '../../data/types'
+import type { ClassGroup, PickerPoolKey, ReadingSection } from '../roster/types'
 
 export type StudentId = string
-export type PickerClassId = 'homeroom' | 'math' | 'reading' | string
+export type PickerClassId = ClassGroup | string
 
 export interface Student {
   id: StudentId
+  firstName: string
+  lastName: string
+  preferredName?: string
   displayName: string
   isActive: boolean
   classes: PickerClassId[]
+  section?: ReadingSection
   isAbsent: boolean
-  note?: string // Teacher distinguishing label/note (e.g. for duplicate names)
+  note?: string
 }
 
 export type MysterySlotId = 'high-flier-1' | 'high-flier-2' | 'star'
@@ -31,23 +36,35 @@ export interface MysterySlot {
   observations: ObservationRecord[]
 }
 
+export type MysteryRevealStatus =
+  | 'active'
+  | 'revealed-1'
+  | 'revealed-2'
+  | 'revealed-3'
+  | 'completed'
+
 export interface MysterySession {
   id: string
+  poolKey: PickerPoolKey
   classId: PickerClassId
-  date: string // YYYY-MM-DD
-  status: 'active' | 'revealed-1' | 'revealed-2' | 'revealed-3' | 'completed'
+  readingSection?: ReadingSection
+  date: string
+  status: MysteryRevealStatus
   currentContext?: string
+  createdAt: number
+  updatedAt: number
   slots: {
     'high-flier-1': MysterySlot | null
     'high-flier-2': MysterySlot | null
-    'star': MysterySlot | null
+    star: MysterySlot | null
   }
 }
 
 export interface FairnessEntry {
   id: string
   studentId: StudentId
-  studentDisplayName?: string // Snapshot for history reliability
+  studentDisplayName?: string
+  poolKey: PickerPoolKey
   classId: PickerClassId
   timestamp: number
   role: 'quick-pick' | 'mystery-high-flier' | 'mystery-star' | 'absent-replacement'
@@ -69,9 +86,9 @@ export type CoachingDisplayMode = 'compact' | 'expanded' | 'hidden'
 
 export interface CoachingState {
   enabled: boolean
-  visibleBehaviors: string[] // array of BehaviorLookFor ids
+  visibleBehaviors: string[]
   customBehaviors: BehaviorLookFor[]
-  primaryFocusId?: string // highlights one specific behavior
+  primaryFocusId?: string
   showOnScreens: ScreenId[]
   stage: CoachingStage
   displayMode: CoachingDisplayMode
@@ -85,34 +102,73 @@ export interface PickerSettings {
 export interface PickerStoreState {
   students: Student[]
   fairnessHistory: FairnessEntry[]
-  activeMysterySessions: Record<PickerClassId, MysterySession | null>
+  activeMysterySessions: Record<string, MysterySession | null>
   coachingConfig: CoachingState
   settings: PickerSettings
+  importedRosterMeta?: {
+    schoolYear?: string
+    importedAt: number
+    sectionsFound: ReadingSection[]
+  }
 
-  // actions
   addStudent: (displayName: string, classIds: PickerClassId[], note?: string) => void
   addStudentsBulk: (names: string, classId: PickerClassId) => void
+  importRosterStudents: (
+    students: Student[],
+    meta?: { schoolYear?: string; sectionsFound?: ReadingSection[] },
+  ) => void
   updateStudent: (id: StudentId, updates: Partial<Student>) => void
   markAbsent: (id: StudentId, absent: boolean) => void
   markAllPresent: () => void
 
-  startMysterySession: (classId: PickerClassId, date: string, studentIds: StudentId[]) => void
-  updateMysterySlot: (classId: PickerClassId, slotId: MysterySlotId, status: MysterySlotStatus, reason?: string) => void
-  updateSlotObservation: (classId: PickerClassId, slotId: MysterySlotId, behaviorId: string, value: ObservationValue, context?: string) => void
-  replaceAbsentMysteryStudent: (classId: PickerClassId, slotId: MysterySlotId, newStudentId: StudentId) => void
+  startMysterySession: (
+    poolKey: PickerPoolKey,
+    classId: PickerClassId,
+    date: string,
+    studentIds: StudentId[],
+    readingSection?: ReadingSection,
+  ) => void
+  updateMysterySlot: (
+    poolKey: PickerPoolKey,
+    slotId: MysterySlotId,
+    status: MysterySlotStatus,
+    reason?: string,
+  ) => void
+  clearMysterySlotOutcome: (poolKey: PickerPoolKey, slotId: MysterySlotId) => void
+  updateSlotObservation: (
+    poolKey: PickerPoolKey,
+    slotId: MysterySlotId,
+    behaviorId: string,
+    value: ObservationValue,
+    context?: string,
+  ) => void
+  replaceAbsentMysteryStudent: (
+    poolKey: PickerPoolKey,
+    classId: PickerClassId,
+    slotId: MysterySlotId,
+    newStudentId: StudentId,
+  ) => void
 
-  canStartReveal: (classId: PickerClassId) => boolean
-  advanceMysteryReveal: (classId: PickerClassId) => void
-  replayReveal: (classId: PickerClassId) => void
-  cancelMysterySession: (classId: PickerClassId) => void
-  commitMysterySession: (classId: PickerClassId) => void
+  canStartReveal: (poolKey: PickerPoolKey) => boolean
+  advanceMysteryReveal: (poolKey: PickerPoolKey) => void
+  revealMysteryStep: (poolKey: PickerPoolKey, step: 'revealed-1' | 'revealed-2' | 'revealed-3') => void
+  replayReveal: (poolKey: PickerPoolKey) => void
+  cancelMysterySession: (poolKey: PickerPoolKey) => void
+  commitMysterySession: (poolKey: PickerPoolKey) => void
 
-  updateSessionContext: (classId: PickerClassId, context: string) => void
+  updateSessionContext: (poolKey: PickerPoolKey, context: string) => void
+  resetPool: (poolKey: PickerPoolKey) => void
 
-  recordQuickPick: (classId: PickerClassId, studentId: StudentId) => void
-  clearQuickPickHistory: (classId: PickerClassId) => void
-  correctOutcome: (classId: PickerClassId, eventId: string, nextOutcome: 'earned' | 'did-not-earn') => void
+  recordQuickPick: (poolKey: PickerPoolKey, classId: PickerClassId, studentId: StudentId) => void
+  clearQuickPickHistory: (poolKey: PickerPoolKey) => void
+  correctOutcome: (
+    poolKey: PickerPoolKey,
+    eventId: string,
+    nextOutcome: 'earned' | 'did-not-earn',
+  ) => void
 
   updateCoachingConfig: (updates: Partial<CoachingState>) => void
   updateSettings: (updates: Partial<PickerSettings>) => void
 }
+
+export type { PickerPoolKey, ReadingSection, ClassGroup }

@@ -20,10 +20,18 @@ trap cleanup EXIT
   --ignoreDeprecations 6.0 \
   --esModuleInterop \
   --skipLibCheck \
+  --resolveJsonModule \
   --outDir "$OUT" \
+  "$ROOT/src/features/roster/types.ts" \
+  "$ROOT/src/features/roster/normalize.ts" \
+  "$ROOT/src/features/roster/poolKey.ts" \
+  "$ROOT/src/features/roster/importRoster.ts" \
+  "$ROOT/src/features/roster/displaySafe.ts" \
+  "$ROOT/src/features/roster/sampleRoster.fixture.ts" \
   "$ROOT/src/features/student-picker/types.ts" \
   "$ROOT/src/features/student-picker/randomizerEngine.ts" \
   "$ROOT/src/features/student-picker/fairnessEngine.ts" \
+  "$ROOT/src/features/student-picker/pickerStore.ts" \
   "$ROOT/src/features/student-picker/tests.ts"
 
 printf '{"type":"commonjs"}\n' > "$OUT/package.json"

@@ -1,28 +1,35 @@
-import type { FairnessEntry, PickerClassId, Student } from './types'
+import type { FairnessEntry, PickerPoolKey, Student } from './types'
+import { parsePoolKey } from '../roster/poolKey'
 import { shuffle } from './randomizerEngine'
+
+export function studentMatchesPool(student: Student, poolKey: PickerPoolKey): boolean {
+  const { classGroup, section } = parsePoolKey(poolKey)
+  if (!student.classes.includes(classGroup)) return false
+  if (classGroup === 'reading' && section) {
+    return student.section === section
+  }
+  return true
+}
 
 export function getEligibleStudents(
   students: Student[],
-  classId: PickerClassId,
+  poolKey: PickerPoolKey,
   history: FairnessEntry[],
-  excludeStudentIds: string[] = []
+  excludeStudentIds: string[] = [],
 ): Student[] {
   const classStudents = students.filter(
-    (s) => s.isActive && !s.isAbsent && s.classes.includes(classId)
+    (s) => s.isActive && !s.isAbsent && studentMatchesPool(s, poolKey),
   )
 
-  const classHistory = history.filter((h) => h.classId === classId)
+  const poolHistory = history.filter((h) => (h.poolKey ?? h.classId) === poolKey)
 
-  // Count opportunities
   const opportunities = new Map<string, number>()
-  // Include earned, did-not-earn, and quick-picked. Exclude absent-replaced.
-  for (const entry of classHistory) {
+  for (const entry of poolHistory) {
     if (entry.outcome !== 'absent-replaced') {
       opportunities.set(entry.studentId, (opportunities.get(entry.studentId) || 0) + 1)
     }
   }
 
-  // Find min opportunities among eligible
   let minOpps = Infinity
   for (const s of classStudents) {
     if (excludeStudentIds.includes(s.id)) continue
@@ -32,34 +39,36 @@ export function getEligibleStudents(
     }
   }
 
-  // If no one is eligible (e.g. all absent or excluded), return empty
   if (minOpps === Infinity) return []
 
-  // Get all students with min opportunities
-  const eligible = classStudents.filter((s) => {
+  return classStudents.filter((s) => {
     if (excludeStudentIds.includes(s.id)) return false
     const opps = opportunities.get(s.id) || 0
     return opps === minOpps
   })
+}
 
-  // If we only have 1 or 2 eligible students, we might be at a cycle boundary.
-  // We return them. The caller can pick from them.
-  return eligible
+export function countEligibleStudents(
+  students: Student[],
+  poolKey: PickerPoolKey,
+  history: FairnessEntry[],
+): number {
+  return getEligibleStudents(students, poolKey, history).length
 }
 
 export function pickRandomEligible(
   students: Student[],
-  classId: PickerClassId,
+  poolKey: PickerPoolKey,
   history: FairnessEntry[],
   count: number,
-  excludeStudentIds: string[] = []
+  excludeStudentIds: string[] = [],
 ): Student[] {
   const picked: Student[] = []
   const currentExcluded = [...excludeStudentIds]
 
   while (picked.length < count) {
-    const eligible = getEligibleStudents(students, classId, history, currentExcluded)
-    if (eligible.length === 0) break // No more students available
+    const eligible = getEligibleStudents(students, poolKey, history, currentExcluded)
+    if (eligible.length === 0) break
 
     const shuffled = shuffle(eligible)
     const needed = count - picked.length
@@ -70,4 +79,14 @@ export function pickRandomEligible(
   }
 
   return picked
+}
+
+export function getAvailableReadingSections(students: Student[]): Array<'RM4' | 'SM5'> {
+  const sections = new Set<'RM4' | 'SM5'>()
+  for (const student of students) {
+    if (student.classes.includes('reading') && student.section) {
+      sections.add(student.section)
+    }
+  }
+  return [...sections]
 }

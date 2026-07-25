@@ -1,14 +1,15 @@
 # Classroom Command Center — Current State Audit
 
-Status: reconciled after Phase 10A Open With + Media Workflow
-Date: 2026-07-25
+Status: reconciled after Phase 12A Mystery Star Native Module  
+Date: 2026-07-25  
 Project: `~/Projects/classroom-command-center`
 
 ## Current Repo State
 
 Latest phase branch:
 
-- `command-center-phase-10a-open-with-media-workflow` (from main `fcea8cc`)
+- `phase-12a-mystery-star-native-module`
+- Phase 12A: typed rosters with preferred names, local roster import, Reading section pools (RM4/SM5), enhanced Mystery Star control panel, display-safe status
 - Phase 10A: teacher-only Open With workflow integrated into Material Launcher with resource type presets
 - Phase 9C.1: Playwright `toHaveScreenshot` baseline snapshots for `/display` at key viewports
 - Phase 9C: Playwright visual QA screenshots, viewport privacy checks, `/control` workflow smoke tests
