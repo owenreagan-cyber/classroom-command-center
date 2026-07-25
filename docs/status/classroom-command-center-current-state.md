@@ -264,3 +264,17 @@ Suggested Phase 10B scope:
 - or embedded YouTube/PDF viewer phase
 - preserve `/control` / `/display` route safety
 - no backend, no cloud, no new heavy dependencies
+
+---
+
+## Phase 11A — OmniNote Handoff Planning
+
+Phase 11A documents the planned bridge between Classroom Command Center and OmniNote.
+
+Command Center remains the classroom workflow hub for routines, timers, Morning Message, Today Prep, Open With resources, and student-safe display labels.
+
+OmniNote remains the native iPad Apple Pencil annotation and presentation app for PDFs, worksheets, slide exports, and blank teaching canvases.
+
+The recommended first bridge is a safe resource handoff model: Command Center tracks the teaching resource and student-safe label, while OmniNote handles iPad annotation/presentation. `/display` should show only safe labels such as "Now Showing" or future "Now Annotating" text, not URLs, notes, launch controls, or teacher-only metadata.
+
+No runtime handoff behavior was added in Phase 11A.
