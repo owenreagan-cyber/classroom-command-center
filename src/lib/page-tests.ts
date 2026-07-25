@@ -188,6 +188,10 @@ assert('Homeroom has Morning Arrival', hasTitle(homeroomWs, 'Morning Arrival'))
 assert('Homeroom has Silent Work', hasTitle(homeroomWs, 'Silent Work'))
 assert('Homeroom has Clean Up', hasTitle(homeroomWs, 'Clean Up'))
 assert('Homeroom has Morning Message', hasTitle(homeroomWs, 'Morning Message'))
+assert(
+  'Morning Message page uses morning-message widget',
+  homeroomWs.pages.some((p) => p.id === 'homeroom-morning-message' && p.widgets.some((w) => w.type === 'morning-message')),
+)
 assert('Homeroom has Announcements', hasTitle(homeroomWs, 'Announcements'))
 assert('Math has Get Ready', hasTitle(workspaces['math']!, 'Get Ready'))
 assert('Math has Warm-Up', hasTitle(workspaces['math']!, 'Warm-Up'))

@@ -1,5 +1,6 @@
 import type {
   CardVisibilityOption,
+  MorningMessageState,
   NoiseTrackerId,
   NoiseTrackerState,
   ReadyPositionContent,
@@ -12,6 +13,7 @@ import type {
   VocabularyContent,
 } from './types'
 import { DEFAULT_BACKGROUND_ID } from './backgroundAssets'
+import { createDefaultMorningMessageState } from './morningMessage'
 import { createDefaultNoiseTrackers } from '../lib/noiseTowers'
 
 export const SCREEN_META: ScreenMeta[] = [
@@ -355,6 +357,8 @@ export const DEFAULT_TODAY_PREP: TodayPrepState = {
   ].map((item) => ({ ...item, completed: false })),
   resourceLinks: [],
 }
+
+export const DEFAULT_MORNING_MESSAGE: MorningMessageState = createDefaultMorningMessageState()
 
 export const DEFAULT_TEACHER_NOTES: TeacherNote[] = [
   { id: 'prep-homeroom', screenId: 'homeroom', visibility: 'teacherOnly', text: 'Check attendance folder and morning announcements before display mode.' },

@@ -9,6 +9,7 @@ import { LessonCard } from '../../widgets/LessonCard'
 import { VocabularyCard } from '../../widgets/VocabularyCard'
 import { SmartTextCard } from '../../widgets/SmartTextCard'
 import { TimerWidget } from '../../widgets/TimerWidget'
+import { MorningMessageWidget } from '../../features/morning-message/MorningMessageWidget'
 import type { SimpleTimerScreenId } from '../../data/timerTypes'
 import {
   TIMER_CAPABLE_SCREENS,
@@ -238,6 +239,9 @@ export function WidgetContentBody({
         />
       )
     }
+
+    case 'morning-message':
+      return <MorningMessageWidget mode={mode} className={className} />
 
     case 'timer': {
       if (!TIMER_CAPABLE_SCREENS.has(screenId)) {

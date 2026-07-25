@@ -1,5 +1,7 @@
 export type AppMode = 'edit' | 'display'
 
+import type { MorningMessageState } from './morningMessage'
+
 /** Who may see a piece of board content. */
 export type Visibility = 'student' | 'teacherOnly' | 'hidden'
 
@@ -424,6 +426,14 @@ export interface NoiseTrackerState {
   towers: NoiseTowerState[]
 }
 
+export type {
+  MorningMessageSectionId,
+  MorningMessageSectionVisibility,
+  MorningMessageContent,
+  MorningMessageTemplate,
+  MorningMessageState,
+} from './morningMessage'
+
 export interface BoardState {
   mode: AppMode
   activeScreen: ScreenId
@@ -433,6 +443,7 @@ export interface BoardState {
   contents: ScreenContents
   teacherNotes: TeacherNote[]
   todayPrep: TodayPrepState
+  morningMessage: MorningMessageState
   cardVisibility: ScreenCardVisibility
   customPresets: CustomBoardPreset[]
   noiseTrackers: Record<NoiseTrackerId, NoiseTrackerState>

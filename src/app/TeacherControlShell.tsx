@@ -19,6 +19,7 @@ export function TeacherControlShell() {
   const contents = useBoardStore((state) => state.contents)
   const teacherNotes = useBoardStore((state) => state.teacherNotes)
   const todayPrep = useBoardStore((state) => state.todayPrep)
+  const morningMessage = useBoardStore((state) => state.morningMessage)
   const cardVisibility = useBoardStore((state) => state.cardVisibility)
   const customPresets = useBoardStore((state) => state.customPresets)
   const noiseTrackers = useBoardStore((state) => state.noiseTrackers)
@@ -58,6 +59,7 @@ export function TeacherControlShell() {
     contents,
     teacherNotes,
     todayPrep,
+    morningMessage,
     cardVisibility,
     customPresets,
     noiseTrackers,

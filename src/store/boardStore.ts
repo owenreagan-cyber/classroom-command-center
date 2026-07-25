@@ -10,6 +10,7 @@ import {
   DEFAULT_CARD_VISIBILITY,
   DEFAULT_CONTENTS,
   DEFAULT_MODE,
+  DEFAULT_MORNING_MESSAGE,
   DEFAULT_NOISE_TRACKERS,
   DEFAULT_SCREEN_ID,
   DEFAULT_TEACHER_NOTES,
@@ -17,6 +18,16 @@ import {
 } from '../data/defaults'
 import { getBackgroundForScreen, normalizeBackgroundId } from '../data/backgroundAssets'
 import { buildClassWorkspaces } from '../data/pageSequences'
+import {
+  cloneMorningMessageContent,
+  createDefaultMorningMessageContent,
+  createMorningMessageId,
+  isDuplicateTemplateName,
+  isTemplateNameValid,
+  normalizeMorningMessageState,
+  type MorningMessageSectionId,
+  type MorningMessageTemplate,
+} from '../data/morningMessage'
 import type {
   AppMode,
   BackgroundAssetId,
@@ -116,6 +127,17 @@ interface BoardStore extends BoardState {
   addMaterialLink: (link: Omit<TeacherMaterialLink, 'id'>) => void
   updateMaterialLink: (id: string, updates: Partial<Omit<TeacherMaterialLink, 'id'>>) => void
   removeMaterialLink: (id: string) => void
+  updateMorningMessageText: (sectionId: MorningMessageSectionId, text: string) => void
+  updateMorningMessageBullets: (sectionId: MorningMessageSectionId, items: string[]) => void
+  setMorningMessageSectionVisible: (sectionId: MorningMessageSectionId, visible: boolean) => void
+  setMorningMessageDateMode: (useAutomaticDate: boolean, dateOverride?: string | null) => void
+  clearMorningMessage: () => void
+  restoreDefaultMorningMessage: () => void
+  saveMorningMessageTemplate: (name: string, overwriteId?: string) => { ok: boolean; error?: string }
+  applyMorningMessageTemplate: (templateId: string) => void
+  renameMorningMessageTemplate: (templateId: string, name: string) => { ok: boolean; error?: string }
+  deleteMorningMessageTemplate: (templateId: string) => void
+  sendMorningMessageToDisplay: () => void
 }
 
 const defaultWorkspaces = buildClassWorkspaces()
@@ -129,6 +151,7 @@ const initialState: BoardState = {
   contents: structuredClone(DEFAULT_CONTENTS),
   teacherNotes: structuredClone(DEFAULT_TEACHER_NOTES),
   todayPrep: structuredClone(DEFAULT_TODAY_PREP),
+  morningMessage: structuredClone(DEFAULT_MORNING_MESSAGE),
   cardVisibility: structuredClone(DEFAULT_CARD_VISIBILITY),
   customPresets: [],
   noiseTrackers: structuredClone(DEFAULT_NOISE_TRACKERS) as BoardState['noiseTrackers'],
@@ -567,6 +590,7 @@ export const useBoardStore = create<BoardStore>()(
           contents: normalizeBoardContents(imported.contents),
           teacherNotes: normalizeTeacherNotes(imported.teacherNotes),
           todayPrep: normalizeTodayPrep(imported.todayPrep),
+          morningMessage: normalizeMorningMessageState(imported.morningMessage),
           cardVisibility: mergeCardVisibility(imported.cardVisibility),
           customPresets: normalizeCustomPresets(imported.customPresets),
           noiseTrackers: normalizeNoiseTrackerMap(imported.noiseTrackers),
@@ -655,6 +679,7 @@ export const useBoardStore = create<BoardStore>()(
           contents: structuredClone(DEFAULT_CONTENTS),
           teacherNotes: structuredClone(DEFAULT_TEACHER_NOTES),
           todayPrep: structuredClone(DEFAULT_TODAY_PREP),
+          morningMessage: structuredClone(DEFAULT_MORNING_MESSAGE),
           cardVisibility: structuredClone(DEFAULT_CARD_VISIBILITY),
           customPresets: [],
           noiseTrackers: structuredClone(DEFAULT_NOISE_TRACKERS) as BoardState['noiseTrackers'],
@@ -725,10 +750,183 @@ export const useBoardStore = create<BoardStore>()(
             resourceLinks: state.todayPrep.resourceLinks.filter((link) => link.id !== id),
           },
         })),
+      updateMorningMessageText: (sectionId, text) =>
+        set((state) => ({
+          morningMessage: {
+            ...state.morningMessage,
+            current: {
+              ...state.morningMessage.current,
+              text: { ...state.morningMessage.current.text, [sectionId]: text },
+            },
+            lastUpdated: new Date().toISOString(),
+          },
+        })),
+      updateMorningMessageBullets: (sectionId, items) =>
+        set((state) => ({
+          morningMessage: {
+            ...state.morningMessage,
+            current: {
+              ...state.morningMessage.current,
+              bullets: { ...state.morningMessage.current.bullets, [sectionId]: items },
+            },
+            lastUpdated: new Date().toISOString(),
+          },
+        })),
+      setMorningMessageSectionVisible: (sectionId, visible) =>
+        set((state) => ({
+          morningMessage: {
+            ...state.morningMessage,
+            current: {
+              ...state.morningMessage.current,
+              visibility: { ...state.morningMessage.current.visibility, [sectionId]: visible },
+            },
+            lastUpdated: new Date().toISOString(),
+          },
+        })),
+      setMorningMessageDateMode: (useAutomaticDate, dateOverride = null) =>
+        set((state) => ({
+          morningMessage: {
+            ...state.morningMessage,
+            current: {
+              ...state.morningMessage.current,
+              useAutomaticDate,
+              dateOverride: useAutomaticDate ? null : dateOverride,
+            },
+            lastUpdated: new Date().toISOString(),
+          },
+        })),
+      clearMorningMessage: () =>
+        set((state) => ({
+          morningMessage: {
+            ...state.morningMessage,
+            current: {
+              ...createDefaultMorningMessageContent(),
+              text: {},
+              bullets: {
+                announcements: [],
+                reminders: [],
+                schedulePreview: [],
+                materials: [],
+              },
+              visibility: state.morningMessage.current.visibility,
+            },
+            selectedTemplateId: null,
+            lastUpdated: new Date().toISOString(),
+          },
+        })),
+      restoreDefaultMorningMessage: () =>
+        set((state) => ({
+          morningMessage: {
+            ...state.morningMessage,
+            current: createDefaultMorningMessageContent(),
+            selectedTemplateId: null,
+            lastUpdated: new Date().toISOString(),
+          },
+        })),
+      saveMorningMessageTemplate: (name, overwriteId) => {
+        const trimmed = name.trim()
+        if (!isTemplateNameValid(trimmed)) {
+          return { ok: false, error: 'Template name cannot be empty.' }
+        }
+        const state = get()
+        if (isDuplicateTemplateName(state.morningMessage.templates, trimmed, overwriteId)) {
+          return { ok: false, error: 'A template with this name already exists.' }
+        }
+        const now = new Date().toISOString()
+        if (overwriteId) {
+          set((s) => ({
+            morningMessage: {
+              ...s.morningMessage,
+              templates: s.morningMessage.templates.map((t: MorningMessageTemplate) =>
+                t.id === overwriteId
+                  ? {
+                      ...t,
+                      name: trimmed,
+                      content: cloneMorningMessageContent(s.morningMessage.current),
+                      updatedAt: now,
+                    }
+                  : t,
+              ),
+              selectedTemplateId: overwriteId,
+              lastUpdated: now,
+            },
+          }))
+        } else {
+          const id = createMorningMessageId('mmtpl')
+          set((s) => ({
+            morningMessage: {
+              ...s.morningMessage,
+              templates: [
+                ...s.morningMessage.templates,
+                {
+                  id,
+                  name: trimmed,
+                  createdAt: now,
+                  updatedAt: now,
+                  content: cloneMorningMessageContent(s.morningMessage.current),
+                },
+              ],
+              selectedTemplateId: id,
+              lastUpdated: now,
+            },
+          }))
+        }
+        return { ok: true }
+      },
+      applyMorningMessageTemplate: (templateId) => {
+        const state = get()
+        const template = state.morningMessage.templates.find((t: MorningMessageTemplate) => t.id === templateId)
+        if (!template) return
+        set({
+          morningMessage: {
+            ...state.morningMessage,
+            current: cloneMorningMessageContent(template.content),
+            selectedTemplateId: templateId,
+            lastUpdated: new Date().toISOString(),
+          },
+        })
+      },
+      renameMorningMessageTemplate: (templateId, name) => {
+        const trimmed = name.trim()
+        if (!isTemplateNameValid(trimmed)) {
+          return { ok: false, error: 'Template name cannot be empty.' }
+        }
+        const state = get()
+        if (isDuplicateTemplateName(state.morningMessage.templates, trimmed, templateId)) {
+          return { ok: false, error: 'A template with this name already exists.' }
+        }
+        set((s) => ({
+          morningMessage: {
+            ...s.morningMessage,
+            templates: s.morningMessage.templates.map((t) =>
+              t.id === templateId ? { ...t, name: trimmed, updatedAt: new Date().toISOString() } : t,
+            ),
+          },
+        }))
+        return { ok: true }
+      },
+      deleteMorningMessageTemplate: (templateId) =>
+        set((state) => ({
+          morningMessage: {
+            ...state.morningMessage,
+            templates: state.morningMessage.templates.filter((t: MorningMessageTemplate) => t.id !== templateId),
+            selectedTemplateId:
+              state.morningMessage.selectedTemplateId === templateId
+                ? null
+                : state.morningMessage.selectedTemplateId,
+          },
+        })),
+      sendMorningMessageToDisplay: () => {
+        set({
+          activeScreen: 'homeroom',
+          activePageId: 'homeroom-morning-message',
+          mode: 'display',
+        })
+      },
     }),
     {
       name: 'classroom-command-center-lite',
-      version: 9,
+      version: 10,
       migrate: (persisted, version) => {
         const state = (persisted ?? {}) as Partial<BoardState> & {
           themeId?: string
@@ -747,6 +945,11 @@ export const useBoardStore = create<BoardStore>()(
           version < 9
             ? structuredClone(DEFAULT_TODAY_PREP)
             : normalizeTodayPrep(state.todayPrep)
+
+        const morningMessage =
+          version < 10
+            ? structuredClone(DEFAULT_MORNING_MESSAGE)
+            : normalizeMorningMessageState(state.morningMessage)
 
         const cardVisibility = mergeCardVisibility(
           version < 5 ? undefined : state.cardVisibility,
@@ -771,6 +974,7 @@ export const useBoardStore = create<BoardStore>()(
           contents: normalizeBoardContents(contents as ScreenContents),
           teacherNotes,
           todayPrep,
+          morningMessage,
           cardVisibility,
           customPresets: normalizeCustomPresets(state.customPresets),
           noiseTrackers: normalizeNoiseTrackerMap(state.noiseTrackers),
@@ -785,6 +989,7 @@ export const useBoardStore = create<BoardStore>()(
         contents: state.contents,
         teacherNotes: state.teacherNotes,
         todayPrep: state.todayPrep,
+        morningMessage: state.morningMessage,
         cardVisibility: state.cardVisibility,
         customPresets: state.customPresets,
         noiseTrackers: state.noiseTrackers,
