@@ -284,3 +284,39 @@ button {
   min-width: 2.75rem;
   font-size: var(--display-label-min);
 }
+
+/* ── Morning Message display (Phase 9B) ─────────────────────────────── */
+
+.morning-message-display__shell {
+  max-height: 100%;
+}
+
+.morning-message-display--sparse .morning-message-display__body {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1.25rem;
+}
+
+.morning-message-display--normal .morning-message-display__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.morning-message-display--dense .morning-message-display__body--grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem 1rem;
+  align-content: start;
+}
+
+.morning-message-display__section--hero {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 1024px) {
+  .morning-message-display--dense .morning-message-display__body--grid {
+    grid-template-columns: 1fr;
+  }
+}

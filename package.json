@@ -16,6 +16,7 @@
     "test:app-route": "bash scripts/test-app-route.sh && bash scripts/test-app-route-shell.sh",
     "test:display-launch": "bash scripts/test-display-launch.sh",
     "test:display-polish": "bash scripts/test-display-polish.sh",
+    "test:morning-message": "bash scripts/test-morning-message.sh",
     "test:e2e": "playwright test"
   },
   "dependencies": {

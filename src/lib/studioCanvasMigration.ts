@@ -38,7 +38,18 @@ function normalizePage(persistedPage: VibePage, freshPage: VibePage): VibePage {
       seenIds.add(w.id)
       return true
     })
-    .map((w, index) => normalizeWidget(w, freshById.get(w.id), index))
+    .map((w, index) => {
+      const normalized = normalizeWidget(w, freshById.get(w.id), index)
+      // Phase 9B: homeroom Morning Message page uses dedicated widget type.
+      if (
+        persistedPage.id === 'homeroom-morning-message' &&
+        normalized.type === 'reminders' &&
+        freshPage.widgets.some((fw) => fw.type === 'morning-message')
+      ) {
+        return { ...normalized, type: 'morning-message' }
+      }
+      return normalized
+    })
 
   // Seed any widget present in the fresh definition but missing entirely
   // from the persisted page (e.g. an older save from before this widget

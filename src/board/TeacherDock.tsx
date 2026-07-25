@@ -28,6 +28,7 @@ import { NoiseControlPanel } from './NoiseControlPanel'
 import { TeacherNotesPanel } from './TeacherNotesPanel'
 import { DisplayLaunchPanel } from './DisplayLaunchPanel'
 import { TodayPrepPanel } from './TodayPrepPanel'
+import { MorningMessageStudioPanel } from '../features/morning-message/MorningMessageStudioPanel'
 import { StudentPickerPanel } from '../features/student-picker/StudentPickerPanel'
 import { LocalPacketPanel } from '../features/local-packets/LocalPacketPanel'
 
@@ -140,6 +141,12 @@ export function TeacherDock({
 
       <DisplayLaunchPanel />
 
+      <MorningMessageStudioPanel
+        activeScreen={activeScreen}
+        activePageId={activePageId}
+        classWorkspaces={classWorkspaces}
+      />
+
       <TodayPrepPanel
         activeScreen={activeScreen}
         activePageId={activePageId}
@@ -215,6 +222,7 @@ export function TeacherDock({
         boardActiveScreen={boardState.activeScreen}
         boardActivePageId={boardState.activePageId}
         boardTodayPrep={boardState.todayPrep}
+        boardMorningMessage={boardState.morningMessage}
         boardMode={boardState.mode}
         boardBackgroundId={boardState.backgroundId}
         boardTeacherNotes={boardState.teacherNotes}

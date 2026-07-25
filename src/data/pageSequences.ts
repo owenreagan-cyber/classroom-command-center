@@ -106,7 +106,7 @@ const HOMEROOM_SEQUENCE: PageSequenceDefinition = {
       primaryMessage: 'Good morning! Here is today\'s message.',
       supportingContent: ['Announcements', 'Birthdays', 'Special events'],
       layoutPreset: 'centered-message',
-      widgetTypes: ['reminders'],
+      widgetTypes: ['morning-message'],
       routinePhaseIds: [],
     },
     {

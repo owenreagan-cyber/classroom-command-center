@@ -114,6 +114,7 @@ export interface BackupBoardContent {
   contents?: Record<string, unknown>
   teacherNotes?: unknown[]
   todayPrep?: unknown
+  morningMessage?: unknown
   cardVisibility?: Record<string, unknown>
   customPresets?: unknown[]
   noiseTrackers?: Record<string, unknown>
