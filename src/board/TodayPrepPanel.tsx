@@ -22,6 +22,8 @@ interface TodayPrepPanelProps {
   activeScreen: ScreenId
   activePageId: VibePageId | null
   classWorkspaces: Record<ScreenId, ClassWorkspace | undefined>
+  /** When set, only render selected sections (default: all). */
+  sections?: Array<'context' | 'checklist' | 'materials'>
 }
 
 function matchesActiveContext(
@@ -66,6 +68,7 @@ export function TodayPrepPanel({
   activeScreen,
   activePageId,
   classWorkspaces,
+  sections,
 }: TodayPrepPanelProps) {
   const todayPrep = useBoardStore((state) => state.todayPrep)
   const addPrepChecklistItem = useBoardStore((state) => state.addPrepChecklistItem)
@@ -187,8 +190,14 @@ export function TodayPrepPanel({
     window.setTimeout(() => setCopyFeedback(null), 3000)
   }
 
+  const showContext = !sections || sections.includes('context')
+  const showChecklist = !sections || sections.includes('checklist')
+  const showMaterials = !sections || sections.includes('materials')
+
   return (
     <section className="space-y-4" aria-label="Today Prep and Material Launcher">
+      {showContext && (
+      <>
       <div>
         <div className="flex items-center justify-between gap-2">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-400">
@@ -229,7 +238,10 @@ export function TodayPrepPanel({
           </ul>
         )}
       </div>
+      </>
+      )}
 
+      {showChecklist && (
       <div className="space-y-2">
         <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-400">
           Prep checklist
@@ -307,7 +319,9 @@ export function TodayPrepPanel({
           </button>
         </div>
       </div>
+      )}
 
+      {showMaterials && (
       <div className="space-y-2" aria-label="Open With">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div>
@@ -566,6 +580,7 @@ export function TodayPrepPanel({
           </button>
         </div>
       </div>
+      )}
     </section>
   )
 }
