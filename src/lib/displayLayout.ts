@@ -57,6 +57,7 @@ export function screenGridClass(screenId: ScreenId, mode: AppMode): string {
       return `${base} board-screen-grid--snack-lunch`
     case 'ready-position':
     case 'recess':
+    case 'movement':
       return `${base} board-screen-grid--ready-position`
     case 'homework':
     case 'pack-up':

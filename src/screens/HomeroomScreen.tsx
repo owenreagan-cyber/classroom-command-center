@@ -23,6 +23,7 @@ import { VoiceLevelWidget } from '../widgets/VoiceLevelWidget'
 import { TimerWidget } from '../widgets/TimerWidget'
 import { formatTimerMs } from '../lib/timerFormat'
 import { useTimerStore } from '../store/timerStore'
+import { CANONICAL_DAILY_BLOCKS, resolveBlockPageSuggestion, resolveCurriculumTrack } from '../data/routineSchedule'
 import type { RoutineSuggestion } from '../data/routineTypes'
 
 interface HomeroomScreenProps {
@@ -61,6 +62,10 @@ export function HomeroomScreen({
   const currentDate = new Date(now)
   const routineTimeline = getRoutineTimeline('homeroom-arrival', currentDate, routineControls)
   const blockTimeline = getDailyBlockTimeline(currentDate)
+  const historyScienceBlock = CANONICAL_DAILY_BLOCKS.find((block) => block.id === 'history-science')
+  const curriculumTrack = resolveCurriculumTrack(currentDate)
+  const resolveBlockSuggestion = (block: typeof blockTimeline.currentBlock) =>
+    block ? resolveBlockPageSuggestion(block, curriculumTrack, historyScienceBlock) : undefined
 
   if (mode === 'display') {
     const openMathSuggestion = {
@@ -71,8 +76,8 @@ export function HomeroomScreen({
     const suggestion =
       routineTimeline.phase?.nextPageSuggestion ??
       routineTimeline.suggestion ??
-      blockTimeline.currentBlock?.pageSuggestion ??
-      blockTimeline.nextBlock?.pageSuggestion ??
+      resolveBlockSuggestion(blockTimeline.currentBlock) ??
+      resolveBlockSuggestion(blockTimeline.nextBlock) ??
       openMathSuggestion
 
     return (

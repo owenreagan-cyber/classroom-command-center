@@ -21,6 +21,10 @@
     "test:visual-qa": "bash scripts/test-visual-qa.sh",
     "test:display-snapshots": "bash scripts/test-display-snapshots.sh",
     "test:prize-board-projector-snapshots": "bash scripts/test-prize-board-projector-snapshots.sh",
+    "test:timers": "bash scripts/test-timers.sh",
+    "test:omninote-bridge": "bash scripts/test-omninote-bridge.sh",
+    "test:classroom-atmosphere": "bash scripts/test-classroom-atmosphere.sh",
+    "test:teacher-workstation": "bash scripts/test-teacher-workstation.sh",
     "test:e2e": "playwright test"
   },
   "dependencies": {

@@ -105,6 +105,11 @@ export const CARD_VISIBILITY_OPTIONS: Record<string, CardVisibilityOption[]> = {
     { id: 'compact-cue', label: 'Compact cue', isOptional: true },
     { id: 'noise', label: 'Noise tracker', helperText: 'Homeroom voice level tracker', isOptional: true },
   ],
+  movement: [
+    { id: 'ready', label: 'Movement expectations', helperText: 'Follow directions during movement break' },
+    { id: 'compact-cue', label: 'Compact cue', isOptional: true },
+    { id: 'noise', label: 'Noise tracker', helperText: 'Homeroom voice level tracker', isOptional: true },
+  ],
   snack: [
     { id: 'cleanup', label: 'Cleanup reminders' },
     { id: 'routine', label: 'Routine' },
@@ -152,6 +157,7 @@ export const DEFAULT_CARD_VISIBILITY: ScreenCardVisibility = {
   assessment: { focus: true, agenda: true, materials: true, 'lesson-card': false, 'vocabulary-card': false },
   centers: { focus: true, agenda: true, materials: true, 'lesson-card': false, 'vocabulary-card': false },
   recess: { ready: true, 'compact-cue': true },
+  movement: { ready: true, 'compact-cue': true },
   snack: { cleanup: true, routine: true, 'phase-timer': true },
   lunch: { cleanup: true, routine: true, 'phase-timer': true },
   homework: { focus: true, materials: true },
@@ -283,6 +289,12 @@ export const DEFAULT_CONTENTS: ScreenContents = {
     title: 'Recess',
     steps: ['Play safely', 'Keep hands and feet to yourself', 'Line up quickly', 'Return ready to learn'],
     compactLine: 'Play safely, line up quickly, and listen for the signal.',
+    useCompact: false,
+  },
+  movement: {
+    title: 'Movement',
+    steps: ['Follow directions', 'Stay in assigned area', 'Listen for the signal', 'Return ready to learn'],
+    compactLine: 'Move safely and return ready to learn.',
     useCompact: false,
   },
   snack: {

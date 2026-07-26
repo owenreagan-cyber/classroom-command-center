@@ -8,6 +8,11 @@ import type { AppMode, CardId, SnackContent, LunchContent, NoiseTrackerState, Sc
 import type { ScreenCardVisibility } from '../data/types'
 import { screenGridClass, noiseCardOverlayClass } from '../lib/displayLayout'
 import { getDailyBlockTimeline, getRoutineTimeline } from '../lib/routineEngine'
+import {
+  CANONICAL_DAILY_BLOCKS,
+  resolveBlockPageSuggestion,
+  resolveCurriculumTrack,
+} from '../data/routineSchedule'
 import { VoiceLevelWidget } from '../widgets/VoiceLevelWidget'
 import { useTimerStore } from '../store/timerStore'
 import { PhaseTimerCard } from '../widgets/PhaseTimerCard'
@@ -48,18 +53,22 @@ export function SnackLunchDisplayView({
   const routineControls = useTimerStore((state) => state.routineControls)
   const currentDate = new Date(now)
   const blockTimeline = getDailyBlockTimeline(currentDate)
+  const historyScienceBlock = CANONICAL_DAILY_BLOCKS.find((block) => block.id === 'history-science')
+  const curriculumTrack = resolveCurriculumTrack(currentDate)
+  const resolveBlockSuggestion = (block: typeof blockTimeline.currentBlock) =>
+    block ? resolveBlockPageSuggestion(block, curriculumTrack, historyScienceBlock) : undefined
   const scheduleId = snackKind === 'lunch' ? 'lunch-routine' : 'snack-routine'
   const routineTimeline = getRoutineTimeline(scheduleId, currentDate, routineControls)
 
   if (mode === 'display') {
     const fallbackSuggestion = snackKind === 'lunch'
       ? { label: 'Open Recess', screenId: 'recess' as ScreenId, pageId: 'recess-play' as const }
-      : { label: 'Open History/Science', screenId: 'science' as ScreenId, pageId: 'history-science-get-ready' as const }
+      : { label: 'Open Shurley/Writing', screenId: 'writing' as ScreenId, pageId: 'shurley-get-ready' as const }
     const suggestion =
       routineTimeline.phase?.nextPageSuggestion ??
       routineTimeline.suggestion ??
-      blockTimeline.currentBlock?.pageSuggestion ??
-      blockTimeline.nextBlock?.pageSuggestion ??
+      resolveBlockSuggestion(blockTimeline.currentBlock) ??
+      resolveBlockSuggestion(blockTimeline.nextBlock) ??
       fallbackSuggestion
 
     return (

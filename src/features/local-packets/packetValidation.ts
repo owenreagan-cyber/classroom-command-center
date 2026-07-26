@@ -67,7 +67,7 @@ export function validateEnvelope(raw: unknown): ValidationResult {
 
 const VALID_SCREEN_IDS = [
   'homeroom', 'math', 'reading', 'snack-lunch', 'ready-position',
-  'recess', 'writing', 'science', 'social-studies', 'assessment',
+  'recess', 'writing', 'science', 'social-studies', 'assessment', 'movement',
   'centers', 'homework-packup',
 ]
 

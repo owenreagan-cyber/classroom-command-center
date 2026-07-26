@@ -565,6 +565,7 @@ const DEFAULT_SINGLE_PAGE_SEQUENCES: PageSequenceDefinition[] = [
   { classId: 'assessment', title: 'Assessment', pages: [{ id: 'assessment-default', title: 'Assessment Mode', subtitle: undefined, backgroundId: 'assessment-mode', primaryMessage: 'Clear your desk and wait silently', supportingContent: ['Work independently', 'No talking', 'Raise hand when done'], layoutPreset: 'full-focus', widgetTypes: ['focus'], routinePhaseIds: [] }] },
   { classId: 'centers', title: 'Group Work', pages: [{ id: 'centers-default', title: 'Group Work', subtitle: undefined, backgroundId: 'centers-rotations', primaryMessage: 'Go to your assigned center', supportingContent: ['Work quietly', 'Stay on task', 'Clean up when called'], layoutPreset: 'centered-message', widgetTypes: ['focus', 'timer'], routinePhaseIds: [] }] },
   { classId: 'recess', title: 'Recess', pages: [{ id: 'recess-play', title: 'Recess', subtitle: undefined, backgroundId: 'recess-play', primaryMessage: 'Play safely and line up quickly', supportingContent: ['Keep hands/feet to yourself', 'Listen for the signal', 'Return ready to learn'], layoutPreset: 'centered-message', widgetTypes: ['ready'], routinePhaseIds: [] }] },
+  { classId: 'movement', title: 'Movement', pages: [{ id: 'movement-default', title: 'Movement Break', subtitle: undefined, backgroundId: 'ready-position-expectations', primaryMessage: 'Movement break expectations', supportingContent: ['Follow directions', 'Stay in assigned area', 'Return ready to learn'], layoutPreset: 'centered-message', widgetTypes: ['ready'], routinePhaseIds: [] }] },
   { classId: 'ready-position', title: 'Ready Position', pages: [{ id: 'ready-position-default', title: 'Ready Position', subtitle: undefined, backgroundId: 'ready-position-expectations', primaryMessage: 'Ready Position expectations', supportingContent: ['Seated', 'Silent', 'Sitting up', 'Hands on desk', 'Alert', 'Eyes on me', 'Ready to learn'], layoutPreset: 'full-focus', widgetTypes: ['ready', 'compact-cue'], routinePhaseIds: [] }] },
 ]
 
@@ -633,4 +634,5 @@ export const BLOCK_TO_PAGE_SUGGESTION: Record<string, { screenId: ScreenId; page
   'spelling': { screenId: 'spelling', pageId: 'spelling-get-ready' },
   'pack-up': { screenId: 'pack-up', pageId: 'pack-up-pack-up' },
   'recess': { screenId: 'recess', pageId: 'recess-play' },
+  'movement': { screenId: 'movement', pageId: 'movement-default' },
 }

@@ -146,6 +146,13 @@ export function getReadyPositionSlot(screenId: ScreenId, contents: ScreenContent
       isSharedFallback: false,
     }
   }
+  if (screenId === 'movement') {
+    return {
+      content: contents.movement,
+      onChange: (movement) => ({ ...contents, movement }),
+      isSharedFallback: false,
+    }
+  }
   if (screenId === 'ready-position') {
     return {
       content: contents['ready-position'],

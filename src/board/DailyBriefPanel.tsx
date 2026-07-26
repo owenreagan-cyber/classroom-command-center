@@ -194,10 +194,13 @@ export function DailyBriefPanel({
         break
       }
       case 'ready-position':
-      case 'recess': {
+      case 'recess':
+      case 'movement': {
         if (displayTitle) {
           if (activeScreen === 'recess') {
             next.recess.title = displayTitle
+          } else if (activeScreen === 'movement') {
+            next.movement.title = displayTitle
           } else {
             next['ready-position'].title = displayTitle
           }
@@ -205,6 +208,8 @@ export function DailyBriefPanel({
         if (draftChecklist.length > 0) {
           if (activeScreen === 'recess') {
             next.recess.steps = draftChecklist
+          } else if (activeScreen === 'movement') {
+            next.movement.steps = draftChecklist
           } else {
             next['ready-position'].steps = draftChecklist
           }
@@ -212,6 +217,8 @@ export function DailyBriefPanel({
         if (mainInstruction) {
           if (activeScreen === 'recess') {
             next.recess.compactLine = mainInstruction
+          } else if (activeScreen === 'movement') {
+            next.movement.compactLine = mainInstruction
           } else {
             next['ready-position'].compactLine = mainInstruction
           }
