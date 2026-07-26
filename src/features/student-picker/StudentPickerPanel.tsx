@@ -13,6 +13,8 @@ import { SettingsTab } from './components/SettingsTab'
 
 interface StudentPickerPanelProps {
   activeScreen: string
+  initialTab?: 'quick' | 'mystery' | 'roster' | 'look-fors' | 'history' | 'settings'
+  title?: string
 }
 
 const CLASS_OPTIONS: Array<{ id: ClassGroup; label: string }> = [
@@ -21,10 +23,14 @@ const CLASS_OPTIONS: Array<{ id: ClassGroup; label: string }> = [
   { id: 'reading', label: 'Reading' },
 ]
 
-export function StudentPickerPanel({ activeScreen }: StudentPickerPanelProps) {
+export function StudentPickerPanel({
+  activeScreen,
+  initialTab = 'mystery',
+  title = 'Mystery Star & Picker',
+}: StudentPickerPanelProps) {
   const [activeTab, setActiveTab] = useState<
     'quick' | 'mystery' | 'roster' | 'look-fors' | 'history' | 'settings'
-  >('mystery')
+  >(initialTab)
   const [selectedClass, setSelectedClass] = useState<ClassGroup>(() =>
     ['homeroom', 'math', 'reading'].includes(activeScreen)
       ? (activeScreen as ClassGroup)
@@ -51,7 +57,7 @@ export function StudentPickerPanel({ activeScreen }: StudentPickerPanelProps) {
     <section className="space-y-3 rounded-2xl border border-slate-700 bg-slate-800 p-4 shadow-xl">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-sm font-bold uppercase tracking-wide text-cyan-400">
-          Mystery Star & Picker
+          {title}
         </h2>
         <span className="text-xs text-slate-400 capitalize">{context.poolKey.replace(':', ' ')}</span>
       </div>

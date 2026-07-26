@@ -9,18 +9,15 @@
  */
 
 import { test, expect } from '@playwright/test'
+import { enterEditMode, openDockTool, dockToolWorkspace } from './helpers/teacher-dock-e2e'
 
 const APP_URL = 'http://localhost:5173/control'
 
 async function openMorningArrival(page: import('@playwright/test').Page) {
   await page.goto(APP_URL)
-  await page.evaluate(() => {
-    const btn = document.querySelector('[aria-label="Enter edit mode"]') as HTMLButtonElement | null
-    btn?.click()
-  })
-  await page.waitForTimeout(300)
+  await enterEditMode(page)
   // Homeroom > Morning Arrival is the default active page after load.
-  await page.waitForSelector('[data-widget-type="do-now"]', { timeout: 5000 })
+  await expect(page.locator('[data-widget-type="do-now"]').first()).toBeVisible({ timeout: 10000 })
 }
 
 test.describe('Studio Canvas', () => {
@@ -176,7 +173,12 @@ test.describe('Studio Canvas', () => {
     // button must not report a change available here, and must not be able
     // to silently revert the Homeroom edit while the teacher is looking at
     // a different class.
-    await page.getByLabel('Screen navigation').getByRole('button', { name: /^Math$/ }).click()
+    // Switch to Math via Board Control screen navigation.
+    await openDockTool(page, 'Board Control')
+    await dockToolWorkspace(page, 'Board Control')
+      .getByLabel('Screen navigation')
+      .getByRole('button', { name: /^Math$/ })
+      .click()
     await page.waitForTimeout(300)
 
     const undoDisabledOnMath = await page.evaluate(() => {
@@ -188,8 +190,12 @@ test.describe('Studio Canvas', () => {
     // Navigating back to Homeroom > Morning Arrival, the earlier edit must
     // still be there (untouched by anything done while viewing Math) and
     // Undo must still be available for it.
-    await page.getByLabel('Screen navigation').getByRole('button', { name: /^Homeroom$/ }).click()
-    await page.waitForSelector('[data-widget-type="do-now"]', { timeout: 5000 })
+    await openDockTool(page, 'Board Control')
+    await dockToolWorkspace(page, 'Board Control')
+      .getByLabel('Screen navigation')
+      .getByRole('button', { name: /^Homeroom$/ })
+      .click()
+    await page.waitForTimeout(500)
 
     const undoEnabledBackOnHomeroom = await page.evaluate(() => {
       const undo = document.querySelector('[aria-label="Undo last layout change"]') as HTMLButtonElement | null
@@ -200,15 +206,11 @@ test.describe('Studio Canvas', () => {
 
   test('classroom mode hides studio toolbar', async ({ page }) => {
     await page.goto('/control')
-    // Enter studio mode via DOM click
-    await page.evaluate(() => {
-      const editBtn = document.querySelector('[aria-label="Enter edit mode"]') as HTMLButtonElement | null
-      editBtn?.click()
-    })
-    await page.waitForTimeout(300)
-
-    // Click Display to enter classroom mode
-    await page.getByRole('button', { name: /^Display$/ }).click()
+    await enterEditMode(page)
+    await openDockTool(page, 'Board Control')
+    await dockToolWorkspace(page, 'Board Control')
+      .getByRole('button', { name: /^Display$/ })
+      .click()
     await page.waitForTimeout(500)
 
     await expect(page.getByRole('button', { name: /^Undo$/ })).toHaveCount(0)

@@ -37,6 +37,8 @@ export async function enterEditMode(page: Page) {
 export async function generateHomeroomBoard(page: Page) {
   await page.goto('/control')
   await enterEditMode(page)
+  const { openDockTool } = await import('./teacher-dock-e2e')
+  await openDockTool(page, 'Prize Board')
   await page.getByRole('button', { name: 'Generate Board' }).click()
   await page.waitForTimeout(200)
 }
@@ -213,26 +215,13 @@ export async function assertNoHorizontalOverflow(page: Page) {
 }
 
 export function prizeBoardPanelLocator(page: Page) {
-  return page.locator('section').filter({
-    has: page.getByRole('heading', { name: 'Prize Board', exact: true }),
-  })
+  return page.locator('[data-teacher-tool="prize-board"] section').first()
 }
 
 export async function scrollPrizeBoardPanelIntoView(page: Page) {
-  await page.evaluate(() => {
-    const dock = document.querySelector('[aria-label="Teacher controls"]') as HTMLElement | null
-    const prizeHeading = [...document.querySelectorAll('h2')].find(
-      (h) => h.textContent?.trim() === 'Prize Board',
-    )
-    if (!prizeHeading || !dock) return
-    const section = prizeHeading.closest('section') as HTMLElement | null
-    if (!section) return
-    const dockTop = dock.getBoundingClientRect().top
-    const sectionTop = section.getBoundingClientRect().top
-    dock.scrollTop += sectionTop - dockTop
-  })
-  await page.waitForTimeout(150)
-  await expect(page.getByRole('heading', { name: 'Prize Board', exact: true })).toBeVisible()
+  const { openDockTool } = await import('./teacher-dock-e2e')
+  await openDockTool(page, 'Prize Board')
+  await expect(prizeBoardPanelLocator(page)).toBeVisible()
 }
 
 export async function prepareStableControl(page: Page) {
@@ -254,8 +243,7 @@ export async function prepareStableControl(page: Page) {
 
 /** Teacher control Prize Board usability checks for iPad landscape. */
 export async function assertControlPrizeBoardUsability(page: Page) {
-  await expect(page.getByRole('complementary', { name: 'Teacher controls' })).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Teacher Dock' })).toBeVisible()
+  await expect(page.locator('[data-teacher-command-dock]')).toBeVisible()
   await scrollPrizeBoardPanelIntoView(page)
 
   const startSpin = page.locator('[data-control-id="start-spin"]')

@@ -36,6 +36,7 @@ run_step "App route tests" npm run test:app-route
 run_step "Display polish tests" npm run test:display-polish
 run_step "OmniNote bridge tests" npm run test:omninote-bridge
 run_step "Classroom atmosphere tests" npm run test:classroom-atmosphere
+run_step "Teacher dock tests" npm run test:teacher-dock
 run_step "E2E tests" npm run test:e2e
 
 echo "========================================"

@@ -25,6 +25,7 @@
     "test:omninote-bridge": "bash scripts/test-omninote-bridge.sh",
     "test:classroom-atmosphere": "bash scripts/test-classroom-atmosphere.sh",
     "test:teacher-workstation": "bash scripts/test-teacher-workstation.sh",
+    "test:teacher-dock": "bash scripts/test-teacher-dock.sh",
     "test:e2e": "playwright test"
   },
   "dependencies": {

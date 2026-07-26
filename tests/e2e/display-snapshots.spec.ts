@@ -6,6 +6,7 @@
  */
 
 import { test, expect, type Page } from '@playwright/test'
+import { enterEditMode, openDockTool, dockToolWorkspace } from './helpers/teacher-dock-e2e'
 
 const DISPLAY_VIEWPORTS = [
   { width: 1920, height: 1080, label: '1920x1080' },
@@ -18,14 +19,6 @@ const SNAPSHOT_OPTIONS = {
   maxDiffPixelRatio: 0.01,
 }
 
-async function enterEditMode(page: Page) {
-  await page.evaluate(() => {
-    const btn = document.querySelector('[aria-label="Enter edit mode"]') as HTMLButtonElement | null
-    btn?.click()
-  })
-  await expect(page.getByLabel('Studio Canvas toolbar')).toBeVisible()
-}
-
 async function assertNoHorizontalOverflow(page: Page) {
   const overflow = await page.evaluate(() => {
     const doc = document.documentElement
@@ -36,7 +29,7 @@ async function assertNoHorizontalOverflow(page: Page) {
 
 async function assertDisplayPrivacy(page: Page) {
   await expect(page.getByRole('complementary', { name: 'Teacher controls' })).toHaveCount(0)
-  await expect(page.getByRole('heading', { name: 'Teacher Dock' })).toHaveCount(0)
+  await expect(page.locator('[data-teacher-command-dock]')).toHaveCount(0)
   await expect(page.getByLabel('Studio Canvas toolbar')).toHaveCount(0)
   await expect(page.getByText('Select a widget to see its position and size.')).toHaveCount(0)
   await expect(page.getByText('Teacher Notes')).toHaveCount(0)
@@ -101,8 +94,11 @@ test.describe('Phase 9C.1 Morning Message display snapshot', () => {
     await page.setViewportSize({ width: 1920, height: 1080 })
     await page.goto('/control')
     await enterEditMode(page)
-
-    await page.getByLabel('Morning Message Studio').getByRole('button', { name: 'Send to Display' }).click()
+    await openDockTool(page, 'Morning Message')
+    await dockToolWorkspace(page, 'Morning Message')
+      .getByLabel('Morning Message Studio')
+      .getByRole('button', { name: 'Send to Display' })
+      .click()
     await page.goto('/display')
 
     await expect(page.getByTestId('morning-message-display')).toBeVisible()
@@ -117,8 +113,11 @@ test.describe('Phase 10B Now Showing display snapshot', () => {
     await page.setViewportSize({ width: 1920, height: 1080 })
     await page.goto('/control')
     await enterEditMode(page)
+    await openDockTool(page, 'Today Prep')
 
-    const prepPanel = page.getByLabel('Today Prep and Material Launcher')
+    const prepPanel = dockToolWorkspace(page, 'Today Prep').getByLabel(
+      'Today Prep and Material Launcher',
+    )
     await prepPanel.getByLabel('Resource type preset').first().selectOption('google-slides')
     await prepPanel.getByPlaceholder('Resource label').fill('Chapter 2 Slides')
     await prepPanel

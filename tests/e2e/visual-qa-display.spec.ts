@@ -7,6 +7,7 @@
 import { mkdirSync } from 'node:fs'
 import path from 'node:path'
 import { test, expect, type Page } from '@playwright/test'
+import { enterEditMode, openDockTool, dockToolWorkspace } from './helpers/teacher-dock-e2e'
 
 const ARTIFACT_DIR = path.join(process.cwd(), '.local/visual-qa/phase-9c')
 
@@ -15,14 +16,6 @@ const DISPLAY_VIEWPORTS = [
   { width: 1366, height: 768, label: '1366x768' },
   { width: 1024, height: 768, label: '1024x768' },
 ] as const
-
-async function enterEditMode(page: Page) {
-  await page.evaluate(() => {
-    const btn = document.querySelector('[aria-label="Enter edit mode"]') as HTMLButtonElement | null
-    btn?.click()
-  })
-  await page.waitForTimeout(300)
-}
 
 async function assertNoHorizontalOverflow(page: Page) {
   const overflow = await page.evaluate(() => {
@@ -34,7 +27,7 @@ async function assertNoHorizontalOverflow(page: Page) {
 
 async function assertDisplayPrivacy(page: Page) {
   await expect(page.getByRole('complementary', { name: 'Teacher controls' })).toHaveCount(0)
-  await expect(page.getByRole('heading', { name: 'Teacher Dock' })).toHaveCount(0)
+  await expect(page.locator('[data-teacher-command-dock]')).toHaveCount(0)
   await expect(page.getByLabel('Studio Canvas toolbar')).toHaveCount(0)
   await expect(page.getByText('Select a widget to see its position and size.')).toHaveCount(0)
   await expect(page.getByText('Teacher Notes')).toHaveCount(0)
@@ -47,7 +40,7 @@ async function assertDisplayPrivacy(page: Page) {
   await expect(page.getByRole('button', { name: 'Clear Now Showing' })).toHaveCount(0)
   await expect(page.getByRole('heading', { name: 'Morning Message Studio' })).toHaveCount(0)
   await expect(page.getByLabel('Morning Message Studio')).toHaveCount(0)
-  await expect(page.getByText('Mystery Star & Picker')).toHaveCount(0)
+  await expect(page.getByText('Mystery Star')).toHaveCount(0)
   await expect(page.getByText('Backup / Restore')).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Open Student Display' })).toHaveCount(0)
   await expect(page.getByLabel('Enter edit mode')).toHaveCount(0)
@@ -89,8 +82,11 @@ test.describe('Phase 9C Morning Message on /display', () => {
     await page.setViewportSize({ width: 1920, height: 1080 })
     await page.goto('/control')
     await enterEditMode(page)
-
-    await page.getByLabel('Morning Message Studio').getByRole('button', { name: 'Send to Display' }).click()
+    await openDockTool(page, 'Morning Message')
+    await dockToolWorkspace(page, 'Morning Message')
+      .getByLabel('Morning Message Studio')
+      .getByRole('button', { name: 'Send to Display' })
+      .click()
     await page.goto('/display')
 
     await expect(page.getByTestId('morning-message-display')).toBeVisible()
@@ -105,21 +101,29 @@ test.describe('Phase 9C /control workflow smoke', () => {
     await page.goto('/control')
     await enterEditMode(page)
 
-    await expect(page.getByRole('complementary', { name: 'Teacher controls' })).toBeVisible()
-    await expect(page.getByRole('heading', { name: 'Teacher Dock' })).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Open Student Display' })).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Copy Display Link' })).toBeVisible()
-    await expect(page.getByRole('heading', { name: 'Morning Message Studio' })).toBeVisible()
-    await expect(page.getByLabel('Morning Message Studio')).toBeVisible()
-    await expect(page.getByLabel('Today Prep and Material Launcher')).toBeVisible()
-    await expect(page.getByText('Material Launcher')).toBeVisible()
+    await expect(page.locator('[data-teacher-command-dock]')).toBeVisible()
+    await openDockTool(page, 'Display')
+    const displayPanel = dockToolWorkspace(page, 'Display')
+    await expect(displayPanel.getByRole('button', { name: 'Open Student Display' })).toBeVisible()
+    await expect(displayPanel.getByRole('button', { name: 'Copy Display Link' })).toBeVisible()
+    await openDockTool(page, 'Morning Message')
+    await expect(
+      dockToolWorkspace(page, 'Morning Message').getByLabel('Morning Message Studio'),
+    ).toBeVisible()
+    await openDockTool(page, 'Today Prep')
+    const prepPanel = dockToolWorkspace(page, 'Today Prep').getByLabel(
+      'Today Prep and Material Launcher',
+    )
+    await expect(prepPanel).toBeVisible()
+    await expect(prepPanel.getByText('Material Launcher')).toBeVisible()
   })
 
   test('Morning Message Studio preview toggle works on /control', async ({ page }) => {
     await page.goto('/control')
     await enterEditMode(page)
+    await openDockTool(page, 'Morning Message')
 
-    const studio = page.getByLabel('Morning Message Studio')
+    const studio = dockToolWorkspace(page, 'Morning Message').getByLabel('Morning Message Studio')
     await studio.getByRole('button', { name: 'Preview', exact: true }).click()
     await expect(page.getByText('Student preview')).toBeVisible()
     await studio.getByRole('button', { name: 'Edit Mode' }).click()
@@ -129,8 +133,11 @@ test.describe('Phase 9C /control workflow smoke', () => {
   test('Today Prep checklist can be opened on /control only', async ({ page }) => {
     await page.goto('/control')
     await enterEditMode(page)
+    await openDockTool(page, 'Today Prep')
 
-    const prepPanel = page.getByLabel('Today Prep and Material Launcher')
+    const prepPanel = dockToolWorkspace(page, 'Today Prep').getByLabel(
+      'Today Prep and Material Launcher',
+    )
     await expect(prepPanel.getByText('Today Prep')).toBeVisible()
     await expect(prepPanel.getByPlaceholder('Add prep reminder...')).toBeVisible()
 
@@ -142,8 +149,11 @@ test.describe('Phase 9C /control workflow smoke', () => {
   test('Material Launcher resource controls stay on /control', async ({ page }) => {
     await page.goto('/control')
     await enterEditMode(page)
+    await openDockTool(page, 'Today Prep')
 
-    const prepPanel = page.getByLabel('Today Prep and Material Launcher')
+    const prepPanel = dockToolWorkspace(page, 'Today Prep').getByLabel(
+      'Today Prep and Material Launcher',
+    )
     await expect(prepPanel.getByRole('button', { name: 'Add resource link' })).toBeVisible()
     await expect(prepPanel.getByLabel('Open With')).toBeVisible()
     await expect(prepPanel.getByLabel('Resource type preset')).toBeVisible()
@@ -158,8 +168,11 @@ test.describe('Phase 9C /control workflow smoke', () => {
   test('Open With preset selector stays on /control only', async ({ page }) => {
     await page.goto('/control')
     await enterEditMode(page)
+    await openDockTool(page, 'Today Prep')
 
-    const prepPanel = page.getByLabel('Today Prep and Material Launcher')
+    const prepPanel = dockToolWorkspace(page, 'Today Prep').getByLabel(
+      'Today Prep and Material Launcher',
+    )
     const presetSelect = prepPanel.getByLabel('Resource type preset').first()
     await expect(presetSelect).toBeVisible()
     await expect(presetSelect.locator('option')).toHaveCount(7)
@@ -176,8 +189,11 @@ test.describe('Phase 9C /control workflow smoke', () => {
 
     await page.goto('/control')
     await enterEditMode(page)
+    await openDockTool(page, 'Today Prep')
 
-    const prepPanel = page.getByLabel('Today Prep and Material Launcher')
+    const prepPanel = dockToolWorkspace(page, 'Today Prep').getByLabel(
+      'Today Prep and Material Launcher',
+    )
     await prepPanel.getByLabel('Resource type preset').first().selectOption('google-slides')
     await prepPanel.getByPlaceholder('Resource label').fill('Chapter 2 Slides')
     await prepPanel.getByPlaceholder('https://docs.google.com/presentation/d/...').fill(secretUrl)

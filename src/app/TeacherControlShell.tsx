@@ -1,14 +1,15 @@
+import { useMemo } from 'react'
 import { useBoardStore } from '../store/boardStore'
 import { useTimerStore } from '../store/timerStore'
 import { usePickerStore } from '../features/student-picker/pickerStore'
-import { TeacherDock } from '../board/TeacherDock'
+import { TeacherCommandDock } from '../features/teacher-dock/TeacherCommandDock'
 import { BoardWorkspace } from './BoardWorkspace'
 import {
   getEffectiveBoardMode,
   shouldAllowStudioEditActions,
 } from './appRouteShell'
 
-/** Teacher control route — full workspace with dock and editing tools. */
+/** Teacher control route — full workspace with command dock and editing tools. */
 export function TeacherControlShell() {
   const mode = useBoardStore((state) => state.mode)
   const effectiveMode = getEffectiveBoardMode('control', mode)
@@ -50,62 +51,116 @@ export function TeacherControlShell() {
 
   const allowEditActions = shouldAllowStudioEditActions('control', mode)
 
-  const boardState = {
-    mode,
-    activeScreen,
-    activePageId,
-    classWorkspaces,
-    backgroundId,
-    contents,
-    teacherNotes,
-    todayPrep,
-    morningMessage,
-    cardVisibility,
-    customPresets,
-    noiseTrackers,
-  }
+  const boardState = useMemo(
+    () => ({
+      mode,
+      activeScreen,
+      activePageId,
+      classWorkspaces,
+      backgroundId,
+      contents,
+      teacherNotes,
+      todayPrep,
+      morningMessage,
+      cardVisibility,
+      customPresets,
+      noiseTrackers,
+    }),
+    [
+      mode,
+      activeScreen,
+      activePageId,
+      classWorkspaces,
+      backgroundId,
+      contents,
+      teacherNotes,
+      todayPrep,
+      morningMessage,
+      cardVisibility,
+      customPresets,
+      noiseTrackers,
+    ],
+  )
+
+  const dockContext = useMemo(
+    () => ({
+      mode,
+      activeScreen,
+      activePageId,
+      classWorkspaces,
+      backgroundId,
+      teacherNotes,
+      boardState,
+      cardVisibility,
+      canUndoBeautify: beautifyUndo !== null,
+      onModeChange: setMode,
+      onScreenChange: setActiveScreen,
+      onBackgroundChange: setBackgroundId,
+      onApplyPreset: applyBoardPreset,
+      onSaveCustomPreset: saveCustomPreset,
+      onApplyCustomPreset: applyCustomPreset,
+      onDeleteCustomPreset: deleteCustomPreset,
+      onContentsChange: updateContents,
+      onNoiseVoiceLevelChange: setNoiseVoiceLevel,
+      onResetNoiseTracker: resetNoiseTracker,
+      onCardVisibleChange: setCardVisible,
+      onBeautify: beautifyActiveScreen,
+      onUndoBeautify: undoBeautify,
+      onReset: resetToDefaults,
+      timerSimpleTimers: simpleTimers,
+      timerPhaseTimer: phaseTimer,
+      pickerStudents,
+      pickerHistoryEntries,
+      pickerCoachingConfig,
+      pickerSettings,
+      pickerActiveMysterySessions,
+    }),
+    [
+      mode,
+      activeScreen,
+      activePageId,
+      classWorkspaces,
+      backgroundId,
+      teacherNotes,
+      boardState,
+      cardVisibility,
+      beautifyUndo,
+      setMode,
+      setActiveScreen,
+      setBackgroundId,
+      applyBoardPreset,
+      saveCustomPreset,
+      applyCustomPreset,
+      deleteCustomPreset,
+      updateContents,
+      setNoiseVoiceLevel,
+      resetNoiseTracker,
+      setCardVisible,
+      beautifyActiveScreen,
+      undoBeautify,
+      resetToDefaults,
+      simpleTimers,
+      phaseTimer,
+      pickerStudents,
+      pickerHistoryEntries,
+      pickerCoachingConfig,
+      pickerSettings,
+      pickerActiveMysterySessions,
+    ],
+  )
 
   return (
     <div className="flex h-dvh w-dvw overflow-hidden bg-slate-950">
-      <TeacherDock
-        mode={mode}
-        activeScreen={activeScreen}
-        activePageId={activePageId}
-        classWorkspaces={classWorkspaces}
-        backgroundId={backgroundId}
-        teacherNotes={teacherNotes}
-        boardState={boardState}
-        cardVisibility={cardVisibility}
-        canUndoBeautify={beautifyUndo !== null}
-        onModeChange={setMode}
-        onScreenChange={setActiveScreen}
-        onBackgroundChange={setBackgroundId}
-        onApplyPreset={applyBoardPreset}
-        onSaveCustomPreset={saveCustomPreset}
-        onApplyCustomPreset={applyCustomPreset}
-        onDeleteCustomPreset={deleteCustomPreset}
-        onContentsChange={updateContents}
-        onNoiseVoiceLevelChange={setNoiseVoiceLevel}
-        onResetNoiseTracker={resetNoiseTracker}
-        onCardVisibleChange={setCardVisible}
-        onBeautify={beautifyActiveScreen}
-        onUndoBeautify={undoBeautify}
-        onReset={resetToDefaults}
-        timerSimpleTimers={simpleTimers}
-        timerPhaseTimer={phaseTimer}
-        pickerStudents={pickerStudents}
-        pickerHistoryEntries={pickerHistoryEntries}
-        pickerCoachingConfig={pickerCoachingConfig}
-        pickerSettings={pickerSettings}
-        pickerActiveMysterySessions={pickerActiveMysterySessions}
-      />
-      <BoardWorkspace
-        effectiveMode={effectiveMode}
-        studentDisplay={false}
-        onEnterEdit={() => setMode('edit')}
-        onBeautify={allowEditActions ? beautifyActiveScreen : undefined}
-        onPreviewClassroom={allowEditActions ? () => setMode('display') : undefined}
-      />
+      <TeacherCommandDock mode={mode} dockContext={dockContext} />
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        <BoardWorkspace
+          effectiveMode={effectiveMode}
+          studentDisplay={false}
+          onEnterEdit={() => setMode('edit')}
+          onBeautify={allowEditActions ? beautifyActiveScreen : undefined}
+          onPreviewClassroom={allowEditActions ? () => setMode('display') : undefined}
+        />
+      </div>
     </div>
   )
 }

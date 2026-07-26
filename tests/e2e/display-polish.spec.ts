@@ -4,14 +4,7 @@
  */
 
 import { test, expect } from '@playwright/test'
-
-async function enterEditMode(page: import('@playwright/test').Page) {
-  await page.evaluate(() => {
-    const btn = document.querySelector('[aria-label="Enter edit mode"]') as HTMLButtonElement | null
-    btn?.click()
-  })
-  await page.waitForTimeout(300)
-}
+import { enterEditMode, openDockTool, dockToolWorkspace } from './helpers/teacher-dock-e2e'
 
 test.describe('Phase 9A display polish', () => {
   test('/display excludes page navigation and teacher controls', async ({ page }) => {
@@ -36,7 +29,10 @@ test.describe('Phase 9A display polish', () => {
   test('/control shows open display for fullscreen workflow', async ({ page }) => {
     await page.goto('/control')
     await enterEditMode(page)
-    await expect(page.getByRole('button', { name: 'Open Display for Fullscreen' })).toBeVisible()
+    await openDockTool(page, 'Display')
+    await expect(
+      dockToolWorkspace(page, 'Display').getByRole('button', { name: 'Open Display for Fullscreen' }),
+    ).toBeVisible()
   })
 
   test('no horizontal overflow at 1920x1080 on display', async ({ page }) => {
