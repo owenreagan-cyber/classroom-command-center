@@ -3,6 +3,7 @@ import { SCREEN_META } from '../data/defaults'
 import { getBackgroundAsset } from '../data/backgroundAssets'
 import type { AppMode, BackgroundAssetId, ScreenId } from '../data/types'
 import { NowShowingDisplayLabel } from '../features/display/NowShowingDisplayLabel'
+import { MusicDisplayIndicator } from '../features/classroom-atmosphere/MusicDisplayIndicator'
 import { resolveNowShowingDisplay } from '../lib/nowShowing'
 import { useBoardStore } from '../store/boardStore'
 
@@ -112,8 +113,15 @@ export function BoardFrame({
         </header>
 
         {nowShowing && (
-          <div className="relative z-20 flex justify-center px-[var(--board-safe-x)] pb-2 md:pb-3">
+          <div className="relative z-20 flex flex-col items-center gap-2 px-[var(--board-safe-x)] pb-2 md:pb-3">
             <NowShowingDisplayLabel info={nowShowing} />
+            {studentDisplay && <MusicDisplayIndicator />}
+          </div>
+        )}
+
+        {!nowShowing && studentDisplay && isDisplay && (
+          <div className="relative z-20 flex justify-center px-[var(--board-safe-x)] pb-2 md:pb-3">
+            <MusicDisplayIndicator />
           </div>
         )}
 

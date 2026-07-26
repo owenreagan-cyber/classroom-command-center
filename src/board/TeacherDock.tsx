@@ -32,6 +32,8 @@ import { MorningMessageStudioPanel } from '../features/morning-message/MorningMe
 import { StudentPickerPanel } from '../features/student-picker/StudentPickerPanel'
 import { PrizeBoardPanel } from '../features/prize-board/components/PrizeBoardPanel'
 import { LocalPacketPanel } from '../features/local-packets/LocalPacketPanel'
+import { TeacherDashboardPanel } from './TeacherDashboardPanel'
+import { ClassroomAtmospherePanel } from '../features/classroom-atmosphere/ClassroomAtmospherePanel'
 
 interface TeacherDockProps {
   mode: AppMode
@@ -122,6 +124,16 @@ export function TeacherDock({
         <h1 className="mt-1 text-2xl font-bold text-white">Teacher Dock</h1>
       </div>
 
+      <TeacherDashboardPanel
+        activeScreen={activeScreen}
+        onScreenChange={onScreenChange}
+        onScrollToSection={(id) => {
+          document.getElementById(`dock-${id}`)?.scrollIntoView({ behavior: 'smooth' })
+        }}
+      />
+
+      <ClassroomAtmospherePanel />
+
       <section className="space-y-2">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-400">
           Mode
@@ -142,17 +154,21 @@ export function TeacherDock({
 
       <DisplayLaunchPanel />
 
-      <MorningMessageStudioPanel
-        activeScreen={activeScreen}
-        activePageId={activePageId}
-        classWorkspaces={classWorkspaces}
-      />
+      <div id="dock-morning-message">
+        <MorningMessageStudioPanel
+          activeScreen={activeScreen}
+          activePageId={activePageId}
+          classWorkspaces={classWorkspaces}
+        />
+      </div>
 
-      <TodayPrepPanel
-        activeScreen={activeScreen}
-        activePageId={activePageId}
-        classWorkspaces={classWorkspaces}
-      />
+      <div id="dock-today-prep">
+        <TodayPrepPanel
+          activeScreen={activeScreen}
+          activePageId={activePageId}
+          classWorkspaces={classWorkspaces}
+        />
+      </div>
 
       <section className="space-y-2">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-400">
@@ -200,9 +216,13 @@ export function TeacherDock({
         </div>
       </section>
 
-      <StudentPickerPanel activeScreen={activeScreen} />
+      <div id="dock-student-picker">
+        <StudentPickerPanel activeScreen={activeScreen} />
+      </div>
 
-      <PrizeBoardPanel />
+      <div id="dock-prize-board">
+        <PrizeBoardPanel />
+      </div>
 
       <DailyBriefPanel
         activeScreen={activeScreen}
