@@ -31,6 +31,13 @@ trap cleanup EXIT
   "$ROOT/src/features/prize-board/prizeBank.ts" \
   "$ROOT/src/features/prize-board/boardGenerator.ts" \
   "$ROOT/src/features/prize-board/displaySafe.ts" \
+  "$ROOT/src/features/prize-board/pressYourLuck/types.ts" \
+  "$ROOT/src/features/prize-board/pressYourLuck/spinEngine.ts" \
+  "$ROOT/src/features/prize-board/pressYourLuck/mysteryReveal.ts" \
+  "$ROOT/src/features/prize-board/pressYourLuck/whammyState.ts" \
+  "$ROOT/src/features/prize-board/pressYourLuck/pressYourLuckLogic.ts" \
+  "$ROOT/src/features/prize-board/pressYourLuck/pressYourLuckStore.ts" \
+  "$ROOT/src/features/prize-board/pressYourLuck/displayPrivacy.ts" \
   "$ROOT/src/features/prize-board/prizeBoardStore.ts" \
   "$ROOT/src/features/student-picker/randomizerEngine.ts" \
   "$ROOT/src/features/student-picker/types.ts" \

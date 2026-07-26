@@ -49,6 +49,10 @@ export const DEFAULT_PRIZE_BANK: Prize[] = [
     mysteryBoxEligible: true,
   }),
   prize('prize-no-shoes', 'No Shoes Pass', 'Take shoes off during class time', 'uncommon', 'privilege'),
+  prize('prize-whammy-bait', 'Homework Pass', 'Fake reward — triggers Whammy!', 'rare', 'privilege', {
+    active: false,
+    whammyEligible: true,
+  }),
   prize('prize-teacher-chair', 'Teacher Chair Pass', 'Sit in the teacher chair for one period', 'rare', 'privilege', {
     active: false,
   }),

@@ -20,6 +20,7 @@
     "test:morning-message": "bash scripts/test-morning-message.sh",
     "test:visual-qa": "bash scripts/test-visual-qa.sh",
     "test:display-snapshots": "bash scripts/test-display-snapshots.sh",
+    "test:prize-board-projector-snapshots": "bash scripts/test-prize-board-projector-snapshots.sh",
     "test:e2e": "playwright test"
   },
   "dependencies": {

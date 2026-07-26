@@ -6,6 +6,9 @@ import { resolvePickerContext } from '../../student-picker/pickerContext'
 import { getActivePrizes, getMysteryEligiblePrizes, getPrizeById, isMysteryBoxPrize } from '../prizeBank'
 import { generateBoardForPool, usePrizeBoardStore } from '../prizeBoardStore'
 import { PRIZE_BOARD_SIZE } from '../types'
+import { usePressYourLuckStore } from '../pressYourLuck/pressYourLuckStore'
+import { useSpinAnimation } from '../pressYourLuck/useSpinAnimation'
+import { PressYourLuckControls } from './PressYourLuckControls'
 import { RarityBadge } from './RarityBadge'
 import { PrizeBoardGrid } from './PrizeBoardGrid'
 
@@ -42,6 +45,15 @@ export function PrizeBoardPanel() {
     : undefined
 
   const { poolKey } = resolvePickerContext(selectedClass, effectiveSection)
+
+  const pylPhase = usePressYourLuckStore((s) => s.phase)
+  const highlightedTileId = usePressYourLuckStore((s) => s.highlightedTileId)
+  const pylPoolKey = usePressYourLuckStore((s) => s.activePoolKey)
+  const isSpinning = pylPhase === 'spinning' || pylPhase === 'stopping'
+  const spinActiveForPool = pylPoolKey === poolKey && isSpinning
+
+  useSpinAnimation()
+
   const board = boards[poolKey]
 
   const poolStudents = useMemo(
@@ -151,6 +163,8 @@ export function PrizeBoardPanel() {
         </button>
       </div>
 
+      <PressYourLuckControls poolKey={poolKey} hasBoard={Boolean(board)} />
+
       {board ? (
         <>
           <p className="text-[11px] text-slate-400">
@@ -162,6 +176,8 @@ export function PrizeBoardPanel() {
             prizeOverrides={prizeOverrides}
             selectedTile={selectedTile}
             onSelectTile={setSelectedTile}
+            highlightedTile={spinActiveForPool ? highlightedTileId : null}
+            spinMode={spinActiveForPool}
           />
 
           {selectedTileData && (

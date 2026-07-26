@@ -31,6 +31,26 @@ import { PRIZE_BOARD_SIZE } from '../prize-board/types'
 import { generateBoardForPool, PRIZE_BOARD_STORAGE_KEY, usePrizeBoardStore } from '../prize-board/prizeBoardStore'
 import type { PrizeBoardSession, PrizeBoardTile } from '../prize-board/types'
 import { usePickerStore } from '../student-picker/pickerStore'
+import { displaySnapshotIsPrivateFree, getDisplayGameStatus } from '../prize-board/pressYourLuck/displayPrivacy'
+import {
+  advanceRevealState,
+  createInitialPressYourLuckState,
+  PRESS_YOUR_LUCK_STORAGE_KEY,
+  recoverInterruptedSpin,
+  resetSpinState,
+  startSpinTransition,
+  transitionAfterSpinComplete,
+} from '../prize-board/pressYourLuck/pressYourLuckLogic'
+import { usePressYourLuckStore } from '../prize-board/pressYourLuck/pressYourLuckStore'
+import {
+  buildSpinPath,
+  highlightAtElapsed,
+  resolveSpinOutcome,
+  shouldShowProjectorMode,
+} from '../prize-board/pressYourLuck/spinEngine'
+import { nextMysteryPhase, isMysteryComplete } from '../prize-board/pressYourLuck/mysteryReveal'
+import { nextWhammyPhase, applyWhammyConsequence } from '../prize-board/pressYourLuck/whammyState'
+import { rarityToRevealExperience } from '../prize-board/pressYourLuck/types'
 
 let passed = 0
 let failed = 0
@@ -276,6 +296,158 @@ function runTests() {
   assertEq('BB-P09: revealed tile kind persisted', afterRevealed.kind, 'revealed')
   assertEq('BB-P10: revealed prize id persisted', afterRevealed.prizeId, beforeRevealed.prizeId)
   assertEq('BB-P11: reveal history length persisted', afterBoard.revealHistory.length, beforeHistoryLen)
+
+  // ── Press Your Luck (Phase 12C) ─────────────────────────────────────
+
+  // Spin engine
+  const path = buildSpinPath(42, { rng: () => 0.5, totalDurationMs: 12000 })
+  assert('PYL-01: spin path non-empty', path.length > 10)
+  assertEq('PYL-02: path ends on final tile', path[path.length - 1], 42)
+  const early = highlightAtElapsed(path, 0, 12000)
+  const late = highlightAtElapsed(path, 12000, 12000)
+  assertEq('PYL-03: highlight at end is final', late, 42)
+  assert('PYL-04: highlight changes over time', early !== late || path.length === 1)
+
+  // Outcome resolution
+  const emptyOutcome = resolveSpinOutcome(
+    { index: 0, kind: 'empty' },
+    DEFAULT_PRIZE_BANK,
+    {},
+  )
+  assertEq('PYL-05: empty tile outcome', emptyOutcome.kind, 'empty')
+
+  const studentOutcome = resolveSpinOutcome(
+    { index: 5, kind: 'student', studentId: 'stu-x', studentDisplayName: 'Alex' },
+    DEFAULT_PRIZE_BANK,
+    {},
+  )
+  assertEq('PYL-06: student tile outcome', studentOutcome.kind, 'student')
+  assertEq('PYL-07: student display name', studentOutcome.studentDisplayName, 'Alex')
+
+  const prizeOutcome = resolveSpinOutcome(
+    { index: 10, kind: 'prize', prizeId: 'prize-stamps-3' },
+    DEFAULT_PRIZE_BANK,
+    {},
+  )
+  assertEq('PYL-08: prize tile outcome', prizeOutcome.kind, 'prize')
+  assertEq('PYL-09: prize rarity mapped', prizeOutcome.prizeRarity, 'common')
+
+  const mysteryOutcome = resolveSpinOutcome(
+    { index: 11, kind: 'prize', prizeId: MYSTERY_BOX_PRIZE_ID },
+    DEFAULT_PRIZE_BANK,
+    {},
+  )
+  assertEq('PYL-10: mystery box routing', mysteryOutcome.kind, 'mysteryBox')
+
+  const whammyOutcome = resolveSpinOutcome(
+    { index: 12, kind: 'prize', prizeId: 'prize-whammy-bait' },
+    DEFAULT_PRIZE_BANK,
+    {},
+  )
+  assertEq('PYL-11: whammy routing', whammyOutcome.kind, 'whammy')
+
+  // Rarity mapping
+  assertEq('PYL-12: common reveal', rarityToRevealExperience('common'), 'common')
+  assertEq('PYL-13: rare reveal', rarityToRevealExperience('rare'), 'rare')
+  assertEq('PYL-14: veryRare reveal', rarityToRevealExperience('veryRare'), 'veryRare')
+  assertEq('PYL-15: legendary reveal', rarityToRevealExperience('legendary'), 'legendary')
+
+  // State transitions
+  let pylState = createInitialPressYourLuckState()
+  pylState.remainingSpins = 3
+  const tiles = generateBoardTiles(DEFAULT_PRIZE_BANK, {}, { rng: () => 0.3 })
+  const spinPatch = startSpinTransition(pylState, 'homeroom', tiles, () => 0.7)
+  assert('PYL-16: start spin succeeds', spinPatch !== null)
+  assertEq('PYL-17: phase becomes spinning', spinPatch!.phase, 'spinning')
+  assertEq('PYL-18: spins decrement', spinPatch!.remainingSpins, 2)
+
+  pylState = { ...pylState, ...spinPatch! }
+  const emptyTile = { index: pylState.finalTileId!, kind: 'empty' as const }
+  const missPatch = transitionAfterSpinComplete(pylState, emptyTile, DEFAULT_PRIZE_BANK, {})
+  assertEq('PYL-19: empty -> miss', missPatch.phase, 'miss')
+
+  const prizeTile = { index: 1, kind: 'prize' as const, prizeId: 'prize-lunch-friend' }
+  const revealPatch = transitionAfterSpinComplete(pylState, prizeTile, DEFAULT_PRIZE_BANK, {})
+  assertEq('PYL-20: prize -> revealing', revealPatch.phase, 'revealing')
+  assertEq('PYL-21: rare experience', revealPatch.revealExperience, 'rare')
+
+  // Mystery sequence
+  assertEq('PYL-22: mystery starts announce', nextMysteryPhase(null), 'announce')
+  assertEq('PYL-23: mystery -> shake', nextMysteryPhase('announce'), 'shake')
+  assert('PYL-24: mystery completes at reveal', isMysteryComplete('reveal'))
+
+  // Whammy sequence
+  assertEq('PYL-25: whammy starts fakeReward', nextWhammyPhase(null), 'fakeReward')
+  assertEq('PYL-26: whammy -> alarm', nextWhammyPhase('fakeReward'), 'alarm')
+  const whammyResult = applyWhammyConsequence('loseSpin', 3)
+  assertEq('PYL-27: lose spin consequence', whammyResult.remainingSpins, 2)
+
+  // Projector mode
+  assert('PYL-28: projector during spin', shouldShowProjectorMode('spinning'))
+  assert('PYL-29: no projector when idle', !shouldShowProjectorMode('idle'))
+
+  // Display privacy
+  assert('PYL-30: display status safe', getDisplayGameStatus({ phase: 'spinning', remainingSpins: 2, currentSpinCount: 1 }).length > 0)
+  const privateFree = displaySnapshotIsPrivateFree({
+    poolKey: 'homeroom',
+    tileCount: 100,
+    revealedTiles: [{ index: 0, label: '+3 Stamps', isRevealed: true }],
+  })
+  assert('PYL-31: display snapshot private-free', privateFree)
+  assert('PYL-32: snapshot with studentId fails privacy', !displaySnapshotIsPrivateFree({ studentId: 'hidden' }))
+
+  // Store integration
+  usePressYourLuckStore.setState(createInitialPressYourLuckState())
+  usePressYourLuckStore.getState().setSoundEnabled(false)
+  assertEq('PYL-33: sound disabled', usePressYourLuckStore.getState().soundEnabled, false)
+
+  generateBoardForPool('homeroom', [], 20)
+  usePressYourLuckStore.setState({ remainingSpins: 2, phase: 'ready' })
+  const started = usePressYourLuckStore.getState().startSpin('homeroom', () => 0.5)
+  assert('PYL-34: store start spin', started)
+  assertEq('PYL-35: store phase spinning', usePressYourLuckStore.getState().phase, 'spinning')
+
+  usePressYourLuckStore.getState().resetSpin()
+  const reset = resetSpinState()
+  assertEq('PYL-36: reset to idle', reset.phase, 'idle')
+
+  // Advance reveal flow
+  pylState = {
+    ...createInitialPressYourLuckState(),
+    phase: 'revealing',
+    revealExperience: 'common',
+    outcome: prizeOutcome,
+  }
+  const celebratePatch = advanceRevealState(pylState)
+  assertEq('PYL-37: revealing -> celebrating', celebratePatch.phase, 'celebrating')
+
+  pylState = { ...pylState, phase: 'celebrating' }
+  const readyPatch = advanceRevealState(pylState)
+  assertEq('PYL-38: celebrating -> ready', readyPatch.phase, 'ready')
+
+  pylState = { ...createInitialPressYourLuckState(), phase: 'miss' }
+  const missReadyPatch = advanceRevealState(pylState)
+  assertEq('PYL-38b: miss -> ready', missReadyPatch.phase, 'ready')
+
+  assert('PYL-39: pyl storage key set', PRESS_YOUR_LUCK_STORAGE_KEY.includes('press-your-luck'))
+
+  // Interrupted spin recovery
+  pylState = {
+    ...createInitialPressYourLuckState(),
+    phase: 'spinning',
+    finalTileId: 42,
+    highlightedTileId: 30,
+    spinStartTime: Date.now(),
+    currentSpinCount: 1,
+    remainingSpins: 2,
+  }
+  const recovery = recoverInterruptedSpin(pylState)
+  assert('PYL-40: recovery patch exists', recovery !== null)
+  assertEq('PYL-41: recovery -> ready', recovery!.phase, 'ready')
+  assertEq('PYL-42: recovery clears final tile', recovery!.finalTileId, null)
+  assertEq('PYL-43: recovery refunds spin', recovery!.remainingSpins, 3)
+  assertEq('PYL-44: recovery clears outcome', recovery!.outcome, null)
+  assert('PYL-45: idle needs no recovery', recoverInterruptedSpin(createInitialPressYourLuckState()) === null)
 
   console.log(`\nPrize Board tests: ${passed} passed, ${failed} failed`)
   if (failed > 0) process.exit(1)

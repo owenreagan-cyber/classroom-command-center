@@ -49,7 +49,7 @@ async function assertDisplayPrivacy(page: Page) {
   await expect(page.getByRole('button', { name: 'Clear Now Showing' })).toHaveCount(0)
   await expect(page.getByRole('heading', { name: 'Morning Message Studio' })).toHaveCount(0)
   await expect(page.getByLabel('Morning Message Studio')).toHaveCount(0)
-  await expect(page.getByText('Student Picker & Stars')).toHaveCount(0)
+  await expect(page.getByText('Mystery Star & Picker')).toHaveCount(0)
   await expect(page.getByText('Backup / Restore')).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Open Student Display' })).toHaveCount(0)
   await expect(page.getByLabel('Enter edit mode')).toHaveCount(0)

@@ -8,6 +8,8 @@ interface PrizeBoardGridProps {
   prizeOverrides: Record<string, PrizeSettingsOverride>
   selectedTile: number | null
   onSelectTile: (index: number) => void
+  highlightedTile?: number | null
+  spinMode?: boolean
 }
 
 const KIND_STYLES: Record<PrizeBoardTile['kind'], string> = {
@@ -23,6 +25,8 @@ export function PrizeBoardGrid({
   prizeOverrides,
   selectedTile,
   onSelectTile,
+  highlightedTile = null,
+  spinMode = false,
 }: PrizeBoardGridProps) {
   return (
     <div
@@ -35,6 +39,7 @@ export function PrizeBoardGrid({
           ? getPrizeById(tile.prizeId, prizeBank, prizeOverrides)
           : undefined
         const isSelected = selectedTile === tile.index
+        const isHighlighted = highlightedTile === tile.index
         const label = tileLabel(tile, prize)
 
         return (
@@ -42,11 +47,15 @@ export function PrizeBoardGrid({
             key={tile.index}
             type="button"
             role="gridcell"
-            onClick={() => onSelectTile(tile.index)}
+            onClick={() => !spinMode && onSelectTile(tile.index)}
             title={label}
-            className={`relative flex aspect-square items-center justify-center rounded border p-0.5 text-[8px] font-bold leading-tight transition hover:brightness-125 ${
+            disabled={spinMode}
+            className={`relative flex aspect-square items-center justify-center rounded border p-0.5 text-[8px] font-bold leading-tight transition-[transform,box-shadow,filter] duration-75 hover:brightness-125 ${
               KIND_STYLES[tile.kind]
-            } ${isSelected ? 'ring-2 ring-amber-400 ring-offset-1 ring-offset-slate-900' : ''}`}
+            } ${isSelected ? 'ring-2 ring-amber-400 ring-offset-1 ring-offset-slate-900' : ''} ${
+              isHighlighted ? 'z-10 scale-110 border-amber-300 shadow-[0_0_12px_rgba(251,191,36,0.6)]' : ''
+            }`}
+            style={isHighlighted ? { willChange: 'transform, box-shadow' } : undefined}
           >
             <span className="line-clamp-3 text-center">{shortLabel(label, tile.kind)}</span>
             {prize && tile.kind !== 'revealed' && (
