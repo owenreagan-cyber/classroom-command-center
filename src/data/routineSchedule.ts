@@ -1,4 +1,5 @@
-import type { BlockRoutineWindow, DailyBlockDefinition, DailyBlockState, RoutineControlState, RoutinePhaseDefinition, RoutinePhaseState, RoutineSchedule, RoutineSuggestion, RoutineWeekday } from './routineTypes'
+import type { BlockRoutineWindow, CurriculumTrack, DailyBlockDefinition, DailyBlockState, RoutineControlState, RoutinePhaseDefinition, RoutinePhaseState, RoutineSchedule, RoutineSuggestion, RoutineWeekday } from './routineTypes'
+import { resolveBlockPageSuggestion } from './scheduleModel'
 
 export function normalizeRoutineSuggestion(
   suggestion: RoutineSuggestion | undefined,
@@ -77,11 +78,12 @@ export function normalizeRoutineControlState(
 }
 
 export const SCHEDULE_CHANGE_NOTES = [
-  'Shurley and History/Science swapped places and times; exact schedule pending teacher confirmation.',
+  'Instructional order corrected: Shurley/Writing/Handwriting now follows Snack; History/Science follows Recess.',
+  'History/Science subject resolves by curriculum track (1/3 History, 2/4 Science).',
 ] as const
 
 export const CLASS_MODE_USES: Record<'homeroom' | 'math' | 'reading', string[]> = {
-  homeroom: ['morning time', 'snack', 'Shurley', 'lunch', 'history/science', 'dismissal'],
+  homeroom: ['morning time', 'snack', 'Shurley', 'movement', 'lunch', 'history/science', 'dismissal'],
   math: ['math'],
   reading: ['spelling', 'reading'],
 }
@@ -92,6 +94,7 @@ export const CANONICAL_DAILY_BLOCKS: DailyBlockDefinition[] = [
     label: 'Carpool/Homeroom',
     startTime: '7:20',
     endTime: '7:45',
+    durationMinutes: 25,
     weekdays: ['mon', 'tue', 'wed', 'thu', 'fri'],
     enabled: true,
     screenId: 'homeroom',
@@ -107,6 +110,7 @@ export const CANONICAL_DAILY_BLOCKS: DailyBlockDefinition[] = [
     label: 'Math',
     startTime: '7:50',
     endTime: '9:00',
+    durationMinutes: 70,
     weekdays: ['mon', 'tue', 'wed', 'thu', 'fri'],
     enabled: true,
     screenId: 'math',
@@ -116,39 +120,43 @@ export const CANONICAL_DAILY_BLOCKS: DailyBlockDefinition[] = [
     label: 'Snack',
     startTime: '9:05',
     endTime: '9:15',
+    durationMinutes: 10,
     weekdays: ['mon', 'tue', 'wed', 'thu', 'fri'],
     enabled: true,
     screenId: 'snack',
-    nextScreenId: 'science',
+    nextScreenId: 'writing',
     pageSuggestion: {
-      label: 'Open History/Science',
-      screenId: 'science',
-      pageId: 'history-science-get-ready',
+      label: 'Open Shurley/Writing',
+      screenId: 'writing',
+      pageId: 'shurley-get-ready',
     },
   },
   {
-    id: 'history-science',
-    label: 'History/Science',
+    id: 'writing',
+    label: 'Shurley/Writing/Handwriting',
     startTime: '9:20',
     endTime: '10:00',
+    durationMinutes: 40,
     weekdays: ['mon', 'tue', 'wed', 'thu', 'fri'],
     enabled: true,
-    screenId: 'science',
+    screenId: 'writing',
   },
   {
     id: 'movement',
     label: 'Movement',
     startTime: '10:05',
     endTime: '10:35',
+    durationMinutes: 30,
     weekdays: ['mon', 'tue', 'wed', 'thu', 'fri'],
     enabled: true,
-    screenId: 'science',
+    screenId: 'movement',
   },
   {
     id: 'spelling',
     label: 'Spelling',
     startTime: '10:40',
     endTime: '11:10',
+    durationMinutes: 30,
     weekdays: ['mon', 'tue', 'wed', 'thu', 'fri'],
     enabled: true,
     screenId: 'spelling',
@@ -158,6 +166,7 @@ export const CANONICAL_DAILY_BLOCKS: DailyBlockDefinition[] = [
     label: 'Reading',
     startTime: '11:10',
     endTime: '12:10',
+    durationMinutes: 60,
     weekdays: ['mon', 'tue', 'wed', 'thu', 'fri'],
     enabled: true,
     screenId: 'reading',
@@ -167,6 +176,7 @@ export const CANONICAL_DAILY_BLOCKS: DailyBlockDefinition[] = [
     label: 'Lunch',
     startTime: '12:15',
     endTime: '12:45',
+    durationMinutes: 30,
     weekdays: ['mon', 'tue', 'wed', 'thu', 'fri'],
     enabled: true,
     screenId: 'lunch',
@@ -182,24 +192,33 @@ export const CANONICAL_DAILY_BLOCKS: DailyBlockDefinition[] = [
     label: 'Recess',
     startTime: '12:50',
     endTime: '13:10',
+    durationMinutes: 20,
     weekdays: ['mon', 'tue', 'wed', 'thu', 'fri'],
     enabled: true,
     screenId: 'recess',
   },
   {
-    id: 'writing',
-    label: 'Shurley/Writing/Handwriting',
+    id: 'history-science',
+    label: 'History/Science',
     startTime: '13:15',
     endTime: '13:45',
+    durationMinutes: 30,
     weekdays: ['mon', 'tue', 'wed', 'thu', 'fri'],
     enabled: true,
-    screenId: 'writing',
+    screenId: 'science',
+    trackOverrides: {
+      1: { title: 'History', screenId: 'social-studies' },
+      2: { title: 'Science', screenId: 'science' },
+      3: { title: 'History', screenId: 'social-studies' },
+      4: { title: 'Science', screenId: 'science' },
+    },
   },
   {
     id: 'specials',
     label: 'Specials',
     startTime: '13:50',
     endTime: '14:35',
+    durationMinutes: 45,
     weekdays: ['mon', 'tue', 'wed', 'thu', 'fri'],
     enabled: true,
     screenId: 'assessment',
@@ -209,6 +228,7 @@ export const CANONICAL_DAILY_BLOCKS: DailyBlockDefinition[] = [
     label: 'Pack Up',
     startTime: '14:35',
     endTime: '14:40',
+    durationMinutes: 5,
     weekdays: ['mon', 'tue', 'wed', 'thu', 'fri'],
     enabled: true,
     screenId: 'pack-up',
@@ -218,6 +238,7 @@ export const CANONICAL_DAILY_BLOCKS: DailyBlockDefinition[] = [
     label: 'Carpool',
     startTime: '14:40',
     endTime: '15:05',
+    durationMinutes: 25,
     weekdays: ['mon', 'tue', 'wed', 'thu', 'fri'],
     enabled: true,
     screenId: 'homeroom',
@@ -296,9 +317,9 @@ export const ROUTINE_SCHEDULES: RoutineSchedule[] = [
         transitionChime: true,
         pageId: 'snack-silent-clean-up',
         nextPageSuggestion: {
-          label: 'Open History/Science',
-          screenId: 'science',
-          pageId: 'history-science-get-ready',
+          label: 'Open Shurley/Writing',
+          screenId: 'writing',
+          pageId: 'shurley-get-ready',
         },
       },
     ],
@@ -384,8 +405,8 @@ export const BLOCK_ROUTINE_WINDOWS: BlockRoutineWindow[] = [
     id: 'history-science-get-ready',
     blockId: 'history-science',
     label: 'Get Ready',
-    startTime: '9:20',
-    endTime: '9:22',
+    startTime: '13:15',
+    endTime: '13:17',
     instructions: ['Sit down', 'Get materials out', 'Follow the board'],
     enabled: true,
   },
@@ -393,8 +414,8 @@ export const BLOCK_ROUTINE_WINDOWS: BlockRoutineWindow[] = [
     id: 'history-science-wrap-up',
     blockId: 'history-science',
     label: 'Wrap Up',
-    startTime: '9:58',
-    endTime: '10:00',
+    startTime: '13:43',
+    endTime: '13:45',
     instructions: ['Clean your area', 'Put materials away', 'Ready Position'],
     enabled: true,
   },
@@ -429,8 +450,8 @@ export const BLOCK_ROUTINE_WINDOWS: BlockRoutineWindow[] = [
     id: 'shurley-writing-get-ready',
     blockId: 'writing',
     label: 'Get Ready',
-    startTime: '13:15',
-    endTime: '13:17',
+    startTime: '9:20',
+    endTime: '9:22',
     instructions: ['Sit down', 'Get materials out', 'Follow the board'],
     enabled: true,
   },
@@ -438,8 +459,8 @@ export const BLOCK_ROUTINE_WINDOWS: BlockRoutineWindow[] = [
     id: 'shurley-writing-wrap-up',
     blockId: 'writing',
     label: 'Wrap Up',
-    startTime: '13:43',
-    endTime: '13:45',
+    startTime: '9:58',
+    endTime: '10:00',
     instructions: ['Clean your area', 'Put materials away', 'Ready Position'],
     enabled: true,
   },
@@ -555,10 +576,32 @@ export function makeManualRoutineControl(
   }
 }
 
-export function getSuggestionForBlock(block: DailyBlockDefinition): RoutineSuggestion | undefined {
+export function getSuggestionForBlock(
+  block: DailyBlockDefinition,
+  track?: CurriculumTrack,
+  historyScienceBlock?: DailyBlockDefinition,
+): RoutineSuggestion | undefined {
+  if (track !== undefined) {
+    return resolveBlockPageSuggestion(block, track, historyScienceBlock)
+  }
   return block.pageSuggestion
 }
 
 export function getBlockRoutineWindowById(windowId: string): BlockRoutineWindow | undefined {
   return BLOCK_ROUTINE_WINDOWS.find((window) => window.id === windowId)
 }
+
+export {
+  assertInstructionalBlockOrder,
+  blockDurationMinutes,
+  INSTRUCTIONAL_BLOCK_ORDER,
+  resolveBlockDisplayLabel,
+  resolveBlockPageSuggestion,
+  resolveBlockPageSuggestionForDate,
+  resolveBlockScreenId,
+  resolveCurriculumTrack,
+  resolveHistoryScienceSubject,
+  toScheduleBlockModel,
+  TRACK_HISTORY_SCIENCE_MAP,
+  TRACK_ROTATION_EPOCH,
+} from './scheduleModel'

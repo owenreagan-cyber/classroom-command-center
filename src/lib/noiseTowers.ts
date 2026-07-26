@@ -239,6 +239,7 @@ export function getNoiseTrackerIdForScreen(screenId: ScreenId): NoiseTrackerId |
     case 'snack':
     case 'lunch':
     case 'recess':
+    case 'movement':
     case 'ready-position':
     case 'homework':
     case 'pack-up':

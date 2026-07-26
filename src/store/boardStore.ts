@@ -182,6 +182,7 @@ export function normalizeScreenIdForBoard(screenId: string | undefined): ScreenI
     case 'homework':
     case 'pack-up':
     case 'spelling':
+    case 'movement':
       return screenId
     case 'snack-lunch':
       // Legacy: snack-lunch -> snack by default (content preserved)
@@ -220,6 +221,7 @@ function normalizeBoardContents(contents: ScreenContents | undefined): ScreenCon
   next.assessment = readField('assessment')
   next.centers = readField('centers') ?? readField('centers', 'flexible-groups') ?? readField('centers', 'intervention')
   next.recess = readField('recess')
+  next.movement = readField('movement')
   next['ready-position'] = readField('ready-position')
   next.snack = readField('snack', 'snack-lunch')
   next.lunch = readField('lunch')
@@ -394,8 +396,13 @@ function beautifyScreenContents(
       break
     }
     case 'ready-position':
-    case 'recess': {
-      const rp = screenId === 'ready-position' ? next['ready-position'] : next.recess
+    case 'recess':
+    case 'movement': {
+      const rp = screenId === 'ready-position'
+        ? next['ready-position']
+        : screenId === 'movement'
+          ? next.movement
+          : next.recess
       rp.title = beautifyTitle(rp.title)
       rp.steps = beautifyBulletList(rp.steps)
       rp.compactLine = beautifySingleInstruction(rp.compactLine)

@@ -4,7 +4,7 @@
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 declare const process: any
 
-import { BLOCK_ROUTINE_WINDOWS, ROUTINE_SCHEDULES, getDayKey, getDateTimeForMinutes, getRoutineWeekday, isWeekdayEnabled, normalizeRoutineControlState, normalizeRoutineSuggestion, phaseDurationMs, timeToMinutes } from '../data/routineSchedule'
+import { BLOCK_ROUTINE_WINDOWS, CANONICAL_DAILY_BLOCKS, ROUTINE_SCHEDULES, assertInstructionalBlockOrder, getDayKey, getDateTimeForMinutes, getRoutineWeekday, isWeekdayEnabled, normalizeRoutineControlState, normalizeRoutineSuggestion, phaseDurationMs, resolveBlockDisplayLabel, resolveBlockPageSuggestion, resolveBlockScreenId, resolveCurriculumTrack, resolveHistoryScienceSubject, timeToMinutes, toScheduleBlockModel, TRACK_HISTORY_SCIENCE_MAP, INSTRUCTIONAL_BLOCK_ORDER } from '../data/routineSchedule'
 import { advanceRoutineControlToNextPhase, buildManualRoutineControl, buildPausedRoutineControl, getBlockRoutineTimeline, getDailyBlockTimeline, getRoutineTimeline, restartRoutineControl } from './routineEngine'
 import type { VibePageId } from '../data/types'
 
@@ -47,6 +47,11 @@ const t0920 = localDate(2026, 7, 6, 9, 20)
 const t0922 = localDate(2026, 7, 6, 9, 22)
 const t0958 = localDate(2026, 7, 6, 9, 58)
 const t1000 = localDate(2026, 7, 6, 10, 0)
+const t1315 = localDate(2026, 7, 6, 13, 15)
+const t1317 = localDate(2026, 7, 6, 13, 17)
+const t1343 = localDate(2026, 7, 6, 13, 43)
+const t1344 = localDate(2026, 7, 6, 13, 44)
+const t1345 = localDate(2026, 7, 6, 13, 45)
 const t1040 = localDate(2026, 7, 6, 10, 40)
 const t1042 = localDate(2026, 7, 6, 10, 42)
 const t1110 = localDate(2026, 7, 6, 11, 10)
@@ -140,16 +145,17 @@ assert('Reading wrap-up is active at 12:09', getBlockRoutineTimeline('reading', 
 assert('Reading has no routine window at 11:12', getBlockRoutineTimeline('reading', t1112).currentWindow === null)
 assert('Reading block is still active at 12:08', getDailyBlockTimeline(t1208).currentBlock?.id === 'reading')
 assert('Reading block clears at 12:10', getDailyBlockTimeline(t1210).currentBlock === null)
-assert('History/Science get-ready opens at 9:20', getBlockRoutineTimeline('history-science', t0920).currentWindow?.id === 'history-science-get-ready')
-assert('History/Science wrap-up is active at 9:58', getBlockRoutineTimeline('history-science', t0958).currentWindow?.id === 'history-science-wrap-up')
-assert('History/Science has no routine window at 9:22', getBlockRoutineTimeline('history-science', t0922).currentWindow === null)
-assert('History/Science block is active at 9:59', getDailyBlockTimeline(localDate(2026, 7, 6, 9, 59)).currentBlock?.id === 'history-science')
-assert('History/Science block clears at 10:00', getDailyBlockTimeline(t1000).currentBlock === null)
+assert('Shurley/Writing get-ready opens at 9:20', getBlockRoutineTimeline('writing', t0920).currentWindow?.id === 'shurley-writing-get-ready')
+assert('Shurley/Writing wrap-up is active at 9:58', getBlockRoutineTimeline('writing', t0958).currentWindow?.id === 'shurley-writing-wrap-up')
+assert('Shurley/Writing has no routine window at 9:22', getBlockRoutineTimeline('writing', t0922).currentWindow === null)
+assert('Shurley/Writing wrap-up finishes at 10:00', getBlockRoutineTimeline('writing', t1000).currentWindow === null)
+assert('History/Science get-ready opens at 1:15 PM', getBlockRoutineTimeline('history-science', t1315).currentWindow?.id === 'history-science-get-ready')
+assert('History/Science wrap-up is active at 1:43 PM', getBlockRoutineTimeline('history-science', t1343).currentWindow?.id === 'history-science-wrap-up')
+assert('History/Science has no routine window at 1:17 PM', getBlockRoutineTimeline('history-science', t1317).currentWindow === null)
+assert('History/Science block is active at 1:44 PM', getDailyBlockTimeline(t1344).currentBlock?.id === 'history-science')
+assert('History/Science block clears at 1:45 PM', getDailyBlockTimeline(t1345).currentBlock === null)
 assert('Spelling get-ready opens at 10:40', getBlockRoutineTimeline('spelling', t1040).currentWindow?.id === 'spelling-get-ready')
 assert('Spelling has no routine window at 10:42', getBlockRoutineTimeline('spelling', t1042).currentWindow === null)
-assert('Shurley/Writing get-ready opens at 1:15', getBlockRoutineTimeline('writing', localDate(2026, 7, 6, 13, 15)).currentWindow?.id === 'shurley-writing-get-ready')
-assert('Shurley/Writing wrap-up is active at 1:44', getBlockRoutineTimeline('writing', localDate(2026, 7, 6, 13, 44)).currentWindow?.id === 'shurley-writing-wrap-up')
-assert('Shurley/Writing wrap-up finishes at 1:45', getBlockRoutineTimeline('writing', localDate(2026, 7, 6, 13, 45)).currentWindow === null)
 assert('Lunch block starts at 12:50 as recess', getDailyBlockTimeline(t1250).currentBlock?.id === 'recess')
 
 // Pause, resume, skip, restart, manual override
@@ -231,6 +237,63 @@ assert('Mystery sessions remain unchanged', JSON.stringify(mysterySessions) === 
 assert('Day key uses the injected date', getDayKey(t1215) === '2026-07-06')
 assert('Minute conversion is exact', timeToMinutes('12:45') === 765)
 assert('Date time conversion preserves local time', sameTime(getDateTimeForMinutes(t1215, 765), t1245.getTime()))
+
+// Track-aware schedule model
+assert('Instructional block order matches canonical sequence', assertInstructionalBlockOrder(CANONICAL_DAILY_BLOCKS))
+const writingIndex = CANONICAL_DAILY_BLOCKS.findIndex((block) => block.id === 'writing')
+const historyIndex = CANONICAL_DAILY_BLOCKS.findIndex((block) => block.id === 'history-science')
+assert('Shurley/Writing appears before History/Science', writingIndex >= 0 && historyIndex >= 0 && writingIndex < historyIndex)
+assert('Reading block remains in schedule', CANONICAL_DAILY_BLOCKS.some((block) => block.id === 'reading' && block.startTime === '11:10'))
+assert('Track 1 resolves to History', resolveHistoryScienceSubject(1) === 'history')
+assert('Track 2 resolves to Science', resolveHistoryScienceSubject(2) === 'science')
+assert('Track 3 resolves to History', resolveHistoryScienceSubject(3) === 'history')
+assert('Track 4 resolves to Science', resolveHistoryScienceSubject(4) === 'science')
+assert('Track map covers all four tracks', Object.keys(TRACK_HISTORY_SCIENCE_MAP).length === 4)
+const mondayTrack = resolveCurriculumTrack(monday)
+assert('Curriculum track resolves for Monday test date', mondayTrack >= 1 && mondayTrack <= 4)
+const historyBlock = CANONICAL_DAILY_BLOCKS.find((block) => block.id === 'history-science')!
+assert('Track 1 history label resolves', resolveBlockDisplayLabel(historyBlock, 1) === 'History')
+assert('Track 2 science label resolves', resolveBlockDisplayLabel(historyBlock, 2) === 'Science')
+assert('Snack cleanup suggests Shurley/Writing', snackSchedule.phases[1].nextPageSuggestion?.screenId === 'writing')
+
+// ScheduleBlockModel and track screen routing
+const historyBlockModel = toScheduleBlockModel(historyBlock)
+assert('ScheduleBlockModel preserves block id', historyBlockModel.blockId === 'history-science')
+assert('ScheduleBlockModel includes duration', historyBlockModel.durationMinutes === 30)
+assert('ScheduleBlockModel includes track overrides', historyBlockModel.trackOverrides?.[1]?.title === 'History')
+assert('Track 1 routes to social-studies screen', resolveBlockScreenId(historyBlock, 1) === 'social-studies')
+assert('Track 2 routes to science screen', resolveBlockScreenId(historyBlock, 2) === 'science')
+assert('Track 3 routes to social-studies screen', resolveBlockScreenId(historyBlock, 3) === 'social-studies')
+assert('Track 4 routes to science screen', resolveBlockScreenId(historyBlock, 4) === 'science')
+
+// Exact instructional block order
+const instructionalIds = CANONICAL_DAILY_BLOCKS
+  .filter((block) => INSTRUCTIONAL_BLOCK_ORDER.includes(block.id as typeof INSTRUCTIONAL_BLOCK_ORDER[number]))
+  .map((block) => block.id)
+assert(
+  'Instructional blocks appear in canonical order',
+  INSTRUCTIONAL_BLOCK_ORDER.every((id, index) => instructionalIds[index] === id),
+)
+assert('Snack precedes Shurley/Writing in schedule', instructionalIds.indexOf('snack') < instructionalIds.indexOf('writing'))
+assert('Recess precedes History/Science in schedule', instructionalIds.indexOf('recess') < instructionalIds.indexOf('history-science'))
+
+const movementBlock = CANONICAL_DAILY_BLOCKS.find((block) => block.id === 'movement')!
+assert('Movement block resolves to movement screen', movementBlock.screenId === 'movement')
+assert('Movement block does not resolve to science', movementBlock.screenId !== 'science')
+assert('resolveBlockScreenId for movement stays movement', resolveBlockScreenId(movementBlock, 1) === 'movement')
+
+const recessBlock = CANONICAL_DAILY_BLOCKS.find((block) => block.id === 'recess')!
+const recessTrack1 = resolveBlockPageSuggestion(recessBlock, 1, historyBlock)
+assert('Recess Track 1 suggests Open History', recessTrack1?.label === 'Open History')
+assert('Recess Track 1 routes to social-studies', recessTrack1?.screenId === 'social-studies')
+const recessTrack2 = resolveBlockPageSuggestion(recessBlock, 2, historyBlock)
+assert('Recess Track 2 suggests Open Science', recessTrack2?.label === 'Open Science')
+assert('Recess Track 2 routes to science', recessTrack2?.screenId === 'science')
+const recessTrack3 = resolveBlockPageSuggestion(recessBlock, 3, historyBlock)
+assert('Recess Track 3 suggests Open History', recessTrack3?.label === 'Open History')
+const recessTrack4 = resolveBlockPageSuggestion(recessBlock, 4, historyBlock)
+assert('Recess Track 4 suggests Open Science', recessTrack4?.label === 'Open Science')
+assert('Recess block has no static History/Science pageSuggestion', recessBlock.pageSuggestion === undefined)
 
 console.log(`Passed: ${passed}, Failed: ${failed}`)
 process.exitCode = failed > 0 ? 1 : 0

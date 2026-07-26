@@ -4,6 +4,26 @@ export const ROUTINE_WEEKDAYS = ['mon', 'tue', 'wed', 'thu', 'fri'] as const
 
 export type RoutineWeekday = (typeof ROUTINE_WEEKDAYS)[number]
 
+export const CURRICULUM_TRACKS = [1, 2, 3, 4] as const
+
+export type CurriculumTrack = (typeof CURRICULUM_TRACKS)[number]
+
+export type HistoryScienceSubject = 'history' | 'science'
+
+export interface TrackBlockOverride {
+  title?: string
+  screenId?: ScreenId
+}
+
+export interface ScheduleBlockModel {
+  blockId: string
+  title: string
+  startTime: string
+  endTime: string
+  durationMinutes: number
+  trackOverrides?: Partial<Record<CurriculumTrack, TrackBlockOverride>>
+}
+
 export type ClassVibeId = ScreenId
 
 export type FocusedPageId = VibePageId
@@ -42,11 +62,13 @@ export interface DailyBlockDefinition {
   label: string
   startTime: string
   endTime: string
+  durationMinutes?: number
   weekdays?: RoutineWeekday[]
   enabled: boolean
   screenId?: ScreenId
   nextScreenId?: ScreenId
   pageSuggestion?: RoutineSuggestion
+  trackOverrides?: Partial<Record<CurriculumTrack, TrackBlockOverride>>
 }
 
 export interface RoutinePhaseState extends RoutinePhaseDefinition {

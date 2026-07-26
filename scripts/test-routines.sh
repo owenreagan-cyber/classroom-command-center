@@ -22,6 +22,7 @@ trap cleanup EXIT
   --skipLibCheck \
   --outDir "$OUT" \
   "$ROOT/src/data/routineTypes.ts" \
+  "$ROOT/src/data/scheduleModel.ts" \
   "$ROOT/src/data/routineSchedule.ts" \
   "$ROOT/src/lib/routineEngine.ts" \
   "$ROOT/src/lib/routine-tests.ts"

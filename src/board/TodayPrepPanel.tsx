@@ -8,7 +8,15 @@ import {
   RESOURCE_OPEN_PRESETS,
 } from '../lib/resourcePresets'
 import { copyResourceUrl, getResourceUrlWarning, isValidResourceUrl } from '../lib/resourceUrl'
+import { buildLessonPackage } from '../features/omninote-bridge/types'
+import { copyResourceForOmniNote, executeHandoff } from '../features/omninote-bridge/handoff'
 import { useBoardStore } from '../store/boardStore'
+import {
+  CANONICAL_DAILY_BLOCKS,
+  resolveBlockDisplayLabel,
+  resolveCurriculumTrack,
+} from '../data/routineSchedule'
+import { getDailyBlockTimeline } from '../lib/routineEngine'
 
 interface TodayPrepPanelProps {
   activeScreen: ScreenId
@@ -79,6 +87,14 @@ export function TodayPrepPanel({
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null)
 
   const addFormPresetMeta = getResourcePresetMeta(linkPreset)
+
+  const now = useMemo(() => new Date(), [])
+  const curriculumTrack = useMemo(() => resolveCurriculumTrack(now), [now])
+  const blockTimeline = useMemo(() => getDailyBlockTimeline(now), [now])
+  const historyScienceBlock = CANONICAL_DAILY_BLOCKS.find((block) => block.id === 'history-science')
+  const todayHistoryScienceLabel = historyScienceBlock
+    ? resolveBlockDisplayLabel(historyScienceBlock, curriculumTrack)
+    : null
 
   const screenLabel =
     SCREEN_META.find((screen) => screen.id === activeScreen)?.label ?? activeScreen
@@ -155,6 +171,22 @@ export function TodayPrepPanel({
     window.setTimeout(() => setCopyFeedback(null), 2200)
   }
 
+  const handleOpenInOmniNote = async (link: { label: string; url: string; preset?: ResourceOpenPreset }) => {
+    const kind = link.preset === 'google-slides' ? 'slide-deck' as const
+      : link.preset === 'google-docs' ? 'worksheet' as const
+      : 'pdf' as const
+    const pkg = buildLessonPackage({
+      title: link.label,
+      subject: activeScreen,
+      kind,
+      webUrl: link.url,
+    })
+    const copied = await copyResourceForOmniNote(pkg)
+    const result = executeHandoff({ package: pkg, method: copied ? 'copy-link' : 'manual' })
+    setCopyFeedback(result.message)
+    window.setTimeout(() => setCopyFeedback(null), 3000)
+  }
+
   return (
     <section className="space-y-4" aria-label="Today Prep and Material Launcher">
       <div>
@@ -178,6 +210,13 @@ export function TodayPrepPanel({
         <p className="mt-1 text-sm font-semibold text-white">{screenLabel}</p>
         <p className="text-xs text-slate-300">
           {activePage ? activePage.title : 'No vibe page selected'}
+        </p>
+        <p className="mt-1.5 text-[10px] uppercase tracking-wide text-slate-500">
+          Track {curriculumTrack}
+          {todayHistoryScienceLabel ? ` · Today: ${todayHistoryScienceLabel}` : ''}
+          {blockTimeline.currentBlock
+            ? ` · Now: ${resolveBlockDisplayLabel(blockTimeline.currentBlock, curriculumTrack)}`
+            : ''}
         </p>
         {(incompleteCount > 0 || invalidLinkCount > 0) && (
           <ul className="mt-2 space-y-1 text-xs text-amber-100/90">
@@ -427,6 +466,14 @@ export function TodayPrepPanel({
                         className="inline-flex rounded-lg border border-slate-600 bg-slate-900/80 px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:bg-slate-800"
                       >
                         Copy Link
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void handleOpenInOmniNote(link)}
+                        className="inline-flex rounded-lg border border-violet-400/40 bg-violet-950/30 px-3 py-1.5 text-xs font-semibold text-violet-100 transition hover:bg-violet-900/40"
+                        aria-label={`Open in OmniNote: ${link.label}`}
+                      >
+                        Open in OmniNote
                       </button>
                       {isNowShowing ? (
                         <span className="inline-flex rounded-lg border border-cyan-400/40 bg-cyan-950/40 px-3 py-1.5 text-xs font-semibold text-cyan-100">

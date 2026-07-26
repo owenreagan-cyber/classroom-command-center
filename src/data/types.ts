@@ -27,6 +27,7 @@ export type ScreenId =
   | 'homework'
   | 'pack-up'
   | 'spelling'
+  | 'movement'
 
 /** Legacy screen IDs that still need migration support. */
 export type LegacyScreenId =
@@ -80,6 +81,7 @@ export type VibePageId =
   | 'shurley-wrap-up'
   | 'recess-play'
   | 'ready-position-default'
+  | 'movement-default'
   | 'social-studies-focus'
   | 'assessment-default'
   | 'centers-default'
@@ -313,6 +315,7 @@ export interface ScreenContents {
   snack: SnackContent
   lunch: LunchContent
   recess: ReadyPositionContent
+  movement: ReadyPositionContent
   'ready-position': ReadyPositionContent
   writing: SubjectContent
   science: SubjectContent
