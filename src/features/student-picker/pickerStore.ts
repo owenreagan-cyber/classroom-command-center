@@ -1,6 +1,8 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { getPoolKey } from '../roster/poolKey'
+import { pickTitleForPool } from '../titles/titleBank'
+import type { TitleUsageEntry } from '../titles/types'
 import type { FairnessEntry, MysteryRevealStatus, MysterySlotId, PickerPoolKey, PickerStoreState, Student } from './types'
 import { DEFAULT_COACHING_STATE } from './defaults'
 
@@ -19,6 +21,7 @@ const defaultSessions: Record<string, null> = {
 const initialState = {
   students: [] as Student[],
   fairnessHistory: [] as FairnessEntry[],
+  titleUsageHistory: [] as TitleUsageEntry[],
   activeMysterySessions: { ...defaultSessions },
   coachingConfig: DEFAULT_COACHING_STATE,
   settings: {
@@ -195,14 +198,48 @@ export const usePickerStore = create<PickerStoreState>()(
         set((state) => {
           const session = state.activeMysterySessions[poolKey]
           if (!session) return state
+          const existing = session.slots[slotId]!
+          let assignedTitle = existing.assignedTitle
+          let assignedTitleId = existing.assignedTitleId
+          let titleUsageHistory = state.titleUsageHistory
+
+          if (status === 'earned' && !assignedTitleId) {
+            const slotRole = slotId === 'star' ? 'star' : 'high-flier'
+            const picked = pickTitleForPool(poolKey, state.titleUsageHistory, { slotRole })
+            if (picked) {
+              assignedTitle = picked.label
+              assignedTitleId = picked.id
+              const entry: TitleUsageEntry = {
+                titleId: picked.id,
+                titleLabel: picked.label,
+                poolKey,
+                timestamp: Date.now(),
+                slotRole,
+              }
+              titleUsageHistory = [...state.titleUsageHistory, entry]
+            }
+          }
+
+          if (status !== 'earned') {
+            assignedTitle = undefined
+            assignedTitleId = undefined
+          }
+
           return {
+            titleUsageHistory,
             activeMysterySessions: {
               ...state.activeMysterySessions,
               [poolKey]: touchSession({
                 ...session,
                 slots: {
                   ...session.slots,
-                  [slotId]: { ...session.slots[slotId]!, status, reason },
+                  [slotId]: {
+                    ...existing,
+                    status,
+                    reason,
+                    assignedTitle,
+                    assignedTitleId,
+                  },
                 },
               }),
             },
@@ -514,6 +551,7 @@ export const usePickerStore = create<PickerStoreState>()(
           ...state,
           students: migratedStudents,
           fairnessHistory: migratedHistory,
+          titleUsageHistory: state.titleUsageHistory ?? [],
           activeMysterySessions: migratedSessions,
           coachingConfig: { ...initialState.coachingConfig, ...(state.coachingConfig || {}) },
           settings: { ...initialState.settings, ...(state.settings || {}) },
