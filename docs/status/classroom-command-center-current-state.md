@@ -1,6 +1,6 @@
 # Classroom Command Center — Current State Audit
 
-Status: reconciled after Phase 12B Prize Board Foundation  
+Status: reconciled after Phase 12C.1.1 iPad Landscape QA  
 Date: 2026-07-25  
 Project: `~/Projects/classroom-command-center`
 
@@ -8,6 +8,10 @@ Project: `~/Projects/classroom-command-center`
 
 Latest phase branch:
 
+- `phase-12c-press-your-luck-experience`
+- Phase 12C.1.1: iPad landscape (1366×1024) teacher control QA — overflow, usability, SecretStopZone, projector privacy E2E; 2 control snapshot baselines
+- Phase 12C.1: Playwright projector snapshots (5), SecretStopZone workflow E2E, interrupted spin recovery, spin animation timer fallbacks
+- Phase 12C: Press Your Luck state machine, projector mode on `/display`, board scan animation, secret stop, rarity reveals, Mystery Box sequence, Whammy foundation, Web Audio manager, teacher controls
 - `phase-12b-prize-board-foundation`
 - Phase 12B: title banks (class-locked + shared), default prize bank, Mystery Box container, 100-tile Prize Board with teacher panel in `/control`, display-safe helpers
 - Phase 12A: typed rosters with preferred names, local roster import, Reading section pools (RM4/SM5), enhanced Mystery Star control panel, display-safe status
@@ -21,7 +25,8 @@ Latest phase branch:
 - `npm run test:display-polish` — PASS
 - `npm run test:visual-qa` — PASS (8)
 - `npm run test:display-snapshots` — PASS (4)
-- `npm run test:e2e` — PASS (40)
+- `npm run test:e2e` — PASS (58)
+- `npm run test:prize-board-projector-snapshots` — PASS (7)
 
 Important: this repo is now beyond the older Phase 4C/4D roadmap. Basic inline editing, widget visibility, routine-aware pages, backup/restore, random picker/Mystery Star, local packets, noise widgets, Studio Canvas, and Studio Canvas repair work have already been implemented or superseded.
 
@@ -38,7 +43,16 @@ Latest confirmed local checks:
 - `npm run test:display-polish` — PASS
 - `npm run test:visual-qa` — PASS (8)
 - `npm run test:display-snapshots` — PASS (4)
-- `npm run test:e2e` — PASS (40)
+- `npm run test:e2e` — PASS (58)
+- `npm run test:prize-board-projector-snapshots` — PASS (7)
+
+Phase 12C.1.1 docs:
+
+- `docs/status/phase-12c1-1-ipad-landscape-qa.md`
+
+Phase 12C.1 docs:
+
+- `docs/status/phase-12c1-projector-qa.md`
 
 Phase 9C.1 docs:
 

@@ -176,7 +176,7 @@ test.describe('Studio Canvas', () => {
     // button must not report a change available here, and must not be able
     // to silently revert the Homeroom edit while the teacher is looking at
     // a different class.
-    await page.getByRole('button', { name: /^Math$/ }).click()
+    await page.getByLabel('Screen navigation').getByRole('button', { name: /^Math$/ }).click()
     await page.waitForTimeout(300)
 
     const undoDisabledOnMath = await page.evaluate(() => {
@@ -188,7 +188,7 @@ test.describe('Studio Canvas', () => {
     // Navigating back to Homeroom > Morning Arrival, the earlier edit must
     // still be there (untouched by anything done while viewing Math) and
     // Undo must still be available for it.
-    await page.getByRole('button', { name: /^Homeroom$/ }).click()
+    await page.getByLabel('Screen navigation').getByRole('button', { name: /^Homeroom$/ }).click()
     await page.waitForSelector('[data-widget-type="do-now"]', { timeout: 5000 })
 
     const undoEnabledBackOnHomeroom = await page.evaluate(() => {

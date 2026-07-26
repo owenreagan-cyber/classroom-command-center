@@ -38,5 +38,9 @@ dist-ssr
 *.spec.ts-snapshots/
 !tests/e2e/display-snapshots.spec.ts-snapshots/
 !tests/e2e/display-snapshots.spec.ts-snapshots/**
+!tests/e2e/prize-board-projector-snapshots.spec.ts-snapshots/
+!tests/e2e/prize-board-projector-snapshots.spec.ts-snapshots/**
+!tests/e2e/prize-board-ipad-landscape-snapshots.spec.ts-snapshots/
+!tests/e2e/prize-board-ipad-landscape-snapshots.spec.ts-snapshots/**
 
 .local/

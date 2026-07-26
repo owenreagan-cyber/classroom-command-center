@@ -1,4 +1,7 @@
 import { useState } from 'react'
+import { PrizeBoardProjectorMode } from '../features/prize-board/components/PrizeBoardProjectorMode'
+import { shouldShowProjectorMode } from '../features/prize-board/pressYourLuck/spinEngine'
+import { usePressYourLuckStore } from '../features/prize-board/pressYourLuck/pressYourLuckStore'
 import { BoardWorkspace } from './BoardWorkspace'
 import {
   FULLSCREEN_DENIED_MESSAGE,
@@ -10,6 +13,8 @@ import {
 /** Student/projector route — classroom content only; no teacher-only components mount. */
 export function StudentDisplayShell() {
   const [fullscreenNotice, setFullscreenNotice] = useState<string | null>(null)
+  const pylPhase = usePressYourLuckStore((s) => s.phase)
+  const projectorActive = shouldShowProjectorMode(pylPhase)
 
   const handleEnterFullscreen = async () => {
     const result = await requestBrowserFullscreen(document)
@@ -26,7 +31,9 @@ export function StudentDisplayShell() {
 
   return (
     <div className="relative flex h-dvh w-dvw overflow-hidden bg-slate-950">
-      <BoardWorkspace effectiveMode="display" studentDisplay />
+      {!projectorActive && <BoardWorkspace effectiveMode="display" studentDisplay />}
+      <PrizeBoardProjectorMode />
+      {!projectorActive && (
       <div className="pointer-events-none absolute bottom-[max(1rem,var(--board-safe-bottom,1rem))] right-[max(1rem,var(--board-safe-x,1rem))] z-40">
         <button
           type="button"
@@ -47,6 +54,7 @@ export function StudentDisplayShell() {
           </p>
         )}
       </div>
+      )}
     </div>
   )
 }
