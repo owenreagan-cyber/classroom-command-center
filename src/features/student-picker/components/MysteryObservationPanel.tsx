@@ -163,6 +163,12 @@ export function MysteryObservationPanel({ classId, poolKey }: MysteryObservation
                 </button>
               )}
 
+              {slot.status === 'earned' && slot.assignedTitle && (
+                <p className="text-xs font-bold uppercase tracking-wider text-amber-400">
+                  Title: {slot.assignedTitle}
+                </p>
+              )}
+
               {slot.status === 'earned' && (
                 <select
                   value={slot.reason || ''}

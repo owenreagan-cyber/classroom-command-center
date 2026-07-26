@@ -87,7 +87,11 @@ export function MysteryRevealStage({ screenId }: MysteryRevealStageProps) {
     const slot = session.slots[slotId]
     if (!slot || slot.status !== 'earned') return null
     const student = students.find((s) => s.id === slot.studentId)
-    return { name: student?.displayName || 'Unknown', reason: slot.reason }
+    return {
+      name: student?.displayName || 'Unknown',
+      reason: slot.reason,
+      title: slot.assignedTitle,
+    }
   }
 
   let activeRoleTitle = ''
@@ -139,6 +143,11 @@ export function MysteryRevealStage({ screenId }: MysteryRevealStageProps) {
               <h1 className="mb-6 text-8xl font-black text-white drop-shadow-[0_0_40px_rgba(255,255,255,0.3)]">
                 {activeDetails.name}
               </h1>
+              {activeDetails.title && (
+                <p className="mb-4 text-2xl font-bold uppercase tracking-[0.3em] text-amber-300">
+                  {activeDetails.title}
+                </p>
+              )}
               {activeDetails.reason && (
                 <p className="mt-6 max-w-2xl text-3xl font-medium italic leading-relaxed text-slate-300">
                   "{activeDetails.reason}"

@@ -30,6 +30,7 @@ import { DisplayLaunchPanel } from './DisplayLaunchPanel'
 import { TodayPrepPanel } from './TodayPrepPanel'
 import { MorningMessageStudioPanel } from '../features/morning-message/MorningMessageStudioPanel'
 import { StudentPickerPanel } from '../features/student-picker/StudentPickerPanel'
+import { PrizeBoardPanel } from '../features/prize-board/components/PrizeBoardPanel'
 import { LocalPacketPanel } from '../features/local-packets/LocalPacketPanel'
 
 interface TeacherDockProps {
@@ -200,6 +201,8 @@ export function TeacherDock({
       </section>
 
       <StudentPickerPanel activeScreen={activeScreen} />
+
+      <PrizeBoardPanel />
 
       <DailyBriefPanel
         activeScreen={activeScreen}

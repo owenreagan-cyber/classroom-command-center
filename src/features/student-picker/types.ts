@@ -33,6 +33,9 @@ export interface MysterySlot {
   studentId: StudentId
   status: MysterySlotStatus
   reason?: string
+  /** Recognition title label shown on reveal (preferred over generic role label) */
+  assignedTitle?: string
+  assignedTitleId?: string
   observations: ObservationRecord[]
 }
 
@@ -102,6 +105,7 @@ export interface PickerSettings {
 export interface PickerStoreState {
   students: Student[]
   fairnessHistory: FairnessEntry[]
+  titleUsageHistory: import('../titles/types').TitleUsageEntry[]
   activeMysterySessions: Record<string, MysterySession | null>
   coachingConfig: CoachingState
   settings: PickerSettings

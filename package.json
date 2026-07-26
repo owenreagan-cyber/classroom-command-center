@@ -10,6 +10,7 @@
     "preview": "vite preview",
     "test:routines": "bash scripts/test-routines.sh",
     "test:student-picker": "bash scripts/test-student-picker.sh",
+    "test:prize-board": "bash scripts/test-prize-board.sh",
     "test:local-packets": "bash scripts/test-local-packets.sh",
     "test:pages": "bash scripts/test-pages.sh",
     "test:studio-canvas": "bash scripts/test-studio-canvas.sh",

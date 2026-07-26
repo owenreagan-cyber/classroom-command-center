@@ -1,6 +1,6 @@
 # Classroom Command Center — Current State Audit
 
-Status: reconciled after Phase 12A Mystery Star Native Module  
+Status: reconciled after Phase 12B Prize Board Foundation  
 Date: 2026-07-25  
 Project: `~/Projects/classroom-command-center`
 
@@ -8,7 +8,8 @@ Project: `~/Projects/classroom-command-center`
 
 Latest phase branch:
 
-- `phase-12a-mystery-star-native-module`
+- `phase-12b-prize-board-foundation`
+- Phase 12B: title banks (class-locked + shared), default prize bank, Mystery Box container, 100-tile Prize Board with teacher panel in `/control`, display-safe helpers
 - Phase 12A: typed rosters with preferred names, local roster import, Reading section pools (RM4/SM5), enhanced Mystery Star control panel, display-safe status
 - Phase 10A: teacher-only Open With workflow integrated into Material Launcher with resource type presets
 - Phase 9C.1: Playwright `toHaveScreenshot` baseline snapshots for `/display` at key viewports
