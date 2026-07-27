@@ -53,6 +53,16 @@ export const TEACHER_TOOL_REGISTRY: readonly ToolDefinition[] = [
     description: 'Daily prep checklist and block timeline.',
   },
   {
+    id: 'curriculum-sync',
+    title: 'Curriculum Sync',
+    category: 'daily',
+    icon: '📚',
+    status: 'docked',
+    permissions: ['teacher-only', 'control-route-only'],
+    componentId: 'curriculum-sync',
+    description: 'Sync curriculum library from Google Drive.',
+  },
+  {
     id: 'mystery-star',
     title: 'Mystery Star',
     category: 'students',

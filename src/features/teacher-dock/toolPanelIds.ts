@@ -7,6 +7,7 @@ export const REGISTERED_TOOL_PANEL_IDS: readonly ToolId[] = [
   'classroom-atmosphere',
   'morning-message',
   'today-prep',
+  'curriculum-sync',
   'materials',
   'display',
   'omninote',

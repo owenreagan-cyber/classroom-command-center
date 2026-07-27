@@ -36,6 +36,11 @@ run_step "App route tests" npm run test:app-route
 run_step "Display polish tests" npm run test:display-polish
 run_step "OmniNote bridge tests" npm run test:omninote-bridge
 run_step "Classroom atmosphere tests" npm run test:classroom-atmosphere
+run_step "Device manager tests" npm run test:device-manager
+run_step "Workspace intelligence tests" npm run test:workspace
+run_step "Curriculum pacing tests" npm run test:curriculum
+run_step "Curriculum library tests" npm run test:curriculum-library
+run_step "Curriculum fetcher tests" npm run test:curriculum-fetcher
 run_step "Teacher dock tests" npm run test:teacher-dock
 run_step "E2E tests" npm run test:e2e
 

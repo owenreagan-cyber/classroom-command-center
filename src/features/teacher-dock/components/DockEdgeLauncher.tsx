@@ -1,32 +1,36 @@
 import { memo, useMemo } from 'react'
 import { useDockStore, selectDockCollapsed, selectActiveToolId } from '../dockStore'
-import { getToolById, getLauncherTools } from '../toolRegistry'
+import { getToolById } from '../toolRegistry'
+import { getPromotedWorkspaceTools, getLessonAwarePromotedTools } from '../../workspace/workspaceResolver'
+import { useWorkspaceStore, selectActiveWorkspaceId } from '../../workspace/workspaceStore'
+import { useTeacherDockContext } from '../useTeacherDockContext'
 import type { ToolId } from '../types'
 
 interface DockEdgeLauncherProps {
   favoriteToolIds: ToolId[]
-  dockOrder: ToolId[]
   onSelectTool: (toolId: ToolId) => void
 }
 
 export const DockEdgeLauncher = memo(function DockEdgeLauncher({
   favoriteToolIds,
-  dockOrder,
   onSelectTool,
 }: DockEdgeLauncherProps) {
   const collapsed = useDockStore(selectDockCollapsed)
   const activeToolId = useDockStore(selectActiveToolId)
   const toggleCollapsed = useDockStore((s) => s.toggleCollapsed)
-
-  const launcherTools = useMemo(
-    () => getLauncherTools(dockOrder, favoriteToolIds),
-    [dockOrder, favoriteToolIds],
-  )
+  const activeWorkspaceId = useWorkspaceStore(selectActiveWorkspaceId)
+  const { activeScreen } = useTeacherDockContext()
 
   const edgeTools = useMemo(() => {
-    const favorites = launcherTools.filter((tool) => favoriteToolIds.includes(tool.id))
-    return favorites.length > 0 ? favorites.slice(0, 6) : launcherTools.slice(0, 6)
-  }, [launcherTools, favoriteToolIds])
+    const lessonPromoted = getLessonAwarePromotedTools(activeScreen)
+    if (lessonPromoted.length > 0) return lessonPromoted.slice(0, 6)
+    const promoted = getPromotedWorkspaceTools(activeWorkspaceId)
+    if (promoted.length > 0) return promoted.slice(0, 6)
+    const favorites = favoriteToolIds
+      .map((id) => getToolById(id))
+      .filter((tool): tool is NonNullable<ReturnType<typeof getToolById>> => Boolean(tool))
+    return favorites.slice(0, 6)
+  }, [activeWorkspaceId, activeScreen, favoriteToolIds])
 
   return (
     <div

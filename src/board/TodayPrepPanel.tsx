@@ -12,11 +12,32 @@ import { buildLessonPackage } from '../features/omninote-bridge/types'
 import { copyResourceForOmniNote, executeHandoff } from '../features/omninote-bridge/handoff'
 import { useBoardStore } from '../store/boardStore'
 import {
-  CANONICAL_DAILY_BLOCKS,
   resolveBlockDisplayLabel,
   resolveCurriculumTrack,
 } from '../data/routineSchedule'
 import { getDailyBlockTimeline } from '../lib/routineEngine'
+import {
+  describePacingSummary,
+  formatHistoryScienceBlockLabel,
+  formatTodayPrepLabelForScreen,
+  resolveSubjectFromScreen,
+  resolveTodaysPacing,
+} from '../features/curriculum/pacingResolver'
+import {
+  getLessonReadinessChecklist,
+  getLessonReadinessStatusLabel,
+  getMaterialsResourceFromPackage,
+  isUsingCachedLessonData,
+  resolveFetchedLessonForScreen,
+  toBridgeLessonPackageFromFetcher,
+  useLibraryIndexStore,
+} from '../features/curriculum-library-fetcher/libraryIndexStore'
+import {
+  formatShurleyChapterLessonLabelFromPackage,
+  isShurleyPackPackage,
+} from '../features/curriculum-pack-importer/packIndexBridge'
+import { useReadinessStore } from '../features/curriculum-readiness/readinessStore'
+import { getPrimaryResource } from '../features/curriculum-library-fetcher/resourceClassifier'
 
 interface TodayPrepPanelProps {
   activeScreen: ScreenId
@@ -88,19 +109,58 @@ export function TodayPrepPanel({
   const [linkNote, setLinkNote] = useState('')
   const [linkPreset, setLinkPreset] = useState<ResourceOpenPreset>(DEFAULT_RESOURCE_OPEN_PRESET)
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null)
+  const [lessonActionFeedback, setLessonActionFeedback] = useState<string | null>(null)
+
+  const fetcherPackages = useLibraryIndexStore((state) => state.packages)
+  const syncStatus = useLibraryIndexStore((state) => state.syncStatus)
+  const driveAvailable = useLibraryIndexStore((state) => state.driveAvailable)
+  const usingCachedData = isUsingCachedLessonData({ syncStatus, driveAvailable })
+  const teacherOverrides = useReadinessStore((state) => state.teacherOverrides)
+  const setTeacherOverride = useReadinessStore((state) => state.setTeacherOverride)
+  const scorePackage = useReadinessStore((state) => state.scorePackage)
 
   const addFormPresetMeta = getResourcePresetMeta(linkPreset)
 
   const now = useMemo(() => new Date(), [])
   const curriculumTrack = useMemo(() => resolveCurriculumTrack(now), [now])
+  const todaysPacing = useMemo(() => resolveTodaysPacing(now), [now])
   const blockTimeline = useMemo(() => getDailyBlockTimeline(now), [now])
-  const historyScienceBlock = CANONICAL_DAILY_BLOCKS.find((block) => block.id === 'history-science')
-  const todayHistoryScienceLabel = historyScienceBlock
-    ? resolveBlockDisplayLabel(historyScienceBlock, curriculumTrack)
-    : null
+  const todayHistoryScienceLabel = useMemo(
+    () => formatHistoryScienceBlockLabel(now),
+    [now],
+  )
 
-  const screenLabel =
-    SCREEN_META.find((screen) => screen.id === activeScreen)?.label ?? activeScreen
+  const lessonAwareScreenLabel =
+    formatTodayPrepLabelForScreen(activeScreen, now) ??
+    SCREEN_META.find((screen) => screen.id === activeScreen)?.label ??
+    activeScreen
+
+  const currentLesson = useMemo(
+    () => resolveFetchedLessonForScreen(activeScreen, fetcherPackages, now),
+    [activeScreen, now, fetcherPackages],
+  )
+
+  const lessonOverrideActive =
+    currentLesson != null && teacherOverrides[currentLesson.id] === true
+
+  const lessonReadiness = useMemo(() => {
+    if (!currentLesson) return null
+    return scorePackage(currentLesson)
+  }, [currentLesson, scorePackage, lessonOverrideActive])
+
+  const readinessChecklist = useMemo(
+    () => (currentLesson ? getLessonReadinessChecklist(currentLesson) : []),
+    [currentLesson],
+  )
+
+  const subjectLabel = useMemo(() => {
+    const subjectId = resolveSubjectFromScreen(activeScreen, now)
+    if (!subjectId) {
+      return SCREEN_META.find((screen) => screen.id === activeScreen)?.label ?? activeScreen
+    }
+    return subjectId.charAt(0).toUpperCase() + subjectId.slice(1)
+  }, [activeScreen, now])
+
   const workspace = classWorkspaces[activeScreen]
   const activePage =
     workspace?.pages.find((page) => page.id === activePageId) ?? workspace?.pages[0] ?? null
@@ -174,6 +234,39 @@ export function TodayPrepPanel({
     window.setTimeout(() => setCopyFeedback(null), 2200)
   }
 
+  const showLessonFeedback = (message: string) => {
+    setLessonActionFeedback(message)
+    window.setTimeout(() => setLessonActionFeedback(null), 2800)
+  }
+
+  const handleOpenLesson = () => {
+    if (!currentLesson) return
+    const primary = getPrimaryResource(currentLesson.resources)
+    if (!primary) {
+      showLessonFeedback('No presentation found for this lesson.')
+      return
+    }
+    showLessonFeedback(`Opening ${primary.filename}`)
+  }
+
+  const handleOpenMaterials = () => {
+    if (!currentLesson) return
+    const materials = getMaterialsResourceFromPackage(currentLesson)
+    if (!materials) {
+      showLessonFeedback('No materials found for this lesson.')
+      return
+    }
+    showLessonFeedback(`Materials ready: ${materials.filename}`)
+  }
+
+  const handleOpenLessonInOmniNote = async () => {
+    if (!currentLesson) return
+    const bridgePkg = toBridgeLessonPackageFromFetcher(currentLesson)
+    const copied = await copyResourceForOmniNote(bridgePkg)
+    const result = executeHandoff({ package: bridgePkg, method: copied ? 'copy-link' : 'manual' })
+    showLessonFeedback(result.message)
+  }
+
   const handleOpenInOmniNote = async (link: { label: string; url: string; preset?: ResourceOpenPreset }) => {
     const kind = link.preset === 'google-slides' ? 'slide-deck' as const
       : link.preset === 'google-docs' ? 'worksheet' as const
@@ -216,17 +309,114 @@ export function TodayPrepPanel({
         <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-200/80">
           Active context
         </p>
-        <p className="mt-1 text-sm font-semibold text-white">{screenLabel}</p>
+        {currentLesson ? (
+          <div className="mt-1 space-y-0.5">
+            <p className="text-sm font-semibold text-white">{subjectLabel}</p>
+            {isShurleyPackPackage(currentLesson) ? (
+              <p className="text-sm text-cyan-100">
+                {formatShurleyChapterLessonLabelFromPackage(currentLesson)}
+              </p>
+            ) : null}
+            <p className="text-sm text-cyan-100">{currentLesson.title}</p>
+            <ul className="mt-1 space-y-0.5 text-xs text-slate-300">
+              <li className="font-medium text-slate-400">Resources:</li>
+              {readinessChecklist.map((item) => (
+                <li
+                  key={item.label}
+                  className={item.present ? 'text-emerald-300/90' : item.recommended ? 'text-amber-200/80' : 'text-slate-500'}
+                >
+                  {item.present ? '✓' : item.recommended ? '○' : '✗'} {item.label}
+                </li>
+              ))}
+            </ul>
+            <p
+              className={`text-xs font-semibold ${
+                lessonReadiness?.status === 'ready'
+                  ? 'text-emerald-300/90'
+                  : lessonReadiness?.status === 'warning'
+                    ? 'text-amber-200/90'
+                    : 'text-rose-300/90'
+              }`}
+            >
+              {currentLesson
+                ? getLessonReadinessStatusLabel(currentLesson, teacherOverrides)
+                : ''}
+            </p>
+            {lessonReadiness && lessonReadiness.status !== 'ready' && (
+              <div className="mt-1 space-y-1 text-xs">
+                {lessonReadiness.missingResources.length > 0 && (
+                  <p className="text-rose-200/90">
+                    Missing: {lessonReadiness.missingResources.join(', ')}
+                  </p>
+                )}
+                {lessonReadiness.missingRecommended.length > 0 && (
+                  <p className="text-amber-200/80">
+                    Recommended: {lessonReadiness.missingRecommended.join(', ')}
+                  </p>
+                )}
+                {!lessonReadiness.teacherOverride && (
+                  <button
+                    type="button"
+                    onClick={() => setTeacherOverride(currentLesson.id, true)}
+                    className="inline-flex rounded-md border border-slate-600 bg-slate-900/80 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-slate-300 transition hover:bg-slate-800"
+                  >
+                    Mark ready anyway
+                  </button>
+                )}
+              </div>
+            )}
+            {usingCachedData && (
+              <p className="text-xs text-amber-200/80">Using cached lesson data</p>
+            )}
+          </div>
+        ) : (
+          <p className="mt-1 text-sm font-semibold text-white">{lessonAwareScreenLabel}</p>
+        )}
         <p className="text-xs text-slate-300">
           {activePage ? activePage.title : 'No vibe page selected'}
         </p>
+        {currentLesson && (
+          <div className="mt-2 flex flex-wrap gap-2 pt-2">
+            <button
+              type="button"
+              onClick={handleOpenLesson}
+              className="inline-flex rounded-lg border border-emerald-400/40 bg-emerald-950/30 px-3 py-1.5 text-xs font-semibold text-emerald-100 transition hover:bg-emerald-900/40"
+            >
+              Open Lesson
+            </button>
+            <button
+              type="button"
+              onClick={handleOpenMaterials}
+              className="inline-flex rounded-lg border border-cyan-400/40 bg-cyan-950/30 px-3 py-1.5 text-xs font-semibold text-cyan-100 transition hover:bg-cyan-900/40"
+            >
+              Open Materials
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleOpenLessonInOmniNote()}
+              className="inline-flex rounded-lg border border-violet-400/40 bg-violet-950/30 px-3 py-1.5 text-xs font-semibold text-violet-100 transition hover:bg-violet-900/40"
+            >
+              Open OmniNote
+            </button>
+          </div>
+        )}
+        {lessonActionFeedback && (
+          <p role="status" className="mt-2 text-xs text-slate-400">
+            {lessonActionFeedback}
+          </p>
+        )}
         <p className="mt-1.5 text-[10px] uppercase tracking-wide text-slate-500">
-          Track {curriculumTrack}
+          {describePacingSummary(now)}
           {todayHistoryScienceLabel ? ` · Today: ${todayHistoryScienceLabel}` : ''}
           {blockTimeline.currentBlock
             ? ` · Now: ${resolveBlockDisplayLabel(blockTimeline.currentBlock, curriculumTrack)}`
             : ''}
         </p>
+        {todaysPacing.lessons.math && activeScreen !== 'math' && (
+          <p className="mt-1 text-[10px] text-slate-400">
+            Math today: {todaysPacing.lessons.math.displayTitle}
+          </p>
+        )}
         {(incompleteCount > 0 || invalidLinkCount > 0) && (
           <ul className="mt-2 space-y-1 text-xs text-amber-100/90">
             {incompleteCount > 0 && (

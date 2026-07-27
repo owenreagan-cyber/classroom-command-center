@@ -20,6 +20,7 @@ export type ToolId =
   | 'classroom-atmosphere'
   | 'morning-message'
   | 'today-prep'
+  | 'curriculum-sync'
   | 'mystery-star'
   | 'quick-picker'
   | 'prize-board'
