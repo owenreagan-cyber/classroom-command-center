@@ -1,0 +1,34 @@
+{
+  "id": "saxon-math-lesson-02",
+  "title": "Saxon Math Lesson 2",
+  "subject": "math",
+  "curriculum": "Saxon Math",
+  "grade": "4",
+  "track": "2",
+  "week": 2,
+  "lessonNumber": "2",
+  "workspace": "math",
+  "annotationMode": "annotate",
+  "displayMode": "student-safe",
+  "readiness": "ready",
+  "resources": [
+    {
+      "id": "saxon-math-02-presentation",
+      "type": "presentation",
+      "file": "lesson2-slides.pdf",
+      "title": "Lesson 2 Slides"
+    },
+    {
+      "id": "saxon-math-02-teacher-notes",
+      "type": "teacher-notes",
+      "file": "lesson2-script.pdf",
+      "title": "Teacher Script"
+    },
+    {
+      "id": "saxon-math-02-worksheet",
+      "type": "worksheet",
+      "file": "lesson2-practice.pdf",
+      "title": "Practice Worksheet"
+    }
+  ]
+}

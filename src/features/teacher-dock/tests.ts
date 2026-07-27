@@ -4,6 +4,7 @@ function assert(condition: boolean, message: string): void {
 
 import { shouldMountTeacherDock } from '../../app/appRouteShell'
 import {
+  getDefaultDockOrder,
   TEACHER_TOOL_REGISTRY,
   getLauncherTools,
   getToolById,
@@ -18,6 +19,85 @@ import {
   serializeDockState,
 } from './dockPersistence'
 import type { ToolId } from './types'
+import { getToolCapability, TOOL_CAPABILITY_REGISTRY } from './toolCapabilities'
+import { getWorkspaceAwareLauncherTools } from '../workspace/workspaceResolver'
+import { resolveToolLaunch } from '../device-manager/launchResolver'
+import { DEFAULT_DEVICE_REGISTRY } from '../device-manager/deviceRegistry'
+import { isDisplaySafePayload, resolveDisplayTarget } from '../device-manager/displayTargetService'
+
+function testToolCapabilitiesRegistered() {
+  for (const tool of TEACHER_TOOL_REGISTRY) {
+    const capability = getToolCapability(tool.id)
+    assert(Boolean(capability.requiredDeviceRole), `${tool.id} has device role`)
+    assert(Boolean(capability.displayTarget), `${tool.id} has display target`)
+    assert(capability.permissions.includes('teacher-only'), `${tool.id} teacher-only capability`)
+    assert(capability.modeSupport !== undefined, `${tool.id} has workspace mode support`)
+  }
+  assert(
+    getToolCapability('omninote').requiredDeviceRole === 'omninote-controller',
+    'omninote requires omninote-controller',
+  )
+  assert(
+    getToolCapability('prize-board').displayTarget === 'student-display',
+    'prize board routes to student display',
+  )
+  console.log('  tool capabilities registered OK')
+}
+
+function testToolCapabilityContracts() {
+  const omninote = getToolCapability('omninote')
+  assert(omninote.requiredDeviceRole === 'omninote-controller', 'omninote device role')
+  assert(omninote.displayTarget === 'student-display', 'omninote display target')
+  assert(omninote.modeSupport.includes('math'), 'omninote math workspace')
+
+  const prizeBoard = getToolCapability('prize-board')
+  assert(prizeBoard.requiredDeviceRole === 'teacher-command-center', 'prize board device role')
+  assert(prizeBoard.displayTarget === 'student-display', 'prize board display target')
+  assert(prizeBoard.modeSupport.includes('reward'), 'prize board reward workspace')
+
+  const timers = getToolCapability('timers')
+  assert(timers.requiredDeviceRole === 'teacher-command-center', 'timers device role')
+  assert(timers.displayTarget === 'optional', 'timers optional display target')
+  assert(timers.modeSupport.includes('morning'), 'timers morning workspace')
+
+  const music = getToolCapability('classroom-atmosphere')
+  assert(music.requiredDeviceRole === 'teacher-command-center', 'music device role')
+  assert(music.displayTarget === 'optional', 'music optional display target')
+  assert(music.modeSupport.includes('transition'), 'music transition workspace')
+  console.log('  tool capability contracts OK')
+}
+
+function testWorkspaceAwareLauncher() {
+  const order = getDefaultDockOrder()
+  const mathTools = getWorkspaceAwareLauncherTools(order, [], 'math')
+  const promotedIndex = mathTools.findIndex((tool) => tool.id === 'omninote')
+  assert(promotedIndex >= 0 && promotedIndex < 4, 'omninote promoted in math')
+  assert(mathTools.some((tool) => tool.id === 'jobs'), 'all tools remain in math launcher')
+  console.log('  workspace aware launcher OK')
+}
+
+function testDeviceAwareLaunchResolution() {
+  const resolution = resolveToolLaunch('omninote', DEFAULT_DEVICE_REGISTRY)
+  assert(resolution.success, 'omninote resolves with default devices')
+  assert(resolution.controlDevice?.id === 'school-ipad', 'omninote targets ipad')
+
+  const prizeBoard = resolveToolLaunch('prize-board', DEFAULT_DEVICE_REGISTRY)
+  assert(prizeBoard.controlDevice?.role === 'teacher-command-center', 'prize board teacher control')
+  assert(prizeBoard.displayDevice?.role === 'student-display', 'prize board student display')
+  console.log('  device aware launch resolution OK')
+}
+
+function testDisplayNeverReceivesPrivateRegistry() {
+  const unsafe = { toolRegistry: TOOL_CAPABILITY_REGISTRY, teacherSettings: {} }
+  assert(!isDisplaySafePayload(unsafe), 'registry payload unsafe for display')
+  const route = resolveDisplayTarget({
+    toolId: 'display',
+    payload: unsafe,
+    devices: DEFAULT_DEVICE_REGISTRY,
+  })
+  assert(!route.allowed, 'display route blocks private registry')
+  console.log('  display never receives private registry OK')
+}
 
 function testRegistryShape() {
   for (const tool of TEACHER_TOOL_REGISTRY) {
@@ -95,6 +175,7 @@ function testRequiredMigrationToolsPresent() {
     'classroom-atmosphere',
     'morning-message',
     'today-prep',
+    'curriculum-sync',
     'mystery-star',
     'quick-picker',
     'prize-board',
@@ -176,6 +257,11 @@ function testInvalidToolIdsSanitizedOnHydrate() {
 }
 
 console.log('Teacher command dock tests')
+testToolCapabilitiesRegistered()
+testToolCapabilityContracts()
+testWorkspaceAwareLauncher()
+testDeviceAwareLaunchResolution()
+testDisplayNeverReceivesPrivateRegistry()
 testRegistryShape()
 testInactiveToolsHiddenFromLauncher()
 testInactiveToolLaunchGuard()

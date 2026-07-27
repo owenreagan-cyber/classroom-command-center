@@ -5,6 +5,7 @@ interface DockToolCardProps {
   tool: ToolDefinition
   active: boolean
   favorite: boolean
+  deprioritized?: boolean
   onSelect: () => void
   onToggleFavorite: () => void
 }
@@ -13,6 +14,7 @@ export const DockToolCard = memo(function DockToolCard({
   tool,
   active,
   favorite,
+  deprioritized = false,
   onSelect,
   onToggleFavorite,
 }: DockToolCardProps) {
@@ -21,7 +23,9 @@ export const DockToolCard = memo(function DockToolCard({
       className={`group flex items-start gap-2 rounded-xl border p-2.5 transition ${
         active
           ? 'border-cyan-400/60 bg-cyan-950/30'
-          : 'border-slate-700 bg-slate-900/60 hover:border-slate-500'
+          : deprioritized
+            ? 'border-slate-800 bg-slate-950/40 opacity-70 hover:border-slate-600 hover:opacity-100'
+            : 'border-slate-700 bg-slate-900/60 hover:border-slate-500'
       }`}
     >
       <button

@@ -1,0 +1,25 @@
+{
+  "root": "Teacher AI Workstation",
+  "folders": [
+    {
+      "path": "Curriculum/Math/Saxon Math/Lesson 01",
+      "files": ["lesson1-slides.pdf", "lesson1-script.pdf", "lesson1-practice.pdf"]
+    },
+    {
+      "path": "Curriculum/Math/Saxon Math/Lesson 02",
+      "files": ["lesson2-slides.pdf", "lesson2-script.pdf", "lesson2-practice.pdf"]
+    },
+    {
+      "path": "Curriculum/Math/Saxon Math/Lesson 03",
+      "files": ["lesson3-slides.pdf", "lesson3-worksheet.pdf"]
+    },
+    {
+      "path": "Curriculum/Reading/Reading Mastery/Lesson 01",
+      "files": ["lesson1-story.pdf", "lesson1-worksheet.pdf"]
+    },
+    {
+      "path": "Classroom Assets/Audio",
+      "files": ["transition-chime.mp3"]
+    }
+  ]
+}

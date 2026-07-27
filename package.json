@@ -26,6 +26,13 @@
     "test:classroom-atmosphere": "bash scripts/test-classroom-atmosphere.sh",
     "test:teacher-workstation": "bash scripts/test-teacher-workstation.sh",
     "test:teacher-dock": "bash scripts/test-teacher-dock.sh",
+    "test:device-manager": "bash scripts/test-device-manager.sh",
+    "test:workspace": "bash scripts/test-workspace.sh",
+    "test:curriculum": "bash scripts/test-curriculum.sh",
+    "test:curriculum-library": "bash scripts/test-curriculum-library.sh",
+    "test:curriculum-fetcher": "bash scripts/test-curriculum-fetcher.sh",
+    "test:curriculum-pack-importer": "bash scripts/test-curriculum-pack-importer.sh",
+    "test:curriculum-readiness": "bash scripts/test-curriculum-readiness.sh",
     "test:e2e": "playwright test"
   },
   "dependencies": {

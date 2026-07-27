@@ -5,6 +5,7 @@ import { TimersToolPanel } from './TimersToolPanel'
 import { AtmosphereToolPanel } from './AtmosphereToolPanel'
 import { MorningMessageToolPanel } from './MorningMessageToolPanel'
 import { TodayPrepToolPanel } from './TodayPrepToolPanel'
+import { CurriculumSyncToolPanel } from './CurriculumSyncToolPanel'
 import { MaterialsToolPanel } from './MaterialsToolPanel'
 import { DisplayToolPanel } from './DisplayToolPanel'
 import { OmniNoteToolPanel } from './OmniNoteToolPanel'
@@ -21,6 +22,7 @@ export const TOOL_PANEL_COMPONENTS: Record<ToolId, ComponentType> = {
   'classroom-atmosphere': AtmosphereToolPanel,
   'morning-message': MorningMessageToolPanel,
   'today-prep': TodayPrepToolPanel,
+  'curriculum-sync': CurriculumSyncToolPanel,
   materials: MaterialsToolPanel,
   display: DisplayToolPanel,
   omninote: OmniNoteToolPanel,

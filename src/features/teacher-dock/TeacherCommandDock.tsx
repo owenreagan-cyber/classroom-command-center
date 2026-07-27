@@ -59,7 +59,6 @@ export const TeacherCommandDock = memo(function TeacherCommandDock({
       >
         <DockEdgeLauncher
           favoriteToolIds={favoriteToolIds}
-          dockOrder={dockOrder}
           onSelectTool={onActivateTool}
         />
         {!collapsed && (
