@@ -107,6 +107,11 @@ export const DockLauncherPanel = memo(function DockLauncherPanel({
                   Lesson context
                 </p>
                 <p className="text-xs font-semibold text-slate-100">{currentLesson.title}</p>
+                {currentLesson.omninoteReady && (
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-violet-300/90">
+                    OmniNote Ready ✓
+                  </p>
+                )}
                 <p
                   className={`mt-0.5 text-[10px] font-semibold uppercase tracking-wide ${
                     lessonReadiness.status === 'ready'

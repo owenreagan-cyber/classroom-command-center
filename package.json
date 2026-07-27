@@ -23,6 +23,8 @@
     "test:prize-board-projector-snapshots": "bash scripts/test-prize-board-projector-snapshots.sh",
     "test:timers": "bash scripts/test-timers.sh",
     "test:omninote-bridge": "bash scripts/test-omninote-bridge.sh",
+    "test:omninote-handoff": "bash scripts/test-omninote-handoff.sh",
+    "test:omninote-command-center-handoff": "bash scripts/test-omninote-command-center-handoff.sh",
     "test:classroom-atmosphere": "bash scripts/test-classroom-atmosphere.sh",
     "test:teacher-workstation": "bash scripts/test-teacher-workstation.sh",
     "test:teacher-dock": "bash scripts/test-teacher-dock.sh",

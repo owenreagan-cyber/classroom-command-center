@@ -8,8 +8,6 @@ import {
   RESOURCE_OPEN_PRESETS,
 } from '../lib/resourcePresets'
 import { copyResourceUrl, getResourceUrlWarning, isValidResourceUrl } from '../lib/resourceUrl'
-import { buildLessonPackage } from '../features/omninote-bridge/types'
-import { copyResourceForOmniNote, executeHandoff } from '../features/omninote-bridge/handoff'
 import { useBoardStore } from '../store/boardStore'
 import {
   resolveBlockDisplayLabel,
@@ -38,6 +36,12 @@ import {
 } from '../features/curriculum-pack-importer/packIndexBridge'
 import { useReadinessStore } from '../features/curriculum-readiness/readinessStore'
 import { getPrimaryResource } from '../features/curriculum-library-fetcher/resourceClassifier'
+import { buildLessonPackage } from '../features/omninote-bridge/types'
+import { copyResourceForOmniNote, executeHandoff } from '../features/omninote-bridge/handoff'
+import {
+  canTeachInOmniNote,
+  prepareBrowserOmniNoteHandoff,
+} from '../features/omninote-handoff/lessonPackageExport'
 
 interface TodayPrepPanelProps {
   activeScreen: ScreenId
@@ -267,6 +271,60 @@ export function TodayPrepPanel({
     showLessonFeedback(result.message)
   }
 
+  const omninoteTeachEnabled =
+    currentLesson != null &&
+    canTeachInOmniNote(
+      currentLesson,
+      lessonReadiness?.status ?? null,
+      lessonReadiness?.teacherOverride ?? false,
+    )
+
+  const handleTeachInOmniNote = async () => {
+    if (!currentLesson || !omninoteTeachEnabled) return
+    try {
+      const { plan, relativePackagePath, copyInstructions } =
+        prepareBrowserOmniNoteHandoff(currentLesson)
+
+      const copiedJson = await navigator.clipboard.writeText(plan.packageJson).then(
+        () => true,
+        () => false,
+      )
+
+      showLessonFeedback(
+        copiedJson
+          ? `OmniNote package copied. Save to ${relativePackagePath}, then run the handoff script.`
+          : `OmniNote package ready. Save JSON to ${relativePackagePath}.`,
+      )
+      if (import.meta.env.DEV) {
+        console.info('[OmniNote handoff]', copyInstructions, plan.packageJson.slice(0, 120))
+      }
+    } catch (error) {
+      showLessonFeedback(
+        error instanceof Error ? error.message : 'Could not prepare OmniNote handoff.',
+      )
+    }
+  }
+
+  const handleCopyOmniNoteLink = async () => {
+    if (!currentLesson || !omninoteTeachEnabled) return
+    try {
+      const relativePath = `.local/omninote-handoff/${currentLesson.id}/package.json`
+      const message =
+        `After running scripts/test-omninote-command-center-handoff.sh, ` +
+        `open the omninote.url.txt file for ${currentLesson.title} on iPad. ` +
+        `Package path: ${relativePath}`
+      const copied = await navigator.clipboard.writeText(message).then(
+        () => true,
+        () => false,
+      )
+      showLessonFeedback(
+        copied ? 'OmniNote handoff instructions copied.' : message,
+      )
+    } catch {
+      showLessonFeedback('Copy unavailable — use Teach in OmniNote first.')
+    }
+  }
+
   const handleOpenInOmniNote = async (link: { label: string; url: string; preset?: ResourceOpenPreset }) => {
     const kind = link.preset === 'google-slides' ? 'slide-deck' as const
       : link.preset === 'google-docs' ? 'worksheet' as const
@@ -342,6 +400,11 @@ export function TodayPrepPanel({
                 ? getLessonReadinessStatusLabel(currentLesson, teacherOverrides)
                 : ''}
             </p>
+            {currentLesson.omninoteReady && (
+              <p className="text-xs font-semibold text-violet-200/90">
+                OmniNote Ready {omninoteTeachEnabled ? '✓' : '○'}
+              </p>
+            )}
             {lessonReadiness && lessonReadiness.status !== 'ready' && (
               <div className="mt-1 space-y-1 text-xs">
                 {lessonReadiness.missingResources.length > 0 && (
@@ -393,10 +456,26 @@ export function TodayPrepPanel({
             </button>
             <button
               type="button"
-              onClick={() => void handleOpenLessonInOmniNote()}
-              className="inline-flex rounded-lg border border-violet-400/40 bg-violet-950/30 px-3 py-1.5 text-xs font-semibold text-violet-100 transition hover:bg-violet-900/40"
+              onClick={() => void handleTeachInOmniNote()}
+              disabled={!omninoteTeachEnabled}
+              className="inline-flex rounded-lg border border-violet-400/40 bg-violet-950/30 px-3 py-1.5 text-xs font-semibold text-violet-100 transition hover:bg-violet-900/40 disabled:cursor-not-allowed disabled:opacity-40"
             >
-              Open OmniNote
+              Teach in OmniNote
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleCopyOmniNoteLink()}
+              disabled={!omninoteTeachEnabled}
+              className="inline-flex rounded-lg border border-violet-400/25 bg-violet-950/20 px-3 py-1.5 text-xs font-semibold text-violet-100/90 transition hover:bg-violet-900/30 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Copy OmniNote Link
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleOpenLessonInOmniNote()}
+              className="inline-flex rounded-lg border border-violet-400/20 bg-violet-950/10 px-3 py-1.5 text-xs font-semibold text-violet-100/70 transition hover:bg-violet-900/20"
+            >
+              Legacy Copy
             </button>
           </div>
         )}
