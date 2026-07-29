@@ -35,7 +35,8 @@
     "test:curriculum-fetcher": "bash scripts/test-curriculum-fetcher.sh",
     "test:curriculum-pack-importer": "bash scripts/test-curriculum-pack-importer.sh",
     "test:curriculum-readiness": "bash scripts/test-curriculum-readiness.sh",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:launch-readiness": "bash scripts/test-launch-readiness.sh"
   },
   "dependencies": {
     "react": "^19.2.7",

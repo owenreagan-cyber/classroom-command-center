@@ -44,3 +44,8 @@ dist-ssr
 !tests/e2e/prize-board-ipad-landscape-snapshots.spec.ts-snapshots/**
 
 .local/
+
+# Artifact quality runtime fixtures and renders
+tests/fixtures/artifact_quality/*.pdf
+fixtures/artifact-quality/
+.local/artifact-quality/

@@ -2,6 +2,9 @@ function assert(condition: boolean, message: string): void {
   if (!condition) throw new Error(`FAIL: ${message}`)
 }
 
+import fs from 'fs'
+import path from 'path'
+
 import { bootstrapPilotIndex, findFetchedLesson } from '../curriculum-library-fetcher/libraryIndexStore'
 import {
   buildStudentSafeExportPackage,
@@ -9,8 +12,8 @@ import {
   prepareOmniNoteLessonHandoff,
 } from './lessonPackageExport'
 import { writeHandoffPackageToDisk } from './localHandoffWriter'
-import { buildOmniNoteLessonUrlFromAbsolutePath, encodeFileSource } from './omniNoteUrl'
-import { validateExportPrivacy } from './privacy'
+import { buildOmniNoteLessonUrlFromAbsolutePath, encodeFileSource, resolveRelativeHandoffPath } from './omniNoteUrl'
+import { validateExportPrivacy, isTeacherOnlyOmniNoteKind } from './privacy'
 
 function testSaxonLesson2Export() {
   const state = bootstrapPilotIndex()
@@ -90,11 +93,71 @@ function testLocalWrite() {
   console.log('  local write OK')
 }
 
+function testLocalPathUnderDotLocal() {
+  const state = bootstrapPilotIndex()
+  const saxon = findFetchedLesson(state.packages, 'math', 2)!
+  const shurley = findFetchedLesson(state.packages, 'shurley', 3)!
+  const root = '/tmp/classroom-command-center'
+
+  for (const lesson of [saxon, shurley]) {
+    const plan = prepareOmniNoteLessonHandoff(lesson, root)
+    assert(plan.localPackagePath.includes('/.local/omninote-handoff/'), `${lesson.id} under .local/`)
+    assert(plan.localPackagePath.endsWith('/package.json'), `${lesson.id} package.json path`)
+    const relative = resolveRelativeHandoffPath(plan.package.id)
+    assert(relative.startsWith('.local/omninote-handoff/'), `${lesson.id} relative .local/`)
+  }
+  console.log('  local path under .local/ OK')
+}
+
+function testGitignoreCoversLocal() {
+  const gitignore = fs.readFileSync(path.join(process.cwd(), '.gitignore'), 'utf8')
+  assert(gitignore.includes('.local/'), '.local/ gitignored')
+  console.log('  .local/ gitignored OK')
+}
+
+function testShurleyChapter1Lesson3Title() {
+  const state = bootstrapPilotIndex()
+  const shurley = findFetchedLesson(state.packages, 'shurley', 3)!
+  const exportPkg = buildStudentSafeExportPackage(shurley)
+  assert(exportPkg.title.includes('Shurley'), 'Shurley in title')
+  assert(exportPkg.title.includes('Lesson 3') || exportPkg.title.includes('Chapter 1'), 'chapter/lesson in title')
+  console.log('  Shurley Chapter 1 Lesson 3 title OK')
+}
+
+function testNoTeacherOnlyResourcesInExports() {
+  const state = bootstrapPilotIndex()
+  for (const [subject, lessonNum] of [['math', 2], ['shurley', 3]] as const) {
+    const lesson = findFetchedLesson(state.packages, subject, lessonNum)!
+    const exportPkg = buildStudentSafeExportPackage(lesson)
+    assert(
+      !exportPkg.resources.some((r) => r.teacherOnly || isTeacherOnlyOmniNoteKind(r.type)),
+      `${lesson.id} has no teacher-only resources`,
+    )
+  }
+  console.log('  no teacher-only resources in exports OK')
+}
+
+function testUrlFullyEncoded() {
+  const url = buildOmniNoteLessonUrlFromAbsolutePath(
+    'Saxon Math Lesson 2',
+    '/tmp/classroom-command-center/.local/omninote-handoff/saxon-math-lesson-02/package.json',
+  )
+  assert(!url.includes(' '), 'no spaces')
+  assert(url.includes('%2F') || url.includes('file%3A%2F%2F'), 'path segments encoded')
+  assert(decodeURIComponent(url).includes('Saxon Math Lesson 2') || url.includes('Saxon'), 'title preserved')
+  console.log('  URL fully encoded OK')
+}
+
 function runTests() {
   console.log('OmniNote handoff export tests:')
   testSaxonLesson2Export()
   testShurleyLesson3Export()
+  testShurleyChapter1Lesson3Title()
+  testNoTeacherOnlyResourcesInExports()
   testUrlEncoding()
+  testUrlFullyEncoded()
+  testLocalPathUnderDotLocal()
+  testGitignoreCoversLocal()
   testCanTeachGating()
   testLocalWrite()
   console.log('OmniNote handoff export tests passed.')

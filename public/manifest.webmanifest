@@ -1,0 +1,31 @@
+{
+  "name": "Classroom Command Center",
+  "short_name": "Command Center",
+  "description": "Teacher dashboard and classroom display control for daily instruction.",
+  "start_url": "/control",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0c4a6e",
+  "theme_color": "#0369a1",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
