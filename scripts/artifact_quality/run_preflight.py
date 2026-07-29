@@ -1,0 +1,238 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import sys
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+APPROVED_OUTPUT_ROOT = REPO_ROOT / ".local" / "artifact-quality"
+
+from scripts.artifact_quality.compare_student_key import validate_with_optional_key  # noqa: E402
+from scripts.artifact_quality.educational_layout import (  # noqa: E402
+    analyze_pdf_educational_layout,
+    analyze_pptx_educational,
+    apply_educational_layout,
+)
+from scripts.artifact_quality.models import CheckStatus, PreflightReport  # noqa: E402
+from scripts.artifact_quality.profiles import load_profile  # noqa: E402
+from scripts.artifact_quality.render_artifact import (  # noqa: E402
+    attach_annotated_renders,
+    attach_contact_sheets,
+    attach_renders,
+    generate_annotated_renders,
+    generate_contact_sheet,
+    render_pdf_pages,
+)
+from scripts.artifact_quality.reporting import print_report, write_reports  # noqa: E402
+from scripts.artifact_quality.subject_checks import apply_subject_checks  # noqa: E402
+from scripts.artifact_quality.validate_docx import validate_docx  # noqa: E402
+from scripts.artifact_quality.validate_html import validate_html  # noqa: E402
+from scripts.artifact_quality.validate_pdf import finalize_quality_score, validate_pdf  # noqa: E402
+from scripts.artifact_quality.validate_pptx import validate_pptx  # noqa: E402
+from scripts.artifact_quality.visual_geometry import PageVisualMetrics  # noqa: E402
+
+
+def _default_output_dir(input_path: Path) -> Path:
+    return APPROVED_OUTPUT_ROOT / input_path.stem
+
+
+def _is_under_approved_output(path: Path) -> bool:
+    try:
+        path.resolve().relative_to(APPROVED_OUTPUT_ROOT.resolve())
+        return True
+    except ValueError:
+        return False
+
+
+def resolve_output_dir(output_dir: Path | None, input_path: Path) -> Path:
+    """Resolve output directory, enforcing sandbox unless explicitly under .local/artifact-quality/."""
+    if output_dir is None:
+        return _default_output_dir(input_path)
+    resolved = output_dir.expanduser().resolve()
+    if not _is_under_approved_output(resolved):
+        raise ValueError(
+            f"Output path must be under {APPROVED_OUTPUT_ROOT}. Got: {resolved}"
+        )
+    return resolved
+
+
+def _suffix_kind(path: Path) -> str:
+    suffix = path.suffix.lower()
+    if suffix == ".pdf":
+        return "pdf"
+    if suffix == ".docx":
+        return "docx"
+    if suffix in {".html", ".htm"}:
+        return "html"
+    if suffix == ".pptx":
+        return "pptx"
+    return "unknown"
+
+
+def run_preflight(
+    *,
+    profile_name: str,
+    input_path: Path,
+    subject: str | None = None,
+    student_path: Path | None = None,
+    teacher_path: Path | None = None,
+    output_dir: Path | None = None,
+    render: bool = False,
+    annotate: bool = False,
+    contact_sheet: bool = False,
+    visual_compare: bool = False,
+    analysis_dpi: int | None = None,
+    json_output: bool = False,
+    strict: bool = False,
+) -> PreflightReport:
+    profile = load_profile(profile_name)
+    primary = student_path or input_path
+    report = PreflightReport(
+        input_path=str(primary),
+        profile_name=profile_name,
+        subject=subject,
+        student_path=str(student_path) if student_path else None,
+        teacher_path=str(teacher_path) if teacher_path else None,
+    )
+
+    kind = _suffix_kind(primary)
+    report.artifact_type = kind
+    out_dir = resolve_output_dir(output_dir, primary)
+    report.output_dir = str(out_dir)
+
+    effective_dpi = analysis_dpi or profile.visual_geometry.analysis_dpi
+    output_dpi = profile.visual_geometry.output_dpi
+
+    doc = None
+    page_metrics: list[PageVisualMetrics] = []
+    ink_masks: list[list[list[bool]] | None] = []
+    clips = []
+    educational_score: float | None = None
+
+    if kind == "pdf":
+        if student_path and teacher_path:
+            doc, page_metrics, ink_masks, clips = validate_with_optional_key(
+                student_path,
+                teacher_path,
+                profile,
+                report,
+                analysis_dpi=effective_dpi,
+                visual_compare=visual_compare,
+                output_dir=out_dir,
+            )
+        else:
+            doc, page_metrics, ink_masks, clips = validate_pdf(primary, profile, report, analysis_dpi=effective_dpi)
+        apply_subject_checks(subject, profile, report, doc=doc, source_path=primary)
+        if doc is not None:
+            layout = analyze_pdf_educational_layout(doc, profile, subject, page_metrics)
+            apply_educational_layout(report, layout)
+            educational_score = layout.educational_score
+    elif kind == "docx":
+        validate_docx(primary, profile, report)
+        apply_subject_checks(subject, profile, report, source_path=primary)
+    elif kind == "html":
+        validate_html(primary, profile, report)
+        apply_subject_checks(subject, profile, report, source_path=primary)
+    elif kind == "pptx":
+        validate_pptx(primary, profile, report)
+        apply_subject_checks(subject, profile, report, source_path=primary)
+        layout = analyze_pptx_educational(primary, profile, profile.educational_layout)
+        apply_educational_layout(report, layout)
+        educational_score = layout.educational_score
+    else:
+        report.add(CheckStatus.FAIL, f"Unsupported input type: {primary.suffix}")
+
+    should_render = render or profile.requirements.render_pages or annotate or contact_sheet
+    if doc is not None and should_render:
+        paths = render_pdf_pages(doc, out_dir, dpi=output_dpi, profile=profile)
+        attach_renders(report, paths)
+
+        do_annotate = annotate or profile.visual_geometry.generate_annotated_renders
+        if do_annotate and page_metrics:
+            annotated = generate_annotated_renders(
+                paths, page_metrics, profile, out_dir,
+                ink_masks=ink_masks, clips=clips, dpi=output_dpi,
+            )
+            attach_annotated_renders(report, annotated)
+
+        do_contact = contact_sheet or profile.visual_geometry.generate_contact_sheet
+        if do_contact and paths:
+            sheets = generate_contact_sheet(paths, out_dir)
+            attach_contact_sheets(report, sheets)
+
+    if doc is not None:
+        doc.close()
+
+    if page_metrics or educational_score is not None:
+        finalize_quality_score(report, page_metrics, educational_score=educational_score)
+
+    if json_output or output_dir is not None or render or annotate or contact_sheet:
+        write_reports(report, out_dir, json_output=True)
+
+    return report
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description="Instructional Artifact Quality preflight — local-first printable resource validation.",
+    )
+    parser.add_argument("--profile", required=True, help="Profile name from configs/artifact-profiles/")
+    parser.add_argument("--subject", help="Subject key: math, shurley, reading, history, science")
+    parser.add_argument("--input", dest="input_path", help="Primary artifact path")
+    parser.add_argument("--student", dest="student_path", help="Student artifact for key comparison")
+    parser.add_argument("--teacher", dest="teacher_path", help="Teacher key artifact for comparison")
+    parser.add_argument("--output-dir", type=Path, help="Write report and renders under this directory")
+    parser.add_argument("--json", action="store_true", help="Also write machine-readable report.json")
+    parser.add_argument("--render", action="store_true", help="Render PDF pages to PNG previews")
+    parser.add_argument("--annotate", action="store_true", help="Generate annotated page previews with metric overlays")
+    parser.add_argument("--contact-sheet", action="store_true", help="Generate contact-sheet preview PNG")
+    parser.add_argument("--visual-compare", action="store_true", help="Generate student/teacher visual comparison images")
+    parser.add_argument("--analysis-dpi", type=int, help="DPI for visual analysis (default from profile)")
+    parser.add_argument("--strict", action="store_true", help="Return exit code 2 on WARN (exit 1 on FAIL)")
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = build_parser()
+    args = parser.parse_args(argv)
+
+    primary = args.student_path or args.input_path
+    if primary is None:
+        parser.error("one of --input or --student is required")
+
+    try:
+        if args.output_dir is not None:
+            resolve_output_dir(args.output_dir, Path(primary))
+    except ValueError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 1
+
+    try:
+        report = run_preflight(
+            profile_name=args.profile,
+            input_path=Path(primary),
+            subject=args.subject,
+            student_path=Path(args.student_path) if args.student_path else None,
+            teacher_path=Path(args.teacher_path) if args.teacher_path else None,
+            output_dir=args.output_dir,
+            render=args.render,
+            annotate=args.annotate,
+            contact_sheet=args.contact_sheet,
+            visual_compare=args.visual_compare,
+            analysis_dpi=args.analysis_dpi,
+            json_output=args.json,
+            strict=args.strict,
+        )
+    except (ValueError, FileNotFoundError) as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 1
+    print_report(report)
+    return report.exit_code(strict=args.strict)
+
+
+if __name__ == "__main__":
+    sys.exit(main())
