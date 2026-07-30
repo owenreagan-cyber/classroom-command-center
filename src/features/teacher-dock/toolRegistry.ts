@@ -147,7 +147,7 @@ export const TEACHER_TOOL_REGISTRY: readonly ToolDefinition[] = [
     title: 'Noise Control',
     category: 'management',
     icon: '🔊',
-    status: 'inactive',
+    status: 'docked',
     permissions: ['teacher-only', 'control-route-only'],
     componentId: 'noise',
     description: 'Voice level towers and noise tracker reset.',

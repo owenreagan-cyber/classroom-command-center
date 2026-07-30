@@ -36,8 +36,11 @@
     "test:curriculum-fetcher": "bash scripts/test-curriculum-fetcher.sh",
     "test:curriculum-pack-importer": "bash scripts/test-curriculum-pack-importer.sh",
     "test:curriculum-readiness": "bash scripts/test-curriculum-readiness.sh",
-    "test:e2e": "playwright test",
-    "test:launch-readiness": "bash scripts/test-launch-readiness.sh"
+    "test:e2e": "bash -c 'source scripts/ensure-playwright-host-env.sh && playwright test'",
+    "test:launch-readiness": "bash scripts/test-launch-readiness.sh",
+    "test:playwright-host": "bash scripts/diagnose-playwright-host.sh",
+    "test:noise-control": "bash scripts/test-noise-control.sh",
+    "smoke:classroom": "bash scripts/run-classroom-smoke.sh"
   },
   "dependencies": {
     "react": "^19.2.7",

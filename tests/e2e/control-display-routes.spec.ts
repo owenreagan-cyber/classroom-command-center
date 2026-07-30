@@ -70,11 +70,11 @@ test.describe('Control / Display route split', () => {
     await expect(page.locator('[data-teacher-command-dock]')).toBeVisible()
   })
 
-  test('inactive dock tools do not appear in launcher', async ({ page }) => {
+  test('Noise Control tool appears in dock launcher', async ({ page }) => {
     await page.goto('/control')
     await enterEditMode(page)
     await expandDockLauncher(page)
-    await expect(page.getByRole('button', { name: 'Open Noise Control' })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Open Noise Control' })).toHaveCount(1)
   })
 })
 

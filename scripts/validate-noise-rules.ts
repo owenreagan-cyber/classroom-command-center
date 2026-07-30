@@ -1,20 +1,26 @@
-import { getNoiseTrackerIdForScreen } from '../src/lib/noiseTowers.ts'
+import { getNoiseTrackerIdForScreen } from '../src/lib/noiseTowers'
 import type { ScreenId, NoiseTrackerId } from '../src/data/types'
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+declare const process: any
 
 const testCases: { screen: ScreenId; expected: NoiseTrackerId | null }[] = [
   { screen: 'homeroom', expected: 'homeroom' },
   { screen: 'math', expected: 'math' },
   { screen: 'reading', expected: 'reading' },
-  { screen: 'snack-lunch', expected: 'homeroom' },
+  { screen: 'snack', expected: 'homeroom' },
+  { screen: 'lunch', expected: 'homeroom' },
   { screen: 'ready-position', expected: 'homeroom' },
   { screen: 'writing', expected: 'homeroom' },
   { screen: 'science', expected: 'homeroom' },
   { screen: 'social-studies', expected: 'homeroom' },
-  { screen: 'intervention', expected: 'homeroom' },
   { screen: 'assessment', expected: 'homeroom' },
-  { screen: 'flexible-groups', expected: 'homeroom' },
   { screen: 'centers', expected: 'homeroom' },
-  { screen: 'homework-packup', expected: 'homeroom' },
+  { screen: 'homework', expected: 'homeroom' },
+  { screen: 'pack-up', expected: 'homeroom' },
+  { screen: 'spelling', expected: 'homeroom' },
+  { screen: 'recess', expected: 'homeroom' },
+  { screen: 'movement', expected: 'homeroom' },
 ]
 
 let passed = true
@@ -31,16 +37,7 @@ for (const { screen, expected } of testCases) {
   }
 }
 
-// Explicit test of Future Screen / Exclusions behavior
 console.log('\n--- Exclusions / Future Screens Validation ---')
-const spellingActual = getNoiseTrackerIdForScreen('spelling' as unknown as ScreenId)
-if (spellingActual === null) {
-  console.log('✓ Non-existent / future "spelling" screen correctly excluded (returned null)')
-} else {
-  console.error(`✗ Future screen "spelling" FAILED. Expected null, got "${spellingActual}"`)
-  passed = false
-}
-
 const vibeActual = getNoiseTrackerIdForScreen('vibe' as unknown as ScreenId)
 if (vibeActual === null) {
   console.log('✓ Non-existent / future "vibe" screen correctly excluded (returned null)')

@@ -108,4 +108,17 @@ test.describe('Launch readiness — core teacher tools', () => {
     await expect(panel.getByLabel('Random Number Selector')).toBeVisible()
     await expect(panel.getByRole('button', { name: 'Draw Number' })).toBeVisible()
   })
+
+  test('Noise Control panel renders on /control', async ({ page }) => {
+    await page.goto('/control')
+    await enterEditMode(page)
+    await openDockTool(page, 'Noise Control')
+
+    const panel = dockToolWorkspace(page, 'Noise Control')
+    await expect(panel.getByText('Voice Level & Traffic Light')).toBeVisible()
+    await expect(panel.getByRole('heading', { name: 'Homeroom' })).toBeVisible()
+    await expect(panel.getByRole('heading', { name: 'Math' })).toBeVisible()
+    await expect(panel.getByRole('heading', { name: 'Reading' })).toBeVisible()
+    await expect(panel.getByRole('button', { name: /0 Silent/i }).first()).toBeVisible()
+  })
 })
