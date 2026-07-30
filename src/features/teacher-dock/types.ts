@@ -24,6 +24,7 @@ export type ToolId =
   | 'mystery-star'
   | 'quick-picker'
   | 'prize-board'
+  | 'random-number'
   | 'materials'
   | 'display'
   | 'omninote'

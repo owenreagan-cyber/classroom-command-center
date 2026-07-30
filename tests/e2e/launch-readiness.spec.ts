@@ -98,4 +98,14 @@ test.describe('Launch readiness — core teacher tools', () => {
     await expect(timersPanel.getByText('Phase Timer')).toBeVisible()
     await expect(timersPanel.getByRole('button', { name: 'Start' }).first()).toBeVisible()
   })
+
+  test('Random Number Selector renders on /control', async ({ page }) => {
+    await page.goto('/control')
+    await enterEditMode(page)
+    await openDockTool(page, 'Random Number')
+
+    const panel = dockToolWorkspace(page, 'Random Number')
+    await expect(panel.getByLabel('Random Number Selector')).toBeVisible()
+    await expect(panel.getByRole('button', { name: 'Draw Number' })).toBeVisible()
+  })
 })

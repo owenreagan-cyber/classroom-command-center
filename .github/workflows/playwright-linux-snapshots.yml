@@ -1,0 +1,42 @@
+# Manual-only workflow to generate Linux Playwright snapshot baselines.
+# Does NOT run on push or pull_request — use workflow_dispatch from Actions tab or:
+#   gh workflow run playwright-linux-snapshots.yml --ref feat/classroom-command-center-v1-release-candidate
+name: Playwright Linux Snapshot Baselines
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  generate-linux-snapshots:
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+      - name: Install dependencies
+        run: npm ci
+      - name: Install Playwright Chromium
+        run: npx playwright install chromium
+      - name: Generate Linux snapshot baselines
+        run: |
+          npx playwright test \
+            tests/e2e/display-snapshots.spec.ts \
+            tests/e2e/prize-board-ipad-landscape-snapshots.spec.ts \
+            tests/e2e/prize-board-projector-snapshots.spec.ts \
+            --update-snapshots
+      - name: List generated Linux baselines
+        run: |
+          find tests/e2e -name '*-chromium-linux.png' -print | sort
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-playwright-snapshots
+          path: |
+            tests/e2e/display-snapshots.spec.ts-snapshots/*-chromium-linux.png
+            tests/e2e/prize-board-ipad-landscape-snapshots.spec.ts-snapshots/*-chromium-linux.png
+            tests/e2e/prize-board-projector-snapshots.spec.ts-snapshots/*-chromium-linux.png
+          retention-days: 7

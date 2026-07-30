@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { RandomNumberDisplay } from '../features/random-number/components/RandomNumberDisplay'
 import { PrizeBoardProjectorMode } from '../features/prize-board/components/PrizeBoardProjectorMode'
 import { shouldShowProjectorMode } from '../features/prize-board/pressYourLuck/spinEngine'
 import { usePressYourLuckStore } from '../features/prize-board/pressYourLuck/pressYourLuckStore'
@@ -33,6 +34,7 @@ export function StudentDisplayShell() {
     <div className="relative flex h-dvh w-dvw overflow-hidden bg-slate-950">
       {!projectorActive && <BoardWorkspace effectiveMode="display" studentDisplay />}
       <PrizeBoardProjectorMode />
+      <RandomNumberDisplay />
       {!projectorActive && (
       <div className="pointer-events-none absolute bottom-[max(1rem,var(--board-safe-bottom,1rem))] right-[max(1rem,var(--board-safe-x,1rem))] z-40">
         <button

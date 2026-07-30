@@ -30,3 +30,12 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-snapshot-actuals
+          path: |
+            tests/e2e/display-snapshots.spec.ts-snapshots/
+            tests/e2e/prize-board-ipad-landscape-snapshots.spec.ts-snapshots/
+            tests/e2e/prize-board-projector-snapshots.spec.ts-snapshots/
+          retention-days: 7
