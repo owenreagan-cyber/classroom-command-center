@@ -12,7 +12,21 @@ Baseline: `007fdb1`
 | `npm install` | PASS (pre-existing) |
 | `npm run build` | PASS — 631 kB JS chunk (non-blocking warning) |
 | `npm run lint` | PASS — 0 errors, 0 warnings |
-| `npm run test:launch-readiness` | **Partial** — build/lint/unit pass; Playwright blocked locally (browser not installed in agent sandbox) |
+| `npm run test:launch-readiness` | **Partial locally** — build/lint/unit pass; Playwright requires local Chromium install |
+
+## Linux Playwright Snapshot Baselines
+
+Added **12 reviewed `*-chromium-linux.png`** baselines generated in GitHub Actions Ubuntu (run `30576243669`) and compared against existing Darwin baselines before acceptance.
+
+| Spec | Linux baselines |
+|------|----------------|
+| `display-snapshots.spec.ts` | 5 |
+| `prize-board-ipad-landscape-snapshots.spec.ts` | 2 |
+| `prize-board-projector-snapshots.spec.ts` | 5 |
+
+**Visual review:** All Linux captures show the correct route/state (Homeroom display, Morning Message, Now Showing, Prize Board idle/spinning control, projector default/spin/rare/legendary/whammy). No blank screens, error overlays, teacher-only leakage, or unintended animation frames. Platform font antialiasing differs from Darwin as expected; layout and content match.
+
+**Maintenance:** `.github/workflows/playwright-linux-snapshots.yml` (workflow_dispatch) and CI failure artifact `playwright-snapshot-actuals` support future baseline regeneration without auto-updating PR checks.
 
 ## Feature Audit Summary
 
