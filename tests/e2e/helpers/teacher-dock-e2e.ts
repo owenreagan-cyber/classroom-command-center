@@ -13,6 +13,7 @@ export const TOOL_TITLE_TO_ID: Record<string, string> = {
   'Mystery Star': 'mystery-star',
   'Quick Picker': 'quick-picker',
   'Prize Board': 'prize-board',
+  'Random Number': 'random-number',
   Materials: 'materials',
   Display: 'display',
   OmniNote: 'omninote',
