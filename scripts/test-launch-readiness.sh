@@ -5,6 +5,9 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
+# shellcheck source=scripts/ensure-playwright-host-env.sh
+source "$ROOT/scripts/ensure-playwright-host-env.sh"
+
 echo "========================================"
 echo "  Launch Readiness — Phase 11D"
 echo "========================================"

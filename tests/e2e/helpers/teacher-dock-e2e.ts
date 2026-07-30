@@ -19,6 +19,7 @@ export const TOOL_TITLE_TO_ID: Record<string, string> = {
   OmniNote: 'omninote',
   Jobs: 'jobs',
   'Board Control': 'board-control',
+  'Noise Control': 'noise',
 }
 
 export function dockToolWorkspace(page: Page, toolTitle: string) {

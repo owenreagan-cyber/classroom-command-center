@@ -13,7 +13,6 @@ import {
 } from './toolRegistry'
 import { REGISTERED_TOOL_PANEL_IDS } from './toolPanelIds'
 import {
-  DEFAULT_DOCK_STATE,
   hydrateDockState,
   parsePersistedDockState,
   serializeDockState,
@@ -118,7 +117,10 @@ function testRegistryShape() {
 
 function testInactiveToolsHiddenFromLauncher() {
   const inactive = TEACHER_TOOL_REGISTRY.filter((tool) => tool.status === 'inactive')
-  assert(inactive.length > 0, 'expected at least one inactive tool for test')
+  if (inactive.length === 0) {
+    console.log('  inactive tools hidden from launcher OK (none registered)')
+    return
+  }
   const launcher = getLauncherTools(
     TEACHER_TOOL_REGISTRY.map((tool) => tool.id),
     [],
@@ -132,18 +134,20 @@ function testInactiveToolsHiddenFromLauncher() {
   console.log('  inactive tools hidden from launcher OK')
 }
 
-function testInactiveToolLaunchGuard() {
+function testNoiseToolLaunchable() {
   const noise = getToolById('noise')
   assert(Boolean(noise), 'noise tool must exist')
-  assert(noise!.status === 'inactive', 'noise must be inactive by default')
-  assert(!isToolLaunchable(noise!.status), 'inactive tool must not be launchable')
-  console.log('  inactive tool launch guard OK')
+  assert(noise!.status === 'docked', 'noise must be docked and launchable')
+  assert(isToolLaunchable(noise!.status), 'noise tool must be launchable')
+  const launcher = getLauncherTools(getDefaultDockOrder(), [])
+  assert(launcher.some((tool) => tool.id === 'noise'), 'noise must appear in launcher')
+  console.log('  noise tool launchable OK')
 }
 
-function testInactiveToolRegisteredButNotLaunchable() {
-  assert(REGISTERED_TOOL_PANEL_IDS.includes('noise'), 'noise panel registered for future activation')
-  assert(!isToolLaunchable(getToolById('noise')!.status), 'noise must stay inactive in registry')
-  console.log('  inactive tool registered but not launchable OK')
+function testNoiseToolPanelRegistered() {
+  assert(REGISTERED_TOOL_PANEL_IDS.includes('noise'), 'noise panel registered')
+  assert(isToolLaunchable(getToolById('noise')!.status), 'noise must be launchable in registry')
+  console.log('  noise tool panel registered OK')
 }
 
 function testRegistryPrivacyOnDisplayRoute() {
@@ -235,13 +239,12 @@ function testActiveToolPersistence() {
   console.log('  active tool persistence OK')
 }
 
-function testInactiveActiveToolRejectedOnHydrate() {
+function testNoiseActiveToolPersistence() {
   const saved = hydrateDockState({ activeToolId: 'noise' })
-  assert(
-    saved.activeToolId === DEFAULT_DOCK_STATE.activeToolId,
-    'inactive activeToolId must fall back to default',
-  )
-  console.log('  inactive active tool rejected on hydrate OK')
+  assert(saved.activeToolId === 'noise', 'noise activeToolId must hydrate when launchable')
+  const reloaded = parsePersistedDockState(serializeDockState(saved))
+  assert(reloaded.activeToolId === 'noise', 'noise active tool must survive JSON round-trip')
+  console.log('  noise active tool persistence OK')
 }
 
 function testInvalidToolIdsSanitizedOnHydrate() {
@@ -251,7 +254,7 @@ function testInvalidToolIdsSanitizedOnHydrate() {
     activeToolId: 'bogus',
   })
   assert(!saved.dockOrder.includes('not-a-tool' as ToolId), 'unknown order ids removed')
-  assert(!saved.dockOrder.includes('noise'), 'inactive tool removed from order')
+  assert(saved.dockOrder.includes('noise'), 'launchable noise kept in order')
   assert(saved.favoriteToolIds.includes('timers'), 'valid favorite kept')
   assert(saved.activeToolId === 'dashboard', 'invalid active tool falls back')
   console.log('  invalid tool ids sanitized on hydrate OK')
@@ -265,14 +268,14 @@ testDeviceAwareLaunchResolution()
 testDisplayNeverReceivesPrivateRegistry()
 testRegistryShape()
 testInactiveToolsHiddenFromLauncher()
-testInactiveToolLaunchGuard()
-testInactiveToolRegisteredButNotLaunchable()
+testNoiseToolLaunchable()
+testNoiseToolPanelRegistered()
 testRegistryPrivacyOnDisplayRoute()
 testAllActiveToolsHavePanels()
 testRequiredMigrationToolsPresent()
 testCollapsePersistence()
 testToolOrderPersistence()
 testActiveToolPersistence()
-testInactiveActiveToolRejectedOnHydrate()
+testNoiseActiveToolPersistence()
 testInvalidToolIdsSanitizedOnHydrate()
 console.log('All teacher command dock tests passed.')
