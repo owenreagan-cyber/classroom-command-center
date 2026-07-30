@@ -27,6 +27,12 @@ trap cleanup EXIT
 
 printf '{"type":"commonjs"}\n' > "$OUT/package.json"
 
-TEST_FILE="$(find "$OUT" -type f -path "*/random-number/tests.js" -print -quit)"
+TEST_FILE="$(find "$OUT" -type f -name 'tests.js' -print -quit)"
+
+if [[ -z "$TEST_FILE" || ! -f "$TEST_FILE" ]]; then
+  echo "Random number selector tests failed: compiled tests.js was not found." >&2
+  exit 1
+fi
+
 node "$TEST_FILE"
 echo "Random number selector tests passed."
