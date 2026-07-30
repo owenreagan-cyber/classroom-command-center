@@ -69,6 +69,12 @@ export const TOOL_CAPABILITY_REGISTRY: ToolCapabilityMap = {
     permissions: ['teacher-only', 'control-route-only'],
     modeSupport: ['reward'],
   },
+  'random-number': {
+    requiredDeviceRole: 'teacher-command-center',
+    displayTarget: 'student-display',
+    permissions: ['teacher-only', 'control-route-only'],
+    modeSupport: [],
+  },
   materials: {
     requiredDeviceRole: 'teacher-command-center',
     displayTarget: 'optional',

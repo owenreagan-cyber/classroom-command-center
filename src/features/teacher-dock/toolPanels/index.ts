@@ -11,6 +11,7 @@ import { DisplayToolPanel } from './DisplayToolPanel'
 import { OmniNoteToolPanel } from './OmniNoteToolPanel'
 import { MysteryStarToolPanel, QuickPickerToolPanel } from './StudentPickerToolPanels'
 import { PrizeBoardToolPanel } from './PrizeBoardToolPanel'
+import { RandomNumberToolPanel } from './RandomNumberToolPanel'
 import { JobsToolPanel } from './JobsToolPanel'
 import { NoiseToolPanel } from './NoiseToolPanel'
 import { BoardControlToolPanel } from './BoardControlToolPanel'
@@ -29,6 +30,7 @@ export const TOOL_PANEL_COMPONENTS: Record<ToolId, ComponentType> = {
   'mystery-star': MysteryStarToolPanel,
   'quick-picker': QuickPickerToolPanel,
   'prize-board': PrizeBoardToolPanel,
+  'random-number': RandomNumberToolPanel,
   jobs: JobsToolPanel,
   noise: NoiseToolPanel,
   'board-control': BoardControlToolPanel,

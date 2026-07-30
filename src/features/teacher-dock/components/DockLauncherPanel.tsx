@@ -51,13 +51,7 @@ export const DockLauncherPanel = memo(function DockLauncherPanel({
     [activeScreen, fetcherPackages],
   )
 
-  const lessonOverrideActive =
-    currentLesson != null && teacherOverrides[currentLesson.id] === true
-
-  const lessonReadiness = useMemo(() => {
-    if (!currentLesson) return null
-    return scorePackage(currentLesson)
-  }, [currentLesson, scorePackage, lessonOverrideActive])
+  const lessonReadiness = currentLesson ? scorePackage(currentLesson) : null
 
   const launcherTools = useMemo(
     () =>

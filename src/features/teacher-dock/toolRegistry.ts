@@ -93,6 +93,16 @@ export const TEACHER_TOOL_REGISTRY: readonly ToolDefinition[] = [
     description: 'Configure and run the prize board game.',
   },
   {
+    id: 'random-number',
+    title: 'Random Number',
+    category: 'students',
+    icon: '🔢',
+    status: 'docked',
+    permissions: ['teacher-only', 'control-route-only'],
+    componentId: 'random-number',
+    description: 'Draw random numbers with optional no-repeat mode.',
+  },
+  {
     id: 'materials',
     title: 'Materials',
     category: 'instruction',
