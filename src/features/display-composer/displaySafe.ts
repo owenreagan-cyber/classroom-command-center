@@ -16,17 +16,27 @@ export interface DisplaySafeScreen {
   studentMessage?: string
 }
 
-/** Returns null when the screen must never reach /display. */
+/** Safe fallback when a screen record is missing a required field — e.g. an
+ * older/malformed persisted record. Renders as "no background image", never a crash. */
+const SAFE_DEFAULT_BACKGROUND: DisplayScreen['background'] = { type: 'gradient', token: 'calm-focus' }
+const SAFE_DEFAULT_TIMER_WIDGET: DisplayScreen['timerWidget'] = { kind: 'none' }
+
+/**
+ * Returns null when the screen must never reach /display. Runtime-hardened
+ * (Phase 14E): fills safe defaults for fields that could be missing from an
+ * old/malformed persisted record rather than trusting them present, so a bad
+ * hydration state degrades to "plain screen" instead of crashing the renderer.
+ */
 export function toDisplaySafeScreen(screen: DisplayScreen | undefined): DisplaySafeScreen | null {
   if (!screen) return null
   if (!screen.studentSafe) return null
 
   return {
     id: screen.id,
-    title: screen.title,
-    background: screen.background,
-    showClock: screen.showClock,
-    timerWidget: screen.timerWidget,
+    title: screen.title ?? 'Classroom',
+    background: screen.background ?? SAFE_DEFAULT_BACKGROUND,
+    showClock: screen.showClock ?? true,
+    timerWidget: screen.timerWidget ?? SAFE_DEFAULT_TIMER_WIDGET,
     materialsCard: screen.materialsCard,
     checklistCard: screen.checklistCard,
     studentMessage: screen.studentMessage,

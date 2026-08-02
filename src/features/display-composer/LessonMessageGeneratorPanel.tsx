@@ -1,5 +1,9 @@
 import { useState } from 'react'
 import { generateLessonMessageDraft } from './aiLessonMessageGenerator'
+import { createHttpLessonMessageProvider } from './httpLessonMessageProvider'
+import { useAiProviderSettingsStore } from './aiProviderSettingsStore'
+import { ProviderStatusControls } from './ProviderStatusControls'
+import type { LessonMessageProviderStatus } from './aiProviderConfig'
 import {
   LESSON_ACTIVITY_LABELS,
   LESSON_SUBJECT_LABELS,
@@ -7,9 +11,21 @@ import {
   type LessonActivityKind,
   type LessonMessageDraft,
   type LessonMessageInput,
+  type LessonMessageProvider,
   type LessonSubject,
   type LessonTone,
 } from './aiLessonMessageTypes'
+
+/** Only localOllama/customEndpoint ever construct a real (never-key-bearing) provider instance. */
+function buildConfiguredProvider(settings: ReturnType<typeof useAiProviderSettingsStore.getState>['settings']): LessonMessageProvider | undefined {
+  const usesEndpoint = settings.provider === 'localOllama' || settings.provider === 'customEndpoint'
+  if (!usesEndpoint || !settings.endpoint) return undefined
+  return createHttpLessonMessageProvider({
+    endpoint: settings.endpoint,
+    modelName: settings.modelName,
+    timeoutMs: settings.timeoutMs,
+  })
+}
 
 const inputClass =
   'w-full rounded-lg border border-slate-600 bg-slate-900/70 px-2 py-1.5 text-xs text-slate-100 placeholder:text-slate-500'
@@ -69,6 +85,11 @@ export function LessonMessageGeneratorPanel({
   const [isGenerating, setIsGenerating] = useState(false)
   const [statusMessage, setStatusMessage] = useState<string | null>(null)
 
+  const settings = useAiProviderSettingsStore((s) => s.settings)
+  const draftCounter = useAiProviderSettingsStore((s) => s.draftCounter)
+  const setLastProviderStatus = useAiProviderSettingsStore((s) => s.setLastProviderStatus)
+  const recordDraftGenerated = useAiProviderSettingsStore((s) => s.recordDraftGenerated)
+
   const showStatus = (message: string) => {
     setStatusMessage(message)
     window.setTimeout(() => setStatusMessage(null), 3000)
@@ -84,9 +105,24 @@ export function LessonMessageGeneratorPanel({
         avoid: linesToList(avoidText),
         teacherNotes: teacherNotes.trim() || undefined,
       }
-      // Deterministic local mode only — no provider is configured, so this never
-      // makes a network call. Generating a draft never touches /display.
-      const result = await generateLessonMessageDraft(input)
+      // Deterministic local mode is the default; a provider is only ever attempted
+      // when the teacher has explicitly switched modes AND configured+enabled one
+      // (see ProviderStatusControls / aiProviderConfig.ts). Generating a draft
+      // never touches /display regardless of which path was used.
+      let resultStatus: LessonMessageProviderStatus = 'disabled'
+      const result = await generateLessonMessageDraft(input, {
+        provider: buildConfiguredProvider(settings),
+        settings,
+        draftCounter,
+        onStatusChange: (status) => {
+          resultStatus = status
+        },
+      })
+      setLastProviderStatus(resultStatus)
+      const statusReflectsAnAttempt: LessonMessageProviderStatus[] = ['ready', 'error', 'timedOut']
+      if (statusReflectsAnAttempt.includes(resultStatus)) {
+        recordDraftGenerated()
+      }
       setDraft(result)
     } finally {
       setIsGenerating(false)
@@ -119,10 +155,13 @@ export function LessonMessageGeneratorPanel({
       <div>
         <p className="text-sm font-bold text-slate-100">Lesson Message Generator</p>
         <p className="mt-1 text-[11px] leading-relaxed text-slate-400">
-          Deterministic local draft — no live AI call is made. Generating a draft never sends anything to
-          /display; review it below, then explicitly apply it to a screen and use Send to Display when ready.
+          Deterministic local draft by default — no live AI call is made unless a provider is explicitly
+          configured below. Generating a draft never sends anything to /display; review it below, then
+          explicitly apply it to a screen and use Send to Display when ready.
         </p>
       </div>
+
+      <ProviderStatusControls />
 
       <div className="grid grid-cols-2 gap-2">
         <label className="flex flex-col gap-1">

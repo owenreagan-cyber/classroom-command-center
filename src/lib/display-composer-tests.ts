@@ -136,4 +136,25 @@ const transitionDraft = draftLessonDisplayScreen({ subject: 'Reading', lessonTit
 assert(transitionDraft.suggestedTimerMinutes === 4, 'transition activity type suggests a short timer')
 assert(transitionDraft.materialsChecklist.length === 0, 'draft materials checklist is empty when none provided')
 
+// --- Runtime hardening (Phase 14E): malformed/old hydration records never crash the safe projection ---
+
+const wellFormedScreen = DEFAULT_DISPLAY_SCREENS[0]
+
+const missingBackground = { ...wellFormedScreen } as Partial<DisplayScreen> as DisplayScreen
+delete (missingBackground as Partial<DisplayScreen>).background
+const safeMissingBackground = toDisplaySafeScreen(missingBackground)
+assert(safeMissingBackground !== null, 'a screen missing its background field still produces a display-safe payload')
+assert(safeMissingBackground!.background.type === 'gradient', 'missing background fills a safe default gradient')
+
+const missingTimerWidget = { ...wellFormedScreen } as Partial<DisplayScreen> as DisplayScreen
+delete (missingTimerWidget as Partial<DisplayScreen>).timerWidget
+const safeMissingTimer = toDisplaySafeScreen(missingTimerWidget)
+assert(safeMissingTimer !== null, 'a screen missing its timerWidget field still produces a display-safe payload')
+assert(safeMissingTimer!.timerWidget.kind === 'none', 'missing timerWidget fills a safe "none" default')
+
+const missingShowClock = { ...wellFormedScreen } as Partial<DisplayScreen> as DisplayScreen
+delete (missingShowClock as Partial<DisplayScreen>).showClock
+const safeMissingShowClock = toDisplaySafeScreen(missingShowClock)
+assert(safeMissingShowClock !== null && typeof safeMissingShowClock.showClock === 'boolean', 'missing showClock fills a safe boolean default')
+
 console.log('All display composer tests passed.')
