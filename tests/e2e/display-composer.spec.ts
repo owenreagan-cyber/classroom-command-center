@@ -388,3 +388,102 @@ test.describe('Phase 14D — Regression: existing 14B/14C behavior unchanged', (
     await expect(page.locator('[data-display-screen-id="specials"]')).toBeVisible()
   })
 })
+
+test.describe('Phase 14E — Provider status controls', () => {
+  test('provider controls default to Deterministic Local and appear only on /control', async ({ page }) => {
+    await page.goto('/control')
+    await enterEditMode(page)
+    await openDockTool(page, 'Display Screens')
+    const panel = dockToolWorkspace(page, 'Display Screens')
+
+    const controls = panel.locator('[data-provider-status-controls]')
+    await expect(controls).toBeVisible()
+    await expect(panel.getByLabel('Generator mode')).toHaveValue('deterministicOnly')
+    await expect(controls.locator('[data-provider-status]')).toContainText('Disabled')
+
+    await page.goto('/display')
+    const bodyText = await page.locator('body').innerText()
+    expect(bodyText).not.toContain('Generator Mode')
+    expect(bodyText).not.toContain('Drafts used today')
+    await expect(page.locator('[data-provider-status-controls]')).toHaveCount(0)
+  })
+
+  test('Generate Draft in deterministic mode keeps status Disabled and never touches /display', async ({ page }) => {
+    await page.goto('/control')
+    await enterEditMode(page)
+    await openDockTool(page, 'Display Screens')
+    const panel = dockToolWorkspace(page, 'Display Screens')
+
+    await panel.getByLabel('Lesson Title').fill('Fractions')
+    await panel.getByRole('button', { name: 'Generate Draft' }).click()
+    await expect(panel.locator('[data-lesson-draft-preview]')).toBeVisible()
+    await expect(panel.locator('[data-provider-status]')).toContainText('Disabled')
+
+    await page.goto('/display')
+    await expect(page.locator('[data-display-screen-id]')).toHaveCount(0)
+  })
+
+  test('an unreachable configured provider falls back to deterministic with a teacher-only warning, never shown on /display', async ({ page }) => {
+    await page.goto('/control')
+    await enterEditMode(page)
+    await openDockTool(page, 'Display Screens')
+    const panel = dockToolWorkspace(page, 'Display Screens')
+
+    await panel.getByLabel('Generator mode').selectOption({ value: 'providerIfAvailable' })
+    await panel.getByLabel('Provider').selectOption({ value: 'customEndpoint' })
+    // Port 1 refuses connections immediately — a fast, deterministic "unreachable" without a real server.
+    await panel.getByLabel('Endpoint URL (your own local server)').fill('http://127.0.0.1:1/generate')
+    await panel.getByLabel('Enable provider for draft generation').check()
+
+    await panel.getByRole('button', { name: '7:20 Arrival', exact: true }).click()
+    await panel.getByLabel('Lesson Title').fill('Fractions')
+    await panel.getByLabel('Objective (optional)').fill('practice solving problems carefully')
+    await panel.getByRole('button', { name: 'Generate Draft' }).click()
+
+    await expect(panel.locator('[data-lesson-draft-preview]')).toBeVisible({ timeout: 15000 })
+    // Deterministic content still renders — the provider outage never blocked the draft.
+    await expect(panel.locator('[data-lesson-draft-preview]')).toContainText('Math: Fractions')
+    // Teacher-only fallback explanation is visible in the draft's own warnings box.
+    await expect(panel.locator('[data-lesson-draft-preview]')).toContainText(/provider unavailable/i)
+    await expect(panel.locator('[data-provider-status]')).not.toContainText('Ready')
+
+    await panel.getByRole('button', { name: 'Apply Draft to Current Screen' }).click()
+    await panel.getByRole('button', { name: 'Send to Display' }).click()
+
+    await page.goto('/display')
+    await expect(page.locator('[data-display-screen-id="arrival-720"]')).toBeVisible()
+    const bodyText = await page.locator('body').innerText()
+    expect(bodyText).not.toContain('provider unavailable')
+    expect(bodyText).not.toContain('Generator Mode')
+    expect(bodyText).not.toContain('127.0.0.1')
+    expect(bodyText).not.toContain('Status:')
+  })
+})
+
+test.describe('Phase 14E — Runtime hardening regression', () => {
+  test('unknown pack filter value falls back to showing all screens, not an empty list', async ({ page }) => {
+    await page.goto('/control')
+    await enterEditMode(page)
+    await openDockTool(page, 'Display Screens')
+    const panel = dockToolWorkspace(page, 'Display Screens')
+
+    // Simulate a stale/unknown filter value the UI itself could never produce,
+    // proving the panel degrades to "All Screens" rather than an empty state.
+    // Uses the native value setter (not select.value=) so React's controlled
+    // <select> actually observes the change and fires onChange.
+    await page.evaluate(() => {
+      const select = document.querySelector('[aria-label="Filter saved screens by pack"]') as HTMLSelectElement | null
+      if (select) {
+        const opt = document.createElement('option')
+        opt.value = 'not-a-real-pack'
+        select.appendChild(opt)
+        const setter = Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value')?.set
+        setter?.call(select, 'not-a-real-pack')
+        select.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+    })
+
+    await expect(panel.getByText('No screens in this pack yet.')).toHaveCount(0)
+    await expect(panel.getByRole('button', { name: '7:20 Arrival', exact: true })).toBeVisible()
+  })
+})

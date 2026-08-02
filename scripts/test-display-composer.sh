@@ -35,15 +35,21 @@ trap cleanup EXIT
   "$ROOT/src/features/display-composer/screenPacks.ts" \
   "$ROOT/src/features/display-composer/quickStartTemplates.ts" \
   "$ROOT/src/features/display-composer/readabilityChecks.ts" \
+  "$ROOT/src/features/display-composer/aiProviderConfig.ts" \
+  "$ROOT/src/features/display-composer/aiProviderUsage.ts" \
+  "$ROOT/src/features/display-composer/aiPrivacyScrubber.ts" \
+  "$ROOT/src/features/display-composer/aiOutputValidator.ts" \
   "$ROOT/src/lib/display-composer-tests.ts" \
   "$ROOT/src/lib/ai-lesson-message-tests.ts" \
-  "$ROOT/src/lib/display-composer-packs-tests.ts"
+  "$ROOT/src/lib/display-composer-packs-tests.ts" \
+  "$ROOT/src/lib/ai-provider-safety-tests.ts"
 
 printf '{"type":"commonjs"}\n' > "$OUT/package.json"
 
 TEST_FILE="$(find "$OUT" -type f -path "*/lib/display-composer-tests.js" -print -quit)"
 AI_TEST_FILE="$(find "$OUT" -type f -path "*/lib/ai-lesson-message-tests.js" -print -quit)"
 PACKS_TEST_FILE="$(find "$OUT" -type f -path "*/lib/display-composer-packs-tests.js" -print -quit)"
+PROVIDER_SAFETY_TEST_FILE="$(find "$OUT" -type f -path "*/lib/ai-provider-safety-tests.js" -print -quit)"
 
 if [ -z "$TEST_FILE" ]; then
   echo "FAIL: compiled display composer test file was not found."
@@ -63,6 +69,13 @@ if [ -z "$PACKS_TEST_FILE" ]; then
   exit 1
 fi
 
+if [ -z "$PROVIDER_SAFETY_TEST_FILE" ]; then
+  echo "FAIL: compiled AI provider safety test file was not found."
+  find "$OUT" -type f -print
+  exit 1
+fi
+
 node "$TEST_FILE"
 node "$AI_TEST_FILE"
 node "$PACKS_TEST_FILE"
+node "$PROVIDER_SAFETY_TEST_FILE"

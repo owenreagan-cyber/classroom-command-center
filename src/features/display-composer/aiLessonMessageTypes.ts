@@ -88,8 +88,17 @@ export interface LessonMessageDraft {
   warnings: string[]
 }
 
+/** Options passed to a provider's own generateLessonMessageDraft call (distinct from the orchestrator's options in aiLessonMessageGenerator.ts). */
+export interface ProviderCallOptions {
+  /** Allows the caller (orchestrator timeout, or a teacher-triggered cancel) to abort in-flight work. */
+  signal?: AbortSignal
+}
+
 export interface LessonMessageProvider {
-  generateLessonMessageDraft(input: LessonMessageInput): Promise<LessonMessageDraft>
+  generateLessonMessageDraft(
+    input: LessonMessageInput,
+    options?: ProviderCallOptions,
+  ): Promise<LessonMessageDraft>
 }
 
 /** Shared subject/activity display labels — used by both the prompt builder and the deterministic fallback. */

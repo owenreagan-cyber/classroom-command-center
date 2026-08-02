@@ -9,7 +9,7 @@ import { BACKGROUND_ASSETS } from '../../data/backgroundAssets'
 import { LessonMessageGeneratorPanel } from './LessonMessageGeneratorPanel'
 import { mapLessonMessageDraftToScreenPatch } from './aiLessonMessageMapping'
 import type { LessonMessageDraft } from './aiLessonMessageTypes'
-import { countScreensByPack, DISPLAY_SCREEN_PACKS, filterScreensByPack } from './screenPacks'
+import { countScreensByPack, DISPLAY_SCREEN_PACKS, filterScreensByPack, isValidPackId } from './screenPacks'
 import { buildQuickStartScreenPatch, QUICK_START_TEMPLATES } from './quickStartTemplates'
 import { computeReadabilityWarnings } from './readabilityChecks'
 import type {
@@ -141,7 +141,9 @@ export function DisplayComposerPanel() {
   )
   const packCounts = useMemo(() => countScreensByPack(allScreens), [allScreens])
   const visibleScreenIds = useMemo(() => {
-    if (packFilter === 'all') return order
+    // Runtime-hardened (Phase 14E): an unrecognized pack id (e.g. stale state)
+    // falls back to showing all screens rather than an empty/confusing list.
+    if (packFilter === 'all' || !isValidPackId(packFilter)) return order
     return filterScreensByPack(allScreens, packFilter).map((s) => s.id)
   }, [order, allScreens, packFilter])
 
