@@ -10,7 +10,7 @@ import { LessonMessageGeneratorPanel } from './LessonMessageGeneratorPanel'
 import { mapLessonMessageDraftToScreenPatch } from './aiLessonMessageMapping'
 import type { LessonMessageDraft } from './aiLessonMessageTypes'
 import { countScreensByPack, DISPLAY_SCREEN_PACKS, filterScreensByPack, isValidPackId } from './screenPacks'
-import { buildQuickStartScreenPatch, QUICK_START_TEMPLATES } from './quickStartTemplates'
+import { buildQuickStartScreenPatch, finalizeQuickStartPatch, QUICK_START_TEMPLATES } from './quickStartTemplates'
 import { computeReadabilityWarnings } from './readabilityChecks'
 import type {
   ChecklistItem,
@@ -157,7 +157,7 @@ export function DisplayComposerPanel() {
     const patch = buildQuickStartScreenPatch(templateId)
     if (!patch) return
     const newId = createCustomScreen(patch.title ?? templateLabel)
-    updateScreen(newId, patch)
+    updateScreen(newId, finalizeQuickStartPatch(patch, newId))
     setSelectedId(newId)
     showStatus(`Created a new screen from "${templateLabel}". Edit it below before sending to display.`)
   }

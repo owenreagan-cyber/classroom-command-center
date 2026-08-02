@@ -487,3 +487,48 @@ test.describe('Phase 14E — Runtime hardening regression', () => {
     await expect(panel.getByRole('button', { name: '7:20 Arrival', exact: true })).toBeVisible()
   })
 })
+
+test.describe('Phase 14F — Classroom field test regressions', () => {
+  test('Work Time quick-start screen renders its promised timer, not a blank layout gap', async ({ page }) => {
+    // Regression for a real bug found during the field test: "Blank Lesson
+    // Launch" (and "Blank Transition") set a timer kind without a timerId,
+    // so the timer silently never rendered and the layout still reserved a
+    // blank column for it.
+    await page.goto('/control')
+    await enterEditMode(page)
+    await openDockTool(page, 'Display Screens')
+    const panel = dockToolWorkspace(page, 'Display Screens')
+
+    await panel.getByRole('button', { name: '+ Blank Lesson Launch' }).click()
+    await panel.getByRole('button', { name: 'Send to Display' }).click()
+
+    await page.goto('/display')
+    await expect(page.getByText('New Lesson')).toBeVisible()
+    // The transition/general timer widget always renders the numeral inside
+    // an article card — confirms a real timer mounted, not an empty slot.
+    await expect(page.getByRole('article').getByText(/^\d+:\d{2}$/)).toBeVisible()
+    await expect(page.getByText('Lesson Checklist')).toBeVisible()
+  })
+
+  test('an active screen with a running timer survives a /display reload with recovered time, not a blank/stale state', async ({ page }) => {
+    await page.goto('/control')
+    await enterEditMode(page)
+    await openDockTool(page, 'Display Screens')
+    const panel = dockToolWorkspace(page, 'Display Screens')
+
+    await panel.locator('[data-display-screen-card="math-to-snack-shurley"]').click()
+    const timerControlsRow = panel.locator('div', { hasText: 'Timer status' }).last()
+    await timerControlsRow.getByRole('button', { name: 'Start' }).click()
+    await panel.getByRole('button', { name: 'Send to Display' }).click()
+
+    await page.goto('/display')
+    await expect(page.locator('[data-display-screen-id="math-to-snack-shurley"]')).toBeVisible()
+    await page.waitForTimeout(1200)
+
+    await page.reload()
+    await expect(page.locator('[data-display-screen-id="math-to-snack-shurley"]')).toBeVisible()
+    // A real, ticking countdown (not "4:00" frozen, not blank) proves the
+    // wall-clock-based timer recovery survives a full page reload.
+    await expect(page.getByRole('article').getByText(/^3:5\d$/)).toBeVisible()
+  })
+})

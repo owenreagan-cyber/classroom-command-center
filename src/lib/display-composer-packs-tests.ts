@@ -14,6 +14,7 @@ import {
 } from '../features/display-composer/screenPacks'
 import {
   buildQuickStartScreenPatch,
+  finalizeQuickStartPatch,
   QUICK_START_TEMPLATES,
 } from '../features/display-composer/quickStartTemplates'
 import { computeReadabilityWarnings } from '../features/display-composer/readabilityChecks'
@@ -72,6 +73,28 @@ for (const template of QUICK_START_TEMPLATES) {
 // --- Failure mode: unknown quick-start template id ---
 
 assert(buildQuickStartScreenPatch('not-a-real-template') === undefined, 'unknown quick-start template id returns undefined, not a crash')
+
+// --- Regression (Phase 14F field test): quick-start templates that promise a
+// timer must end up with a real timerId, or the timer silently never renders
+// (a real bug found during the classroom field test — "Blank Lesson Launch"
+// and "Blank Transition" set a timer kind but no id). ---
+
+for (const template of QUICK_START_TEMPLATES) {
+  const rawPatch = buildQuickStartScreenPatch(template.id)!
+  const finalized = finalizeQuickStartPatch(rawPatch, 'demo-screen-id')
+  if (rawPatch.timerWidget && rawPatch.timerWidget.kind !== 'none') {
+    assert(
+      Boolean(finalized.timerWidget?.timerId),
+      `quick-start template "${template.id}" promises a ${rawPatch.timerWidget.kind} timer and ends up with a real timerId after finalization`,
+    )
+  }
+}
+
+const patchWithNoTimer = finalizeQuickStartPatch({ timerWidget: { kind: 'none' } }, 'demo-screen-id')
+assert(patchWithNoTimer.timerWidget?.timerId === undefined, 'finalizeQuickStartPatch leaves a "none" timer kind untouched')
+
+const patchAlreadyHasId = finalizeQuickStartPatch({ timerWidget: { kind: 'routine', timerId: 'lunch-routine' } }, 'demo-screen-id')
+assert(patchAlreadyHasId.timerWidget?.timerId === 'lunch-routine', 'finalizeQuickStartPatch never overwrites an existing timerId')
 
 // --- Readability warnings: normal seeded screens produce no warnings ---
 
