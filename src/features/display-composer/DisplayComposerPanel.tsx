@@ -6,7 +6,9 @@ import { useDisplayComposerStore } from './displayComposerStore'
 import { isDefaultScreenId } from './defaultScreens'
 import { DISPLAY_BACKGROUND_GRADIENTS, DISPLAY_BACKGROUND_SOLIDS } from './backgroundStyles'
 import { BACKGROUND_ASSETS } from '../../data/backgroundAssets'
-import { draftLessonDisplayScreen, type LessonActivityType, type LessonDraftOutput } from './messageDraft'
+import { LessonMessageGeneratorPanel } from './LessonMessageGeneratorPanel'
+import { mapLessonMessageDraftToScreenPatch } from './aiLessonMessageMapping'
+import type { LessonMessageDraft } from './aiLessonMessageTypes'
 import type {
   ChecklistItem,
   DisplayBackgroundType,
@@ -32,15 +34,6 @@ const TIMER_KIND_OPTIONS: { value: DisplayTimerWidgetKind; label: string }[] = [
   { value: 'transition', label: 'Transition timer' },
   { value: 'task', label: 'Task (group rotation) timer' },
   { value: 'routine', label: 'Routine (auto-advancing) timer' },
-]
-
-const ACTIVITY_TYPE_OPTIONS: { value: LessonActivityType; label: string }[] = [
-  { value: 'lessonLaunch', label: 'Lesson launch' },
-  { value: 'workTime', label: 'Work time' },
-  { value: 'wrapUp', label: 'Wrap-up' },
-  { value: 'transition', label: 'Transition' },
-  { value: 'assessment', label: 'Assessment' },
-  { value: 'general', label: 'General' },
 ]
 
 function TeacherTimerControls({ kind, timerId }: { kind: DisplayTimerWidgetKind; timerId?: string }) {
@@ -120,13 +113,6 @@ export function DisplayComposerPanel() {
 
   const [selectedId, setSelectedId] = useState<string>(order[0] ?? '')
   const [status, setStatus] = useState<string | null>(null)
-  const [draftOpen, setDraftOpen] = useState(false)
-  const [draftSubject, setDraftSubject] = useState('')
-  const [draftLessonTitle, setDraftLessonTitle] = useState('')
-  const [draftObjective, setDraftObjective] = useState('')
-  const [draftMaterials, setDraftMaterials] = useState('')
-  const [draftActivityType, setDraftActivityType] = useState<LessonActivityType>('lessonLaunch')
-  const [draftResult, setDraftResult] = useState<LessonDraftOutput | null>(null)
 
   const selected: DisplayScreen | undefined = screens[selectedId]
 
@@ -145,48 +131,18 @@ export function DisplayComposerPanel() {
     [],
   )
 
-  const handleGenerateDraft = () => {
-    const materials = draftMaterials
-      .split(',')
-      .map((m) => m.trim())
-      .filter(Boolean)
-    const result = draftLessonDisplayScreen({
-      subject: draftSubject || 'Class',
-      lessonTitle: draftLessonTitle || 'today’s lesson',
-      objective: draftObjective || undefined,
-      materials,
-      activityType: draftActivityType,
-    })
-    setDraftResult(result)
-  }
-
-  const handleSaveDraftAsScreen = () => {
-    if (!draftResult) return
-    const newId = createCustomScreen(draftResult.title)
-    updateScreen(newId, {
-      studentMessage: draftResult.studentMessage,
-      materialsCard: draftResult.materialsChecklist.length
-        ? { heading: 'Materials', sections: [{ id: 'materials', items: draftResult.materialsChecklist }] }
-        : undefined,
-      checklistCard: {
-        heading: 'Checklist',
-        items: draftResult.studentChecklist.map((text, i) => ({
-          id: `step-${i + 1}`,
-          icon: '✔',
-          text,
-          checked: false,
-        })),
-      },
-      timerWidget: { kind: 'general', timerId: `dc-${newId}-general` },
-    })
+  const handleSaveDraftAsNewScreen = (draft: LessonMessageDraft) => {
+    const newId = createCustomScreen(draft.title)
+    updateScreen(newId, mapLessonMessageDraftToScreenPatch(draft, newId))
     setSelectedId(newId)
-    setDraftResult(null)
-    setDraftOpen(false)
-    showStatus(`Draft saved as new screen "${draftResult.title}". Review before sending to display.`)
   }
 
   if (!selected) {
     return <p className="text-xs text-slate-400">No display screens available.</p>
+  }
+
+  const handleApplyDraft = (draft: LessonMessageDraft) => {
+    updateScreen(selected.id, mapLessonMessageDraftToScreenPatch(draft, selected.id))
   }
 
   return (
@@ -268,8 +224,15 @@ export function DisplayComposerPanel() {
         </p>
       )}
 
+      {!selected.studentSafe && (
+        <p className="rounded-lg border border-amber-400/40 bg-amber-950/30 px-3 py-2 text-xs text-amber-100">
+          This screen is marked not student-safe — it will never appear on /display, even if sent, until you
+          re-enable "Student-safe" below.
+        </p>
+      )}
+
       <div>
-        <p className={labelClass}>Preview</p>
+        <p className={labelClass}>Student-Facing Preview (exactly what /display shows)</p>
         <div className="mt-1 aspect-video w-full overflow-hidden rounded-xl border border-slate-700">
           {safePreviewScreen && <DisplayScreenRenderer screen={safePreviewScreen} variant="controlPreview" />}
         </div>
@@ -398,37 +361,11 @@ export function DisplayComposerPanel() {
         onChange={(checklistCard) => updateScreen(selected.id, { checklistCard })}
       />
 
-      <div className={sectionShell}>
-        <button type="button" className={secondaryBtn} onClick={() => setDraftOpen((v) => !v)}>
-          {draftOpen ? 'Hide' : 'Draft From Lesson (Beta)'}
-        </button>
-        {draftOpen && (
-          <div className="mt-3 flex flex-col gap-2">
-            <p className="text-[11px] text-slate-400">
-              Deterministic draft only — no live AI. Review and save before sending to display.
-            </p>
-            <input className={inputClass} placeholder="Subject (e.g. Math)" value={draftSubject} onChange={(e) => setDraftSubject(e.target.value)} />
-            <input className={inputClass} placeholder="Lesson title" value={draftLessonTitle} onChange={(e) => setDraftLessonTitle(e.target.value)} />
-            <input className={inputClass} placeholder="Objective (optional)" value={draftObjective} onChange={(e) => setDraftObjective(e.target.value)} />
-            <input className={inputClass} placeholder="Materials (comma separated)" value={draftMaterials} onChange={(e) => setDraftMaterials(e.target.value)} />
-            <select className={inputClass} value={draftActivityType} onChange={(e) => setDraftActivityType(e.target.value as LessonActivityType)}>
-              {ACTIVITY_TYPE_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
-            <button type="button" className={primaryBtn} onClick={handleGenerateDraft}>Generate Draft</button>
-            {draftResult && (
-              <div className="rounded-lg border border-slate-700 bg-slate-900/70 p-2 text-xs text-slate-200">
-                <p className="font-semibold">{draftResult.title}</p>
-                <p className="mt-1">{draftResult.studentMessage}</p>
-                <p className="mt-1 text-slate-400">Suggested timer: {draftResult.suggestedTimerMinutes} min</p>
-                <button type="button" className={`${primaryBtn} mt-2`} onClick={handleSaveDraftAsScreen}>
-                  Save as New Screen
-                </button>
-              </div>
-            )}
-          </div>
-        )}
+      <div className={sectionShell} data-lesson-message-generator>
+        <LessonMessageGeneratorPanel
+          onApplyDraft={handleApplyDraft}
+          onSaveDraftAsNewScreen={handleSaveDraftAsNewScreen}
+        />
       </div>
     </div>
   )
