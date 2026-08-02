@@ -1,12 +1,14 @@
 /**
  * Phase 14B — Display Composer / Classroom Screen Builder E2E tests.
  * Phase 14C adds the Lesson Message Generator tests below.
+ * Phase 14D adds Screen Packs / Quick-Start Templates / Readability tests below that.
  *
  * Run: npm run test:e2e -- tests/e2e/display-composer.spec.ts
  */
 
 import { test, expect } from '@playwright/test'
 import { enterEditMode, openDockTool, dockToolWorkspace } from './helpers/teacher-dock-e2e'
+import { generateHomeroomBoard, seedPressYourLuckStateLive } from './helpers/prize-board-e2e'
 
 test.describe('Display Composer — Teacher Dock integration', () => {
   test('Display Screens tool appears in the dock registry with saved screens', async ({ page }) => {
@@ -130,8 +132,9 @@ test.describe('Phase 14C — Lesson Message Generator', () => {
     await openDockTool(page, 'Display Screens')
     const panel = dockToolWorkspace(page, 'Display Screens')
 
-    await expect(panel.locator('[data-lesson-message-generator]')).toBeVisible()
-    await expect(panel.getByText('Lesson Message Generator')).toBeVisible()
+    const generatorSection = panel.locator('[data-lesson-message-generator]')
+    await expect(generatorSection).toBeVisible()
+    await expect(generatorSection.getByText('Lesson Message Generator', { exact: true })).toBeVisible()
     await expect(panel.getByRole('button', { name: 'Generate Draft' })).toBeVisible()
     // No draft exists yet — Apply/Save actions must not be present.
     await expect(panel.getByRole('button', { name: 'Apply Draft to Current Screen' })).toHaveCount(0)
@@ -225,5 +228,163 @@ test.describe('Phase 14C — Lesson Message Generator', () => {
     expect(bodyText).not.toContain('Apply Draft')
     await expect(page.getByRole('button', { name: 'Generate Draft' })).toHaveCount(0)
     await expect(page.getByRole('button', { name: 'Send to Display' })).toHaveCount(0)
+  })
+})
+
+test.describe('Phase 14D — Screen Packs', () => {
+  test('pack filter narrows the saved screen list and shows an empty state for an empty pack', async ({ page }) => {
+    await page.goto('/control')
+    await enterEditMode(page)
+    await openDockTool(page, 'Display Screens')
+    const panel = dockToolWorkspace(page, 'Display Screens')
+
+    // Unfiltered: all 7 seeded screens visible.
+    for (const title of ['7:20 Arrival', 'Math → Snack and Shurley', 'Specials']) {
+      await expect(panel.getByRole('button', { name: title, exact: true })).toBeVisible()
+    }
+
+    // Filter to Transitions: only the 4 transition-mode screens should remain.
+    await panel.getByLabel('Filter saved screens by pack').selectOption({ label: 'Transitions (4)' })
+    await expect(panel.getByRole('button', { name: 'Math → Snack and Shurley', exact: true })).toBeVisible()
+    await expect(panel.getByRole('button', { name: '7:20 Arrival', exact: true })).toHaveCount(0)
+    await expect(panel.getByRole('button', { name: 'Specials', exact: true })).toHaveCount(0)
+
+    // Filter to an empty pack (no seeded screen uses Work Time) shows the empty state, not a blank void.
+    await panel.getByLabel('Filter saved screens by pack').selectOption({ label: 'Work Time (0)' })
+    await expect(panel.getByText('No screens in this pack yet.')).toBeVisible()
+    await expect(panel.locator('[data-display-screen-card]')).toHaveCount(0)
+
+    // Back to All restores the full list.
+    await panel.getByLabel('Filter saved screens by pack').selectOption({ label: 'All (7)' })
+    await expect(panel.getByRole('button', { name: '7:20 Arrival', exact: true })).toBeVisible()
+  })
+})
+
+test.describe('Phase 14D — Quick-Start Templates', () => {
+  test('creating a screen from a quick-start template does not touch /display', async ({ page }) => {
+    await page.goto('/control')
+    await enterEditMode(page)
+    await openDockTool(page, 'Display Screens')
+    const panel = dockToolWorkspace(page, 'Display Screens')
+
+    await panel.getByRole('button', { name: '+ Checklist Only' }).click()
+    await expect(panel.getByRole('status')).toContainText('Created a new screen')
+    await expect(panel.locator('#dc-title')).toHaveValue('New Checklist')
+
+    await page.goto('/display')
+    await expect(page.locator('[data-display-screen-id]')).toHaveCount(0)
+  })
+})
+
+test.describe('Phase 14D — Readability warnings (teacher-only)', () => {
+  test('a too-long title shows a readability warning on /control and never on /display', async ({ page }) => {
+    await page.goto('/control')
+    await enterEditMode(page)
+    await openDockTool(page, 'Display Screens')
+    const panel = dockToolWorkspace(page, 'Display Screens')
+
+    await panel.getByRole('button', { name: '7:20 Arrival', exact: true }).click()
+    await expect(panel.locator('[data-readability-warnings]')).toHaveCount(0)
+
+    await panel.locator('#dc-title').fill('This Is An Extremely Long Screen Title That Will Not Fit On A Projector Nicely')
+    await expect(panel.locator('[data-readability-warnings]')).toBeVisible()
+    await expect(panel.locator('[data-readability-warnings]')).toContainText('Title is long')
+    await expect(panel.locator('[data-readability-warnings]')).toContainText('Readability Check (teacher-only, not shown on /display)')
+
+    await panel.getByRole('button', { name: 'Send to Display' }).click()
+    await page.goto('/display')
+    await expect(page.locator('[data-display-screen-id="arrival-720"]')).toBeVisible()
+    const bodyText = await page.locator('body').innerText()
+    expect(bodyText).not.toContain('Readability Check')
+    expect(bodyText).not.toContain('Title is long')
+  })
+
+  test('non-student-safe screen never renders on /display even after Send to Display', async ({ page }) => {
+    await page.goto('/control')
+    await enterEditMode(page)
+    await openDockTool(page, 'Display Screens')
+    const panel = dockToolWorkspace(page, 'Display Screens')
+
+    await panel.getByRole('button', { name: 'Specials', exact: true }).click()
+    await panel.getByLabel('Student-safe (visible on /display)').uncheck()
+    await expect(panel.getByText('marked not student-safe')).toBeVisible()
+    await panel.getByRole('button', { name: 'Send to Display' }).click()
+
+    await page.goto('/display')
+    await expect(page.locator('[data-display-screen-id]')).toHaveCount(0)
+    await expect(page.locator('.board-screen-title')).toBeVisible()
+  })
+})
+
+test.describe('Phase 14D — Regression: existing 14B/14C behavior unchanged', () => {
+  test('overlay precedence remains Prize Board > Random Number > Display Composer > board', async ({ page }) => {
+    // Send a Display Composer screen to the display first.
+    await page.goto('/control')
+    await enterEditMode(page)
+    await openDockTool(page, 'Display Screens')
+    await dockToolWorkspace(page, 'Display Screens').getByRole('button', { name: 'Specials', exact: true }).click()
+    await dockToolWorkspace(page, 'Display Screens').getByRole('button', { name: 'Send to Display' }).click()
+
+    await page.goto('/display')
+    await expect(page.locator('[data-display-screen-id="specials"]')).toBeVisible()
+
+    // Prize Board projector mode must take over when active, hiding the composer overlay.
+    await generateHomeroomBoard(page)
+    await page.goto('/display')
+    await seedPressYourLuckStateLive(page, { phase: 'spinning' })
+    await expect(page.locator('[data-projector-mode="prize-board"]')).toBeVisible({ timeout: 10000 })
+    await expect(page.locator('[data-display-screen-id]')).toHaveCount(0)
+
+    // Once Prize Board goes idle again, the composer screen resumes.
+    await seedPressYourLuckStateLive(page, { phase: 'idle' })
+    await expect(page.locator('[data-display-screen-id="specials"]')).toBeVisible()
+  })
+
+  test('seeded screens still load and Send to Display still works', async ({ page }) => {
+    await page.goto('/control')
+    await enterEditMode(page)
+    await openDockTool(page, 'Display Screens')
+    const panel = dockToolWorkspace(page, 'Display Screens')
+    for (const title of [
+      '7:20 Arrival',
+      'Morning Work → Math',
+      'Math → Snack and Shurley',
+      'Shurley → Movement and Spelling/Reading',
+      'Movement → Spelling/Reading',
+      'Spelling/Reading → Lunch',
+      'Specials',
+    ]) {
+      await expect(panel.getByRole('button', { name: title, exact: true })).toBeVisible()
+    }
+    await panel.getByRole('button', { name: 'Morning Work → Math', exact: true }).click()
+    await panel.getByRole('button', { name: 'Send to Display' }).click()
+    await page.goto('/display')
+    await expect(page.locator('[data-display-screen-id="morning-work-to-math"]')).toBeVisible()
+  })
+
+  test('Lesson Message Generator still creates a draft and Apply does not auto-send', async ({ page }) => {
+    await page.goto('/control')
+    await enterEditMode(page)
+    await openDockTool(page, 'Display Screens')
+    const panel = dockToolWorkspace(page, 'Display Screens')
+    await panel.getByRole('button', { name: 'Specials', exact: true }).click()
+    await panel.getByLabel('Lesson Title').fill('Fractions')
+    await panel.getByRole('button', { name: 'Generate Draft' }).click()
+    await expect(panel.locator('[data-lesson-draft-preview]')).toBeVisible()
+
+    await panel.getByRole('button', { name: 'Apply Draft to Current Screen' }).click()
+    await page.goto('/display')
+    await expect(page.locator('[data-display-screen-id]')).toHaveCount(0)
+
+    // A fresh /control navigation remounts the panel, resetting its local
+    // "selected screen" state — re-select by the stable screen id (the applied
+    // draft renamed the button's visible title, so select by id, not name).
+    await page.goto('/control')
+    await openDockTool(page, 'Display Screens')
+    const reopenedPanel = dockToolWorkspace(page, 'Display Screens')
+    await reopenedPanel.locator('[data-display-screen-card="specials"]').click()
+    await reopenedPanel.getByRole('button', { name: 'Send to Display' }).click()
+    await page.goto('/display')
+    await expect(page.locator('[data-display-screen-id="specials"]')).toBeVisible()
   })
 })
