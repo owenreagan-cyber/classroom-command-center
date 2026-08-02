@@ -87,6 +87,12 @@ export const TOOL_CAPABILITY_REGISTRY: ToolCapabilityMap = {
     permissions: ['teacher-only', 'control-route-only'],
     modeSupport: ['math', 'shurley', 'reward'],
   },
+  'display-composer': {
+    requiredDeviceRole: 'teacher-command-center',
+    displayTarget: 'student-display',
+    permissions: ['teacher-only', 'control-route-only'],
+    modeSupport: ['morning', 'math', 'reading', 'shurley', 'transition'],
+  },
   omninote: {
     requiredDeviceRole: 'omninote-controller',
     displayTarget: 'student-display',

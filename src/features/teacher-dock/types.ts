@@ -27,6 +27,7 @@ export type ToolId =
   | 'random-number'
   | 'materials'
   | 'display'
+  | 'display-composer'
   | 'omninote'
   | 'jobs'
   | 'noise'

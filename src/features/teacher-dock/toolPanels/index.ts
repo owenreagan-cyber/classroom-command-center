@@ -8,6 +8,7 @@ import { TodayPrepToolPanel } from './TodayPrepToolPanel'
 import { CurriculumSyncToolPanel } from './CurriculumSyncToolPanel'
 import { MaterialsToolPanel } from './MaterialsToolPanel'
 import { DisplayToolPanel } from './DisplayToolPanel'
+import { DisplayComposerToolPanel } from './DisplayComposerToolPanel'
 import { OmniNoteToolPanel } from './OmniNoteToolPanel'
 import { MysteryStarToolPanel, QuickPickerToolPanel } from './StudentPickerToolPanels'
 import { PrizeBoardToolPanel } from './PrizeBoardToolPanel'
@@ -26,6 +27,7 @@ export const TOOL_PANEL_COMPONENTS: Record<ToolId, ComponentType> = {
   'curriculum-sync': CurriculumSyncToolPanel,
   materials: MaterialsToolPanel,
   display: DisplayToolPanel,
+  'display-composer': DisplayComposerToolPanel,
   omninote: OmniNoteToolPanel,
   'mystery-star': MysteryStarToolPanel,
   'quick-picker': QuickPickerToolPanel,

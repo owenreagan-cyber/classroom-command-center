@@ -135,46 +135,67 @@ function resolvePresetDurationMs(presetId: TimerPresetId): number | null {
   return minutesToMs(preset.minutes)
 }
 
+// Stable fallback references — must NOT be recreated per call. Callers (widgets,
+// zustand selectors) rely on ensureX returning a referentially-stable value when
+// no entry exists yet, otherwise a new object every render trips React's
+// "getSnapshot should be cached" infinite-loop guard. Pre-seeded ids never hit
+// these fallbacks (the ?? short-circuits), so this only affects brand-new ids
+// that have never been started — e.g. a Display Composer screen's custom timer
+// id before its first Start/Pause/Reset action materializes a real entry.
+const FALLBACK_TRANSITION_TIMER: TransitionTimerState = {
+  label: 'Transition',
+  presetId: '5',
+  durationMs: DEFAULT_TIMER_DURATION_MS,
+  status: 'idle',
+  remainingMs: DEFAULT_TIMER_DURATION_MS,
+  endsAt: null,
+  appearance: 'calm',
+  chimeEnabled: false,
+}
+
+const FALLBACK_TASK_TIMER: TaskTimerState = structuredClone(DEFAULT_TASK_TIMER)
+
+const GENERIC_ROUTINE_FALLBACK: RoutineTimerState = {
+  title: 'Routine',
+  steps: [{ id: 'step-1', label: 'Step 1', durationMinutes: 2 }],
+  autoAdvance: true,
+  chimeBetweenSteps: false,
+  status: 'idle',
+  currentStepIndex: 0,
+  remainingMs: 2 * 60 * 1000,
+  endsAt: null,
+  appearance: 'calm',
+}
+
+const routineFallbackCache = new Map<string, RoutineTimerState>()
+
 function ensureTransitionTimer(
   timers: Record<string, TransitionTimerState>,
   pageId: string,
 ): TransitionTimerState {
-  return timers[pageId] ?? {
-    label: 'Transition',
-    presetId: '5',
-    durationMs: DEFAULT_TIMER_DURATION_MS,
-    status: 'idle',
-    remainingMs: DEFAULT_TIMER_DURATION_MS,
-    endsAt: null,
-    appearance: 'calm',
-    chimeEnabled: false,
-  }
+  return timers[pageId] ?? FALLBACK_TRANSITION_TIMER
 }
 
 function ensureTaskTimer(
   timers: Record<string, TaskTimerState>,
   taskId: string,
 ): TaskTimerState {
-  return timers[taskId] ?? structuredClone(DEFAULT_TASK_TIMER)
+  return timers[taskId] ?? FALLBACK_TASK_TIMER
 }
 
 function ensureRoutineTimer(
   timers: Record<string, RoutineTimerState>,
   routineId: string,
 ): RoutineTimerState {
-  return timers[routineId] ?? structuredClone(
-    DEFAULT_ROUTINE_TIMERS[routineId] ?? {
-      title: 'Routine',
-      steps: [{ id: 'step-1', label: 'Step 1', durationMinutes: 2 }],
-      autoAdvance: true,
-      chimeBetweenSteps: false,
-      status: 'idle',
-      currentStepIndex: 0,
-      remainingMs: 2 * 60 * 1000,
-      endsAt: null,
-      appearance: 'calm',
-    },
-  )
+  const existing = timers[routineId]
+  if (existing) return existing
+
+  const cached = routineFallbackCache.get(routineId)
+  if (cached) return cached
+
+  const fallback = structuredClone(DEFAULT_ROUTINE_TIMERS[routineId] ?? GENERIC_ROUTINE_FALLBACK)
+  routineFallbackCache.set(routineId, fallback)
+  return fallback
 }
 
 function routineStepDurationMs(timer: RoutineTimerState, index: number): number {

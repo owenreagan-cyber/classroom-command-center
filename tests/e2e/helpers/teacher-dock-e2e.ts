@@ -16,6 +16,7 @@ export const TOOL_TITLE_TO_ID: Record<string, string> = {
   'Random Number': 'random-number',
   Materials: 'materials',
   Display: 'display',
+  'Display Screens': 'display-composer',
   OmniNote: 'omninote',
   Jobs: 'jobs',
   'Board Control': 'board-control',
