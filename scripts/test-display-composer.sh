@@ -32,13 +32,18 @@ trap cleanup EXIT
   "$ROOT/src/features/display-composer/aiLessonMessageFallbacks.ts" \
   "$ROOT/src/features/display-composer/aiLessonMessageGenerator.ts" \
   "$ROOT/src/features/display-composer/aiLessonMessageMapping.ts" \
+  "$ROOT/src/features/display-composer/screenPacks.ts" \
+  "$ROOT/src/features/display-composer/quickStartTemplates.ts" \
+  "$ROOT/src/features/display-composer/readabilityChecks.ts" \
   "$ROOT/src/lib/display-composer-tests.ts" \
-  "$ROOT/src/lib/ai-lesson-message-tests.ts"
+  "$ROOT/src/lib/ai-lesson-message-tests.ts" \
+  "$ROOT/src/lib/display-composer-packs-tests.ts"
 
 printf '{"type":"commonjs"}\n' > "$OUT/package.json"
 
 TEST_FILE="$(find "$OUT" -type f -path "*/lib/display-composer-tests.js" -print -quit)"
 AI_TEST_FILE="$(find "$OUT" -type f -path "*/lib/ai-lesson-message-tests.js" -print -quit)"
+PACKS_TEST_FILE="$(find "$OUT" -type f -path "*/lib/display-composer-packs-tests.js" -print -quit)"
 
 if [ -z "$TEST_FILE" ]; then
   echo "FAIL: compiled display composer test file was not found."
@@ -52,5 +57,12 @@ if [ -z "$AI_TEST_FILE" ]; then
   exit 1
 fi
 
+if [ -z "$PACKS_TEST_FILE" ]; then
+  echo "FAIL: compiled screen packs/templates/readability test file was not found."
+  find "$OUT" -type f -print
+  exit 1
+fi
+
 node "$TEST_FILE"
 node "$AI_TEST_FILE"
+node "$PACKS_TEST_FILE"

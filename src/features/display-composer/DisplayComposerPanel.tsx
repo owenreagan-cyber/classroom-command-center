@@ -9,6 +9,9 @@ import { BACKGROUND_ASSETS } from '../../data/backgroundAssets'
 import { LessonMessageGeneratorPanel } from './LessonMessageGeneratorPanel'
 import { mapLessonMessageDraftToScreenPatch } from './aiLessonMessageMapping'
 import type { LessonMessageDraft } from './aiLessonMessageTypes'
+import { countScreensByPack, DISPLAY_SCREEN_PACKS, filterScreensByPack } from './screenPacks'
+import { buildQuickStartScreenPatch, QUICK_START_TEMPLATES } from './quickStartTemplates'
+import { computeReadabilityWarnings } from './readabilityChecks'
 import type {
   ChecklistItem,
   DisplayBackgroundType,
@@ -113,6 +116,7 @@ export function DisplayComposerPanel() {
 
   const [selectedId, setSelectedId] = useState<string>(order[0] ?? '')
   const [status, setStatus] = useState<string | null>(null)
+  const [packFilter, setPackFilter] = useState<string>('all')
 
   const selected: DisplayScreen | undefined = screens[selectedId]
 
@@ -131,10 +135,29 @@ export function DisplayComposerPanel() {
     [],
   )
 
+  const allScreens = useMemo(
+    () => order.map((id) => screens[id]).filter((s): s is DisplayScreen => Boolean(s)),
+    [order, screens],
+  )
+  const packCounts = useMemo(() => countScreensByPack(allScreens), [allScreens])
+  const visibleScreenIds = useMemo(() => {
+    if (packFilter === 'all') return order
+    return filterScreensByPack(allScreens, packFilter).map((s) => s.id)
+  }, [order, allScreens, packFilter])
+
   const handleSaveDraftAsNewScreen = (draft: LessonMessageDraft) => {
     const newId = createCustomScreen(draft.title)
     updateScreen(newId, mapLessonMessageDraftToScreenPatch(draft, newId))
     setSelectedId(newId)
+  }
+
+  const handleCreateFromTemplate = (templateId: string, templateLabel: string) => {
+    const patch = buildQuickStartScreenPatch(templateId)
+    if (!patch) return
+    const newId = createCustomScreen(patch.title ?? templateLabel)
+    updateScreen(newId, patch)
+    setSelectedId(newId)
+    showStatus(`Created a new screen from "${templateLabel}". Edit it below before sending to display.`)
   }
 
   if (!selected) {
@@ -145,12 +168,37 @@ export function DisplayComposerPanel() {
     updateScreen(selected.id, mapLessonMessageDraftToScreenPatch(draft, selected.id))
   }
 
+  const readabilityWarnings = computeReadabilityWarnings(selected)
+
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <p className={labelClass}>Saved Screens</p>
-        <div className="mt-1 flex flex-wrap gap-1.5">
-          {order.map((id) => {
+        <div className="flex items-center justify-between">
+          <p className={labelClass}>Saved Screens</p>
+          <label className="flex items-center gap-1.5">
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Pack</span>
+            <select
+              className={`${inputClass} w-auto`}
+              value={packFilter}
+              onChange={(e) => setPackFilter(e.target.value)}
+              aria-label="Filter saved screens by pack"
+            >
+              <option value="all">All ({allScreens.length})</option>
+              {DISPLAY_SCREEN_PACKS.map((pack) => (
+                <option key={pack.id} value={pack.id}>
+                  {pack.label} ({packCounts[pack.id] ?? 0})
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <div className="mt-1 flex flex-wrap gap-1.5" data-screen-pack-list>
+          {visibleScreenIds.length === 0 && (
+            <p className="rounded-lg border border-dashed border-slate-700 px-3 py-2 text-[11px] text-slate-500">
+              No screens in this pack yet.
+            </p>
+          )}
+          {visibleScreenIds.map((id) => {
             const screen = screens[id]
             if (!screen) return null
             const isSelected = id === selectedId
@@ -172,6 +220,24 @@ export function DisplayComposerPanel() {
               </button>
             )
           })}
+        </div>
+      </div>
+
+      <div className={sectionShell} data-quick-start-templates>
+        <p className={labelClass}>Quick-Start Templates</p>
+        <p className="mt-1 text-[11px] text-slate-400">Create a new blank screen to customize — separate from the Lesson Message Generator below.</p>
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {QUICK_START_TEMPLATES.map((template) => (
+            <button
+              key={template.id}
+              type="button"
+              title={template.description}
+              className={secondaryBtn}
+              onClick={() => handleCreateFromTemplate(template.id, template.label)}
+            >
+              + {template.label}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -226,9 +292,26 @@ export function DisplayComposerPanel() {
 
       {!selected.studentSafe && (
         <p className="rounded-lg border border-amber-400/40 bg-amber-950/30 px-3 py-2 text-xs text-amber-100">
-          This screen is marked not student-safe — it will never appear on /display, even if sent, until you
+          ⚠ This screen is marked not student-safe — it will never appear on /display, even if sent, until you
           re-enable "Student-safe" below.
         </p>
+      )}
+
+      {readabilityWarnings.length > 0 && (
+        <div
+          className="rounded-lg border border-amber-400/40 bg-amber-950/30 px-3 py-2 text-xs text-amber-100"
+          data-readability-warnings
+        >
+          <p className="font-semibold uppercase tracking-wide text-[10px] text-amber-300/90">Readability Check (teacher-only, not shown on /display)</p>
+          <ul className="mt-1 flex flex-col gap-1">
+            {readabilityWarnings.map((w) => (
+              <li key={w.id} className="flex items-start gap-1.5">
+                <span aria-hidden="true">{w.icon}</span>
+                <span>{w.message}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
 
       <div>

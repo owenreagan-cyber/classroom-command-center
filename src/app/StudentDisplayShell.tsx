@@ -23,9 +23,13 @@ export function StudentDisplayShell() {
   const randomNumberResult = useRandomNumberStore((s) => s.lastResult)
   const randomNumberShow = useRandomNumberStore((s) => s.showOnDisplay)
   const randomNumberActive = shouldShowRandomNumberDisplay(randomNumberResult, randomNumberShow)
-  const composerActiveScreenId = useDisplayComposerStore((s) => s.activeScreenId)
+  const composerScreen = useDisplayComposerStore((s) =>
+    s.activeScreenId ? s.screens[s.activeScreenId] : undefined,
+  )
   // Precedence: Prize Board > Random Number > Display Composer > normal board.
-  const composerActive = Boolean(composerActiveScreenId) && !projectorActive && !randomNumberActive
+  // Gated on studentSafe, not just "an id is set" — a screen the teacher marked
+  // not-safe must fall back to the normal board, never blank the display.
+  const composerActive = Boolean(composerScreen?.studentSafe) && !projectorActive && !randomNumberActive
 
   const handleEnterFullscreen = async () => {
     const result = await requestBrowserFullscreen(document)
