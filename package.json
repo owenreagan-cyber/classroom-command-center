@@ -23,6 +23,7 @@
     "test:display-snapshots": "bash scripts/test-display-snapshots.sh",
     "test:prize-board-projector-snapshots": "bash scripts/test-prize-board-projector-snapshots.sh",
     "test:timers": "bash scripts/test-timers.sh",
+    "test:display-composer": "bash scripts/test-display-composer.sh",
     "test:omninote-bridge": "bash scripts/test-omninote-bridge.sh",
     "test:omninote-handoff": "bash scripts/test-omninote-handoff.sh",
     "test:omninote-command-center-handoff": "bash scripts/test-omninote-command-center-handoff.sh",

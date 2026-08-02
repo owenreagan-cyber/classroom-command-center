@@ -63,6 +63,16 @@ export const TEACHER_TOOL_REGISTRY: readonly ToolDefinition[] = [
     description: 'Sync curriculum library from Google Drive.',
   },
   {
+    id: 'display-composer',
+    title: 'Display Screens',
+    category: 'daily',
+    icon: '🖼',
+    status: 'docked',
+    permissions: ['teacher-only', 'control-route-only'],
+    componentId: 'display-composer',
+    description: 'Build and send classroom transition screens to the display.',
+  },
+  {
     id: 'mystery-star',
     title: 'Mystery Star',
     category: 'students',

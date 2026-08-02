@@ -1,8 +1,12 @@
 import { useState } from 'react'
 import { RandomNumberDisplay } from '../features/random-number/components/RandomNumberDisplay'
+import { shouldShowRandomNumberDisplay } from '../features/random-number/displaySafe'
+import { useRandomNumberStore } from '../features/random-number/randomNumberStore'
 import { PrizeBoardProjectorMode } from '../features/prize-board/components/PrizeBoardProjectorMode'
 import { shouldShowProjectorMode } from '../features/prize-board/pressYourLuck/spinEngine'
 import { usePressYourLuckStore } from '../features/prize-board/pressYourLuck/pressYourLuckStore'
+import { DisplayComposerOverlay } from '../features/display-composer/DisplayComposerOverlay'
+import { useDisplayComposerStore } from '../features/display-composer/displayComposerStore'
 import { BoardWorkspace } from './BoardWorkspace'
 import {
   FULLSCREEN_DENIED_MESSAGE,
@@ -16,6 +20,12 @@ export function StudentDisplayShell() {
   const [fullscreenNotice, setFullscreenNotice] = useState<string | null>(null)
   const pylPhase = usePressYourLuckStore((s) => s.phase)
   const projectorActive = shouldShowProjectorMode(pylPhase)
+  const randomNumberResult = useRandomNumberStore((s) => s.lastResult)
+  const randomNumberShow = useRandomNumberStore((s) => s.showOnDisplay)
+  const randomNumberActive = shouldShowRandomNumberDisplay(randomNumberResult, randomNumberShow)
+  const composerActiveScreenId = useDisplayComposerStore((s) => s.activeScreenId)
+  // Precedence: Prize Board > Random Number > Display Composer > normal board.
+  const composerActive = Boolean(composerActiveScreenId) && !projectorActive && !randomNumberActive
 
   const handleEnterFullscreen = async () => {
     const result = await requestBrowserFullscreen(document)
@@ -32,7 +42,8 @@ export function StudentDisplayShell() {
 
   return (
     <div className="relative flex h-dvh w-dvw overflow-hidden bg-slate-950">
-      {!projectorActive && <BoardWorkspace effectiveMode="display" studentDisplay />}
+      {!projectorActive && !composerActive && <BoardWorkspace effectiveMode="display" studentDisplay />}
+      {composerActive && <DisplayComposerOverlay />}
       <PrizeBoardProjectorMode />
       <RandomNumberDisplay />
       {!projectorActive && (

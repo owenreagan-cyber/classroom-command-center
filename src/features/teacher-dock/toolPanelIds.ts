@@ -10,6 +10,7 @@ export const REGISTERED_TOOL_PANEL_IDS: readonly ToolId[] = [
   'curriculum-sync',
   'materials',
   'display',
+  'display-composer',
   'omninote',
   'mystery-star',
   'quick-picker',
