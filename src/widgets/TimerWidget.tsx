@@ -198,61 +198,59 @@ export function TimerWidget({
           </p>
         )}
 
-        <div className="flex flex-wrap items-center justify-center gap-2">
-          {!isRunning && !isPaused && (
-            <button
-              type="button"
-              className={primaryButtonClass}
-              onClick={() => start(screenId)}
-            >
-              Start
-            </button>
-          )}
-          {isRunning && (
-            <button
-              type="button"
-              className={primaryButtonClass}
-              onClick={() => pause(screenId)}
-            >
-              Pause
-            </button>
-          )}
-          {isPaused && (
-            <button
-              type="button"
-              className={primaryButtonClass}
-              onClick={() => resume(screenId)}
-            >
-              Resume
-            </button>
-          )}
-          {!isDisplay && (
-            <>
+        {!isDisplay && (
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            {!isRunning && !isPaused && (
               <button
                 type="button"
-                className={controlBtn}
-                onClick={() => reset(screenId)}
+                className={primaryButtonClass}
+                onClick={() => start(screenId)}
               >
-                Reset
+                Start
               </button>
+            )}
+            {isRunning && (
               <button
                 type="button"
-                className={controlBtn}
-                onClick={() => addMinute(screenId)}
+                className={primaryButtonClass}
+                onClick={() => pause(screenId)}
               >
-                +1 min
+                Pause
               </button>
+            )}
+            {isPaused && (
               <button
                 type="button"
-                className={controlBtn}
-                onClick={() => subtractMinute(screenId)}
-                disabled={timer.remainingMs <= 0 && !isFinished}
+                className={primaryButtonClass}
+                onClick={() => resume(screenId)}
               >
-                −1 min
+                Resume
               </button>
-            </>
-          )}
-        </div>
+            )}
+            <button
+              type="button"
+              className={controlBtn}
+              onClick={() => reset(screenId)}
+            >
+              Reset
+            </button>
+            <button
+              type="button"
+              className={controlBtn}
+              onClick={() => addMinute(screenId)}
+            >
+              +1 min
+            </button>
+            <button
+              type="button"
+              className={controlBtn}
+              onClick={() => subtractMinute(screenId)}
+              disabled={timer.remainingMs <= 0 && !isFinished}
+            >
+              −1 min
+            </button>
+          </div>
+        )}
       </div>
 
       {mode === 'edit' && (

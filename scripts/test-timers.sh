@@ -20,6 +20,8 @@ trap cleanup EXIT
   --skipLibCheck \
   --outDir "$OUT" \
   "$ROOT/src/data/timerTypes.ts" \
+  "$ROOT/src/data/timerDefaults.ts" \
+  "$ROOT/src/data/routineSchedule.ts" \
   "$ROOT/src/lib/timerFormat.ts" \
   "$ROOT/src/store/timerRecovery.ts" \
   "$ROOT/src/lib/timer-tests.ts"

@@ -60,3 +60,61 @@ export interface PhaseTimerRuntime {
 }
 
 export interface PhaseTimerState extends PhaseTimerConfig, PhaseTimerRuntime {}
+
+/** Per-page transition countdown (e.g. Math → Snack and Shurley). Keyed by VibePageId. */
+export interface TransitionTimerConfig {
+  label: string
+  presetId: TimerPresetId
+  durationMs: number
+  appearance?: 'calm' | 'bold' | 'minimal'
+  chimeEnabled?: boolean
+}
+
+export interface TransitionTimerState
+  extends TransitionTimerConfig,
+    SimpleTimerRuntime {}
+
+/** Group rotation timer (e.g. Bathroom & Water). Keyed by task id. */
+export interface TaskTimerConfig {
+  title: string
+  groups: string[]
+  durationPerGroupMs: number
+  autoAdvance: boolean
+  appearance?: 'calm' | 'bold' | 'minimal'
+  chimeEnabled?: boolean
+}
+
+export interface TaskTimerRuntime {
+  status: TimerStatus
+  currentGroupIndex: number
+  remainingMs: number
+  endsAt: number | null
+}
+
+export interface TaskTimerState extends TaskTimerConfig, TaskTimerRuntime {}
+
+export interface RoutineStepDefinition {
+  id: string
+  label: string
+  durationMinutes: number
+  instructions?: string
+  styleToken?: PhaseStyleToken
+}
+
+/** Auto-run step sequence (e.g. Lunch Routine). Keyed by routine id. */
+export interface RoutineTimerConfig {
+  title: string
+  steps: RoutineStepDefinition[]
+  autoAdvance: boolean
+  chimeBetweenSteps: boolean
+  appearance?: 'calm' | 'bold' | 'minimal'
+}
+
+export interface RoutineTimerRuntime {
+  status: TimerStatus
+  currentStepIndex: number
+  remainingMs: number
+  endsAt: number | null
+}
+
+export interface RoutineTimerState extends RoutineTimerConfig, RoutineTimerRuntime {}

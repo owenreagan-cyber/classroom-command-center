@@ -2,20 +2,33 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import {
   DEFAULT_PHASE_TIMER,
+  DEFAULT_ROUTINE_TIMERS,
   DEFAULT_SIMPLE_TIMERS,
   DEFAULT_ROUTINE_CONTROLS,
+  DEFAULT_TASK_TIMER,
   DEFAULT_TIMER_DURATION_MS,
+  DEFAULT_TRANSITION_TIMERS,
   TIMER_PRESETS,
 } from '../data/timerDefaults'
 import type {
   PhaseDefinition,
   PhaseTimerState,
+  RoutineStepDefinition,
+  RoutineTimerState,
   SimpleTimerScreenId,
   SimpleTimerState,
+  TaskTimerState,
   TimerPresetId,
+  TransitionTimerState,
 } from '../data/timerTypes'
 import type { RoutineControlState } from '../data/routineTypes'
-import { minutesToMs, remainingFromEndsAt } from '../lib/timerFormat'
+import { minutesToMs } from '../lib/timerFormat'
+import {
+  recoverRoutine,
+  recoverSimple,
+  recoverTask,
+  recoverTransition,
+} from './timerRecovery'
 import {
   advanceRoutineControlToNextPhase,
   buildManualRoutineControl,
@@ -30,6 +43,9 @@ const ONE_MINUTE_MS = 60_000
 interface TimerStore {
   simpleTimers: Record<SimpleTimerScreenId, SimpleTimerState>
   phaseTimer: PhaseTimerState
+  transitionTimers: Record<string, TransitionTimerState>
+  taskTimers: Record<string, TaskTimerState>
+  routineTimers: Record<string, RoutineTimerState>
   routineControls: Record<string, RoutineControlState>
 
   setSimpleLabel: (screenId: SimpleTimerScreenId, label: string) => void
@@ -71,6 +87,35 @@ interface TimerStore {
   resumePhase: () => void
   resetPhase: () => void
   syncPhase: () => void
+
+  setTransitionLabel: (pageId: string, label: string) => void
+  setTransitionDuration: (pageId: string, minutes: number) => void
+  startTransition: (pageId: string) => void
+  pauseTransition: (pageId: string) => void
+  resumeTransition: (pageId: string) => void
+  resetTransition: (pageId: string) => void
+  syncTransition: (pageId: string) => void
+
+  setTaskTitle: (taskId: string, title: string) => void
+  setTaskGroups: (taskId: string, groups: string[]) => void
+  setTaskAutoAdvance: (taskId: string, autoAdvance: boolean) => void
+  startTask: (taskId: string) => void
+  pauseTask: (taskId: string) => void
+  resumeTask: (taskId: string) => void
+  resetTask: (taskId: string) => void
+  nextGroupTask: (taskId: string) => void
+  syncTask: (taskId: string) => void
+
+  setRoutineTitle: (routineId: string, title: string) => void
+  setRoutineAutoAdvance: (routineId: string, autoAdvance: boolean) => void
+  setRoutineChimeBetweenSteps: (routineId: string, enabled: boolean) => void
+  updateRoutineStep: (routineId: string, stepId: string, patch: Partial<RoutineStepDefinition>) => void
+  startRoutine: (routineId: string) => void
+  pauseRoutineTimer: (routineId: string) => void
+  resumeRoutineTimer: (routineId: string) => void
+  resetRoutineTimer: (routineId: string) => void
+  syncRoutineTimer: (routineId: string) => void
+
   pauseRoutine: (scheduleId: string) => void
   resumeRoutine: (scheduleId: string) => void
   skipRoutinePhase: (scheduleId: string) => void
@@ -90,29 +135,52 @@ function resolvePresetDurationMs(presetId: TimerPresetId): number | null {
   return minutesToMs(preset.minutes)
 }
 
-function recoverSimple(timer: SimpleTimerState, now = Date.now()): SimpleTimerState {
-  if (timer.status !== 'running' || timer.endsAt === null) {
-    return {
-      ...timer,
-      remainingMs: Math.max(0, timer.remainingMs),
-      endsAt: timer.status === 'running' ? timer.endsAt : null,
-    }
+function ensureTransitionTimer(
+  timers: Record<string, TransitionTimerState>,
+  pageId: string,
+): TransitionTimerState {
+  return timers[pageId] ?? {
+    label: 'Transition',
+    presetId: '5',
+    durationMs: DEFAULT_TIMER_DURATION_MS,
+    status: 'idle',
+    remainingMs: DEFAULT_TIMER_DURATION_MS,
+    endsAt: null,
+    appearance: 'calm',
+    chimeEnabled: false,
   }
+}
 
-  const remainingMs = remainingFromEndsAt(timer.endsAt, now)
-  if (remainingMs <= 0) {
-    return {
-      ...timer,
-      status: 'finished',
-      remainingMs: 0,
+function ensureTaskTimer(
+  timers: Record<string, TaskTimerState>,
+  taskId: string,
+): TaskTimerState {
+  return timers[taskId] ?? structuredClone(DEFAULT_TASK_TIMER)
+}
+
+function ensureRoutineTimer(
+  timers: Record<string, RoutineTimerState>,
+  routineId: string,
+): RoutineTimerState {
+  return timers[routineId] ?? structuredClone(
+    DEFAULT_ROUTINE_TIMERS[routineId] ?? {
+      title: 'Routine',
+      steps: [{ id: 'step-1', label: 'Step 1', durationMinutes: 2 }],
+      autoAdvance: true,
+      chimeBetweenSteps: false,
+      status: 'idle',
+      currentStepIndex: 0,
+      remainingMs: 2 * 60 * 1000,
       endsAt: null,
-    }
-  }
+      appearance: 'calm',
+    },
+  )
+}
 
-  return {
-    ...timer,
-    remainingMs,
-  }
+function routineStepDurationMs(timer: RoutineTimerState, index: number): number {
+  const step = timer.steps[index]
+  if (!step) return 0
+  return minutesToMs(step.durationMinutes)
 }
 
 function recoverPhase(timer: PhaseTimerState, now = Date.now()): PhaseTimerState {
@@ -190,6 +258,9 @@ export const useTimerStore = create<TimerStore>()(
     (set) => ({
       simpleTimers: structuredClone(DEFAULT_SIMPLE_TIMERS),
       phaseTimer: structuredClone(DEFAULT_PHASE_TIMER),
+      transitionTimers: structuredClone(DEFAULT_TRANSITION_TIMERS),
+      taskTimers: { 'bathroom-water': structuredClone(DEFAULT_TASK_TIMER) } as Record<string, TaskTimerState>,
+      routineTimers: structuredClone(DEFAULT_ROUTINE_TIMERS),
       routineControls: structuredClone(DEFAULT_ROUTINE_CONTROLS),
 
       setSimpleLabel: (screenId, label) =>
@@ -568,6 +639,422 @@ export const useTimerStore = create<TimerStore>()(
           return { phaseTimer: recovered }
         }),
 
+      setTransitionLabel: (pageId, label) =>
+        set((state) => {
+          const current = ensureTransitionTimer(state.transitionTimers, pageId)
+          return {
+            transitionTimers: {
+              ...state.transitionTimers,
+              [pageId]: { ...current, label },
+            },
+          }
+        }),
+
+      setTransitionDuration: (pageId, minutes) =>
+        set((state) => {
+          const current = ensureTransitionTimer(state.transitionTimers, pageId)
+          const durationMs = clampDurationMs(minutesToMs(minutes))
+          return {
+            transitionTimers: {
+              ...state.transitionTimers,
+              [pageId]: {
+                ...current,
+                presetId: 'custom',
+                durationMs,
+                status: 'idle',
+                remainingMs: durationMs,
+                endsAt: null,
+              },
+            },
+          }
+        }),
+
+      startTransition: (pageId) =>
+        set((state) => {
+          const current = ensureTransitionTimer(state.transitionTimers, pageId)
+          const remainingMs =
+            current.status === 'finished' || current.remainingMs <= 0
+              ? current.durationMs
+              : current.remainingMs
+          const now = Date.now()
+          return {
+            transitionTimers: {
+              ...state.transitionTimers,
+              [pageId]: {
+                ...current,
+                status: 'running',
+                remainingMs,
+                endsAt: now + remainingMs,
+              },
+            },
+          }
+        }),
+
+      pauseTransition: (pageId) =>
+        set((state) => {
+          const current = recoverTransition(
+            ensureTransitionTimer(state.transitionTimers, pageId),
+          )
+          if (current.status !== 'running') return state
+          return {
+            transitionTimers: {
+              ...state.transitionTimers,
+              [pageId]: { ...current, status: 'paused', endsAt: null },
+            },
+          }
+        }),
+
+      resumeTransition: (pageId) =>
+        set((state) => {
+          const current = ensureTransitionTimer(state.transitionTimers, pageId)
+          if (current.status !== 'paused' || current.remainingMs <= 0) return state
+          const now = Date.now()
+          return {
+            transitionTimers: {
+              ...state.transitionTimers,
+              [pageId]: {
+                ...current,
+                status: 'running',
+                endsAt: now + current.remainingMs,
+              },
+            },
+          }
+        }),
+
+      resetTransition: (pageId) =>
+        set((state) => {
+          const current = ensureTransitionTimer(state.transitionTimers, pageId)
+          return {
+            transitionTimers: {
+              ...state.transitionTimers,
+              [pageId]: {
+                ...current,
+                status: 'idle',
+                remainingMs: current.durationMs,
+                endsAt: null,
+              },
+            },
+          }
+        }),
+
+      syncTransition: (pageId) =>
+        set((state) => {
+          const current = ensureTransitionTimer(state.transitionTimers, pageId)
+          const recovered = recoverTransition(current)
+          if (
+            recovered.status === current.status &&
+            recovered.remainingMs === current.remainingMs &&
+            recovered.endsAt === current.endsAt
+          ) {
+            return state
+          }
+          return {
+            transitionTimers: {
+              ...state.transitionTimers,
+              [pageId]: recovered,
+            },
+          }
+        }),
+
+      setTaskTitle: (taskId, title) =>
+        set((state) => {
+          const current = ensureTaskTimer(state.taskTimers, taskId)
+          return {
+            taskTimers: {
+              ...state.taskTimers,
+              [taskId]: { ...current, title },
+            },
+          }
+        }),
+
+      setTaskGroups: (taskId, groups) =>
+        set((state) => {
+          const current = ensureTaskTimer(state.taskTimers, taskId)
+          return {
+            taskTimers: {
+              ...state.taskTimers,
+              [taskId]: {
+                ...current,
+                groups,
+                currentGroupIndex: Math.min(current.currentGroupIndex, Math.max(0, groups.length - 1)),
+              },
+            },
+          }
+        }),
+
+      setTaskAutoAdvance: (taskId, autoAdvance) =>
+        set((state) => {
+          const current = ensureTaskTimer(state.taskTimers, taskId)
+          return {
+            taskTimers: {
+              ...state.taskTimers,
+              [taskId]: { ...current, autoAdvance },
+            },
+          }
+        }),
+
+      startTask: (taskId) =>
+        set((state) => {
+          const current = ensureTaskTimer(state.taskTimers, taskId)
+          if (current.groups.length === 0) return state
+          const remainingMs =
+            current.status === 'finished' || current.remainingMs <= 0
+              ? current.durationPerGroupMs
+              : current.remainingMs
+          const now = Date.now()
+          return {
+            taskTimers: {
+              ...state.taskTimers,
+              [taskId]: {
+                ...current,
+                status: 'running',
+                remainingMs,
+                endsAt: now + remainingMs,
+              },
+            },
+          }
+        }),
+
+      pauseTask: (taskId) =>
+        set((state) => {
+          const current = recoverTask(ensureTaskTimer(state.taskTimers, taskId))
+          if (current.status !== 'running') return state
+          return {
+            taskTimers: {
+              ...state.taskTimers,
+              [taskId]: { ...current, status: 'paused', endsAt: null },
+            },
+          }
+        }),
+
+      resumeTask: (taskId) =>
+        set((state) => {
+          const current = ensureTaskTimer(state.taskTimers, taskId)
+          if (current.status !== 'paused' || current.remainingMs <= 0) return state
+          const now = Date.now()
+          return {
+            taskTimers: {
+              ...state.taskTimers,
+              [taskId]: {
+                ...current,
+                status: 'running',
+                endsAt: now + current.remainingMs,
+              },
+            },
+          }
+        }),
+
+      resetTask: (taskId) =>
+        set((state) => {
+          const current = ensureTaskTimer(state.taskTimers, taskId)
+          return {
+            taskTimers: {
+              ...state.taskTimers,
+              [taskId]: {
+                ...current,
+                status: 'idle',
+                currentGroupIndex: 0,
+                remainingMs: current.durationPerGroupMs,
+                endsAt: null,
+              },
+            },
+          }
+        }),
+
+      nextGroupTask: (taskId) =>
+        set((state) => {
+          const current = ensureTaskTimer(state.taskTimers, taskId)
+          if (current.groups.length === 0) return state
+          const nextIndex = current.currentGroupIndex + 1
+          if (nextIndex >= current.groups.length) {
+            return {
+              taskTimers: {
+                ...state.taskTimers,
+                [taskId]: {
+                  ...current,
+                  status: 'finished',
+                  currentGroupIndex: current.groups.length - 1,
+                  remainingMs: 0,
+                  endsAt: null,
+                },
+              },
+            }
+          }
+          const now = Date.now()
+          const remainingMs = current.durationPerGroupMs
+          return {
+            taskTimers: {
+              ...state.taskTimers,
+              [taskId]: {
+                ...current,
+                status: 'running',
+                currentGroupIndex: nextIndex,
+                remainingMs,
+                endsAt: now + remainingMs,
+              },
+            },
+          }
+        }),
+
+      syncTask: (taskId) =>
+        set((state) => {
+          const current = ensureTaskTimer(state.taskTimers, taskId)
+          const recovered = recoverTask(current)
+          if (
+            recovered.status === current.status &&
+            recovered.remainingMs === current.remainingMs &&
+            recovered.endsAt === current.endsAt &&
+            recovered.currentGroupIndex === current.currentGroupIndex
+          ) {
+            return state
+          }
+          return {
+            taskTimers: {
+              ...state.taskTimers,
+              [taskId]: recovered,
+            },
+          }
+        }),
+
+      setRoutineTitle: (routineId, title) =>
+        set((state) => {
+          const current = ensureRoutineTimer(state.routineTimers, routineId)
+          return {
+            routineTimers: {
+              ...state.routineTimers,
+              [routineId]: { ...current, title },
+            },
+          }
+        }),
+
+      setRoutineAutoAdvance: (routineId, autoAdvance) =>
+        set((state) => {
+          const current = ensureRoutineTimer(state.routineTimers, routineId)
+          return {
+            routineTimers: {
+              ...state.routineTimers,
+              [routineId]: { ...current, autoAdvance },
+            },
+          }
+        }),
+
+      setRoutineChimeBetweenSteps: (routineId, enabled) =>
+        set((state) => {
+          const current = ensureRoutineTimer(state.routineTimers, routineId)
+          return {
+            routineTimers: {
+              ...state.routineTimers,
+              [routineId]: { ...current, chimeBetweenSteps: enabled },
+            },
+          }
+        }),
+
+      updateRoutineStep: (routineId, stepId, patch) =>
+        set((state) => {
+          const current = ensureRoutineTimer(state.routineTimers, routineId)
+          const steps = current.steps.map((step) =>
+            step.id === stepId ? { ...step, ...patch } : step,
+          )
+          return {
+            routineTimers: {
+              ...state.routineTimers,
+              [routineId]: { ...current, steps },
+            },
+          }
+        }),
+
+      startRoutine: (routineId) =>
+        set((state) => {
+          const current = ensureRoutineTimer(state.routineTimers, routineId)
+          if (current.steps.length === 0) return state
+          let index = current.currentStepIndex
+          let remainingMs = current.remainingMs
+          if (current.status === 'finished') {
+            index = 0
+            remainingMs = routineStepDurationMs(current, 0)
+          } else if (current.status === 'idle' || remainingMs <= 0) {
+            remainingMs = routineStepDurationMs(current, index)
+          }
+          const now = Date.now()
+          return {
+            routineTimers: {
+              ...state.routineTimers,
+              [routineId]: {
+                ...current,
+                status: 'running',
+                currentStepIndex: index,
+                remainingMs,
+                endsAt: now + remainingMs,
+              },
+            },
+          }
+        }),
+
+      pauseRoutineTimer: (routineId) =>
+        set((state) => {
+          const current = recoverRoutine(ensureRoutineTimer(state.routineTimers, routineId))
+          if (current.status !== 'running') return state
+          return {
+            routineTimers: {
+              ...state.routineTimers,
+              [routineId]: { ...current, status: 'paused', endsAt: null },
+            },
+          }
+        }),
+
+      resumeRoutineTimer: (routineId) =>
+        set((state) => {
+          const current = ensureRoutineTimer(state.routineTimers, routineId)
+          if (current.status !== 'paused' || current.remainingMs <= 0) return state
+          return {
+            routineTimers: {
+              ...state.routineTimers,
+              [routineId]: {
+                ...current,
+                status: 'running',
+                endsAt: Date.now() + current.remainingMs,
+              },
+            },
+          }
+        }),
+
+      resetRoutineTimer: (routineId) =>
+        set((state) => {
+          const current = ensureRoutineTimer(state.routineTimers, routineId)
+          return {
+            routineTimers: {
+              ...state.routineTimers,
+              [routineId]: {
+                ...current,
+                status: 'idle',
+                currentStepIndex: 0,
+                remainingMs: routineStepDurationMs(current, 0),
+                endsAt: null,
+              },
+            },
+          }
+        }),
+
+      syncRoutineTimer: (routineId) =>
+        set((state) => {
+          const current = ensureRoutineTimer(state.routineTimers, routineId)
+          const recovered = recoverRoutine(current)
+          if (
+            recovered.status === current.status &&
+            recovered.remainingMs === current.remainingMs &&
+            recovered.endsAt === current.endsAt &&
+            recovered.currentStepIndex === current.currentStepIndex
+          ) {
+            return state
+          }
+          return {
+            routineTimers: {
+              ...state.routineTimers,
+              [routineId]: recovered,
+            },
+          }
+        }),
+
       pauseRoutine: (scheduleId) =>
         set((state) => {
           const timeline = getRoutineTimeline(scheduleId, new Date(), state.routineControls)
@@ -654,13 +1141,16 @@ export const useTimerStore = create<TimerStore>()(
         set({
           simpleTimers: structuredClone(DEFAULT_SIMPLE_TIMERS),
           phaseTimer: structuredClone(DEFAULT_PHASE_TIMER),
+          transitionTimers: structuredClone(DEFAULT_TRANSITION_TIMERS),
+          taskTimers: { 'bathroom-water': structuredClone(DEFAULT_TASK_TIMER) } as Record<string, TaskTimerState>,
+          routineTimers: structuredClone(DEFAULT_ROUTINE_TIMERS),
           routineControls: structuredClone(DEFAULT_ROUTINE_CONTROLS),
         }),
     }),
     {
       name: 'classroom-command-center-timers',
-      version: 1,
-      migrate: (persisted) => {
+      version: 2,
+      migrate: (persisted, version) => {
         const state = (persisted ?? {}) as Partial<TimerStore>
         const normalizedRoutineControls = state.routineControls
           ? Object.fromEntries(
@@ -672,7 +1162,7 @@ export const useTimerStore = create<TimerStore>()(
                 ]),
             )
           : undefined
-        return {
+        const base = {
           simpleTimers: state.simpleTimers
             ? {
                 ...structuredClone(DEFAULT_SIMPLE_TIMERS),
@@ -687,8 +1177,20 @@ export const useTimerStore = create<TimerStore>()(
                   state.phaseTimer.phases?.length
                     ? state.phaseTimer.phases
                     : structuredClone(DEFAULT_PHASE_TIMER.phases),
-            }
+              }
             : structuredClone(DEFAULT_PHASE_TIMER),
+          transitionTimers: {
+            ...structuredClone(DEFAULT_TRANSITION_TIMERS),
+            ...(state.transitionTimers ?? {}),
+          },
+          taskTimers: {
+            'bathroom-water': structuredClone(DEFAULT_TASK_TIMER),
+            ...(state.taskTimers ?? {}),
+          },
+          routineTimers: {
+            ...structuredClone(DEFAULT_ROUTINE_TIMERS),
+            ...(state.routineTimers ?? {}),
+          },
           routineControls: normalizedRoutineControls
             ? {
                 ...structuredClone(DEFAULT_ROUTINE_CONTROLS),
@@ -696,6 +1198,10 @@ export const useTimerStore = create<TimerStore>()(
               }
             : structuredClone(DEFAULT_ROUTINE_CONTROLS),
         }
+        if (version < 2) {
+          return base
+        }
+        return base
       },
       merge: (persisted, current) => {
         const raw = (persisted ?? {}) as Partial<TimerStore>
@@ -720,6 +1226,39 @@ export const useTimerStore = create<TimerStore>()(
               : current.phaseTimer.phases,
         })
 
+        const transitionTimers = {
+          ...current.transitionTimers,
+          ...(raw.transitionTimers ?? {}),
+        }
+        const recoveredTransitionTimers = Object.fromEntries(
+          Object.entries(transitionTimers).map(([pageId, timer]) => [
+            pageId,
+            recoverTransition(timer as TransitionTimerState),
+          ]),
+        ) as Record<string, TransitionTimerState>
+
+        const taskTimers = {
+          ...current.taskTimers,
+          ...(raw.taskTimers ?? {}),
+        }
+        const recoveredTaskTimers = Object.fromEntries(
+          Object.entries(taskTimers).map(([taskId, timer]) => [
+            taskId,
+            recoverTask(timer as TaskTimerState),
+          ]),
+        ) as Record<string, TaskTimerState>
+
+        const routineTimers = {
+          ...current.routineTimers,
+          ...(raw.routineTimers ?? {}),
+        }
+        const recoveredRoutineTimers = Object.fromEntries(
+          Object.entries(routineTimers).map(([routineId, timer]) => [
+            routineId,
+            recoverRoutine(timer as RoutineTimerState),
+          ]),
+        ) as Record<string, RoutineTimerState>
+
         const routineControls = {
           ...current.routineControls,
           ...(raw.routineControls ?? {}),
@@ -736,14 +1275,26 @@ export const useTimerStore = create<TimerStore>()(
           ...current,
           simpleTimers: recoveredSimple,
           phaseTimer,
+          transitionTimers: recoveredTransitionTimers,
+          taskTimers: recoveredTaskTimers,
+          routineTimers: recoveredRoutineTimers,
           routineControls: recoveredRoutineControls,
         }
       },
       partialize: (state) => ({
         simpleTimers: state.simpleTimers,
         phaseTimer: state.phaseTimer,
+        transitionTimers: state.transitionTimers,
+        taskTimers: state.taskTimers,
+        routineTimers: state.routineTimers,
         routineControls: state.routineControls,
       }),
     },
   ),
 )
+
+export {
+  ensureTransitionTimer,
+  ensureTaskTimer,
+  ensureRoutineTimer,
+}
