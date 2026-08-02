@@ -1,5 +1,6 @@
 /**
  * Phase 14B — Display Composer / Classroom Screen Builder E2E tests.
+ * Phase 14C adds the Lesson Message Generator tests below.
  *
  * Run: npm run test:e2e -- tests/e2e/display-composer.spec.ts
  */
@@ -119,5 +120,110 @@ test.describe('Display Composer — student-safe /display rendering', () => {
 
     await page.reload()
     await expect(page.locator('[data-display-screen-id="math-to-snack-shurley"]')).toBeVisible()
+  })
+})
+
+test.describe('Phase 14C — Lesson Message Generator', () => {
+  test('panel shows the Lesson Message Generator section', async ({ page }) => {
+    await page.goto('/control')
+    await enterEditMode(page)
+    await openDockTool(page, 'Display Screens')
+    const panel = dockToolWorkspace(page, 'Display Screens')
+
+    await expect(panel.locator('[data-lesson-message-generator]')).toBeVisible()
+    await expect(panel.getByText('Lesson Message Generator')).toBeVisible()
+    await expect(panel.getByRole('button', { name: 'Generate Draft' })).toBeVisible()
+    // No draft exists yet — Apply/Save actions must not be present.
+    await expect(panel.getByRole('button', { name: 'Apply Draft to Current Screen' })).toHaveCount(0)
+    await expect(panel.getByRole('button', { name: 'Save as New Screen' })).toHaveCount(0)
+  })
+
+  test('Generate Draft builds a preview but never touches /display', async ({ page }) => {
+    await page.goto('/control')
+    await enterEditMode(page)
+    await openDockTool(page, 'Display Screens')
+    const panel = dockToolWorkspace(page, 'Display Screens')
+
+    await panel.getByLabel('Subject').selectOption({ label: 'Math' })
+    await panel.getByLabel('Activity Type').selectOption({ label: 'Lesson Launch' })
+    await panel.getByLabel('Lesson Title').fill('Fractions')
+    await panel.getByLabel('Objective (optional)').fill('practice solving problems carefully and show our thinking')
+    await panel.getByLabel('Materials (one per line, optional)').fill('Math notebook\nPencil')
+    await panel.getByRole('button', { name: 'Generate Draft' }).click()
+
+    const draftPreview = panel.locator('[data-lesson-draft-preview]')
+    await expect(draftPreview).toBeVisible()
+    await expect(draftPreview).toContainText('Math: Fractions')
+    await expect(draftPreview).toContainText('Teacher Only')
+
+    // Generating never sends anything to /display.
+    await page.goto('/display')
+    await expect(page.locator('[data-display-screen-id]')).toHaveCount(0)
+  })
+
+  test('Apply Draft updates the current screen editor only, not /display', async ({ page }) => {
+    await page.goto('/control')
+    await enterEditMode(page)
+    await openDockTool(page, 'Display Screens')
+    const panel = dockToolWorkspace(page, 'Display Screens')
+
+    await panel.getByRole('button', { name: 'Specials', exact: true }).click()
+
+    await panel.getByLabel('Subject').selectOption({ label: 'Math' })
+    await panel.getByLabel('Lesson Title').fill('Fractions')
+    await panel.getByRole('button', { name: 'Generate Draft' }).click()
+    await expect(panel.locator('[data-lesson-draft-preview]')).toBeVisible()
+
+    await panel.getByRole('button', { name: 'Apply Draft to Current Screen' }).click()
+    await expect(panel.locator('#dc-title')).toHaveValue('Math: Fractions')
+
+    // Applying only changes the editor/preview — /display is untouched.
+    await page.goto('/display')
+    await expect(page.locator('[data-display-screen-id]')).toHaveCount(0)
+  })
+
+  test('Send to Display remains a separate explicit step after applying a draft', async ({ page }) => {
+    await page.goto('/control')
+    await enterEditMode(page)
+    await openDockTool(page, 'Display Screens')
+    const panel = dockToolWorkspace(page, 'Display Screens')
+
+    await panel.getByRole('button', { name: '7:20 Arrival', exact: true }).click()
+    await panel.getByLabel('Subject').selectOption({ label: 'Math' })
+    await panel.getByLabel('Activity Type').selectOption({ label: 'Lesson Launch' })
+    await panel.getByLabel('Lesson Title').fill('Fractions')
+    await panel.getByLabel('Lesson Number (optional)').fill('5')
+    await panel.getByLabel('Objective (optional)').fill('practice solving problems carefully and show our thinking')
+    await panel.getByLabel('Materials (one per line, optional)').fill('Math notebook\nPencil')
+    await panel.getByLabel('Teacher Notes (optional — teacher-only, never shown to students)').fill(
+      'Table 3 was chatty yesterday, keep an eye on them',
+    )
+    await panel.getByRole('button', { name: 'Generate Draft' }).click()
+    await panel.getByRole('button', { name: 'Apply Draft to Current Screen' }).click()
+
+    // Still not on /display after Apply.
+    await page.goto('/display')
+    await expect(page.locator('[data-display-screen-id]')).toHaveCount(0)
+
+    // Only the explicit Send to Display action publishes it.
+    await page.goto('/control')
+    await openDockTool(page, 'Display Screens')
+    await dockToolWorkspace(page, 'Display Screens').getByRole('button', { name: 'Send to Display' }).click()
+
+    await page.goto('/display')
+    await expect(page.locator('[data-display-screen-id="arrival-720"]')).toBeVisible()
+    await expect(page.getByText('Math Lesson 5')).toBeVisible()
+    await expect(page.getByText('Math notebook')).toBeVisible()
+
+    // Teacher-only generator fields must never reach /display.
+    const bodyText = await page.locator('body').innerText()
+    expect(bodyText).not.toContain('Table 3 was chatty yesterday')
+    expect(bodyText).not.toContain('Teacher Only')
+    expect(bodyText).not.toContain('Teacher Rationale')
+    expect(bodyText).not.toContain('Drafted as a')
+    expect(bodyText).not.toContain('Generate Draft')
+    expect(bodyText).not.toContain('Apply Draft')
+    await expect(page.getByRole('button', { name: 'Generate Draft' })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Send to Display' })).toHaveCount(0)
   })
 })
