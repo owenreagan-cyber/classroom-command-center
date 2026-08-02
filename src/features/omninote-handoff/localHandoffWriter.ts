@@ -14,7 +14,7 @@ startxref
 /** Write export package JSON + synthetic sibling PDFs for local handoff testing. */
 export function writeHandoffPackageToDisk(
   plan: OmniNoteLessonHandoffPlan,
-  options?: { syntheticPdf?: string },
+  options?: { syntheticPdf?: string | Buffer },
 ): string[] {
   const packageDir = path.dirname(plan.localPackagePath)
   fs.mkdirSync(packageDir, { recursive: true })
@@ -27,7 +27,11 @@ export function writeHandoffPackageToDisk(
     if (resource.file.toLowerCase().endsWith('.pdf')) {
       const resourcePath = path.join(packageDir, resource.file)
       if (!fs.existsSync(resourcePath)) {
-        fs.writeFileSync(resourcePath, pdfTemplate, 'utf8')
+        if (Buffer.isBuffer(pdfTemplate)) {
+          fs.writeFileSync(resourcePath, pdfTemplate)
+        } else {
+          fs.writeFileSync(resourcePath, pdfTemplate, 'utf8')
+        }
         written.push(resourcePath)
       }
     }
