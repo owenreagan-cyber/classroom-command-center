@@ -21,7 +21,11 @@ interface DisplayScreenRendererProps {
 export function DisplayScreenRenderer({ screen, variant, className = '' }: DisplayScreenRendererProps) {
   const mode: AppMode = variant === 'display' ? 'display' : 'edit'
   const background = resolveDisplayBackground(screen.background)
-  const hasTimer = screen.timerWidget.kind !== 'none'
+  // Runtime-hardened (Phase 14F): a timer kind set without a timerId renders
+  // nothing (TimerSlot returns null), so the layout must not reserve a column
+  // for it either — otherwise the screen shows a blank gap where a timer was
+  // expected. Can happen via a quick-start template or manual editing.
+  const hasTimer = screen.timerWidget.kind !== 'none' && Boolean(screen.timerWidget.timerId)
   const hasCards = Boolean(screen.materialsCard || screen.checklistCard)
   const slotCount = [Boolean(screen.materialsCard), hasTimer, Boolean(screen.checklistCard)].filter(Boolean).length
   const gridColsClass = slotCount === 1 ? 'md:grid-cols-1' : slotCount === 2 ? 'md:grid-cols-2' : 'md:grid-cols-3'

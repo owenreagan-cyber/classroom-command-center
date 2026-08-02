@@ -106,3 +106,21 @@ export function buildQuickStartScreenPatch(templateId: string): Partial<Omit<Dis
   if (!template) return undefined
   return { studentSafe: true, ...template.build() }
 }
+
+/**
+ * Fixed (Phase 14F field test): a template can request a timer kind without
+ * knowing the eventual screen's id yet (build() runs before createCustomScreen
+ * assigns one) — this fills in a real per-instance timerId once the id is
+ * known, so a promised timer actually renders instead of leaving a blank slot
+ * (DisplayScreenRenderer only allocates a timer slot when a timerId is set).
+ */
+export function finalizeQuickStartPatch(
+  patch: Partial<Omit<DisplayScreen, 'id'>>,
+  screenId: string,
+): Partial<Omit<DisplayScreen, 'id'>> {
+  const timerWidget = patch.timerWidget
+  if (timerWidget && timerWidget.kind !== 'none' && !timerWidget.timerId) {
+    return { ...patch, timerWidget: { ...timerWidget, timerId: `dc-${screenId}-quickstart` } }
+  }
+  return patch
+}
