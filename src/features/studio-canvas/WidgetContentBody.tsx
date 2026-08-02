@@ -9,6 +9,9 @@ import { LessonCard } from '../../widgets/LessonCard'
 import { VocabularyCard } from '../../widgets/VocabularyCard'
 import { SmartTextCard } from '../../widgets/SmartTextCard'
 import { TimerWidget } from '../../widgets/TimerWidget'
+import { TransitionTimerWidget } from '../../widgets/TransitionTimerWidget'
+import { TaskTimerWidget } from '../../widgets/TaskTimerWidget'
+import { RoutineTimerWidget } from '../../widgets/RoutineTimerWidget'
 import { MorningMessageWidget } from '../../features/morning-message/MorningMessageWidget'
 import type { SimpleTimerScreenId } from '../../data/timerTypes'
 import {
@@ -262,6 +265,33 @@ export function WidgetContentBody({
         />
       )
     }
+
+    case 'transition-timer':
+      return (
+        <TransitionTimerWidget
+          pageId={page.id}
+          mode={mode}
+          className={className}
+        />
+      )
+
+    case 'task-timer':
+      return (
+        <TaskTimerWidget
+          taskId={page.id === 'snack-silent-clean-up' ? 'bathroom-water' : 'bathroom-water'}
+          mode={mode}
+          className={className}
+        />
+      )
+
+    case 'routine-timer':
+      return (
+        <RoutineTimerWidget
+          routineId="lunch-routine"
+          mode={mode}
+          className={className}
+        />
+      )
 
     case 'message':
     default: {

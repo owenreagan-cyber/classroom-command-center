@@ -196,6 +196,15 @@ export function getActiveState(): ActiveState {
   if (ts.phaseTimer.status === 'running' || ts.phaseTimer.status === 'paused') {
     activeTimers.push('phase-timer')
   }
+  for (const [pageId, t] of Object.entries(ts.transitionTimers)) {
+    if (t.status === 'running' || t.status === 'paused') activeTimers.push(`transition-timer:${pageId}`)
+  }
+  for (const [taskId, t] of Object.entries(ts.taskTimers)) {
+    if (t.status === 'running' || t.status === 'paused') activeTimers.push(`task-timer:${taskId}`)
+  }
+  for (const [routineId, t] of Object.entries(ts.routineTimers)) {
+    if (t.status === 'running' || t.status === 'paused') activeTimers.push(`routine-timer:${routineId}`)
+  }
 
   const activeMysterySessions: string[] = []
   for (const [classId, session] of Object.entries(ps.activeMysterySessions)) {

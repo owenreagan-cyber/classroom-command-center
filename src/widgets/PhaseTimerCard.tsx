@@ -254,28 +254,28 @@ export function PhaseTimerCard({
           </div>
         )}
 
-        <div className="flex flex-wrap items-center justify-center gap-2">
-          {!isRunning && !isPaused && (
-            <button type="button" className={primaryButtonClass} onClick={start}>
-              Start
-            </button>
-          )}
-          {isRunning && (
-            <button type="button" className={primaryButtonClass} onClick={pause}>
-              Pause
-            </button>
-          )}
-          {isPaused && (
-            <button type="button" className={primaryButtonClass} onClick={resume}>
-              Resume
-            </button>
-          )}
-          {!isDisplay && (
+        {!isDisplay && (
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            {!isRunning && !isPaused && (
+              <button type="button" className={primaryButtonClass} onClick={start}>
+                Start
+              </button>
+            )}
+            {isRunning && (
+              <button type="button" className={primaryButtonClass} onClick={pause}>
+                Pause
+              </button>
+            )}
+            {isPaused && (
+              <button type="button" className={primaryButtonClass} onClick={resume}>
+                Resume
+              </button>
+            )}
             <button type="button" className={controlBtn} onClick={reset}>
               Reset
             </button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {mode === 'edit' && (

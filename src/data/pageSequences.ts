@@ -95,7 +95,7 @@ const HOMEROOM_SEQUENCE: PageSequenceDefinition = {
       primaryMessage: 'Clean up and get ready for Math',
       supportingContent: ['Put away morning work', 'Get math materials', 'Clear desk'],
       layoutPreset: 'cleanup-checklist',
-      widgetTypes: ['materials', 'ready'],
+      widgetTypes: ['materials', 'ready', 'transition-timer'],
       routinePhaseIds: ['clean-up'],
     },
     {
@@ -190,7 +190,7 @@ const MATH_SEQUENCE: PageSequenceDefinition = {
       primaryMessage: 'Clean up and review what we learned',
       supportingContent: ['Put materials away', 'Review key ideas', 'Ready Position'],
       layoutPreset: 'cleanup-checklist',
-      widgetTypes: ['materials', 'ready'],
+      widgetTypes: ['materials', 'ready', 'transition-timer'],
       routinePhaseIds: [],
     },
   ],
@@ -291,6 +291,7 @@ const SNACK_SEQUENCE: PageSequenceDefinition = {
       primaryMessage: 'Clean up silently',
       supportingContent: ['Throw away trash', 'Push in chairs', 'Pack up quietly'],
       layoutPreset: 'cleanup-checklist',
+      widgetTypes: ['task-timer'],
       routinePhaseIds: ['silent-clean-up'],
     },
   ],
@@ -308,6 +309,7 @@ const LUNCH_SEQUENCE: PageSequenceDefinition = {
       primaryMessage: 'Eat your lunch quietly at your table',
       supportingContent: ['Stay seated', 'Use quiet voices', 'Keep area tidy'],
       layoutPreset: 'centered-message',
+      widgetTypes: ['routine-timer'],
       routinePhaseIds: ['quiet-lunch-a'],
     },
     {

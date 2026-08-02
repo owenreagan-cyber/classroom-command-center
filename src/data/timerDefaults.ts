@@ -1,8 +1,11 @@
 import type {
   PhaseTimerState,
+  RoutineTimerState,
   SimpleTimerScreenId,
   SimpleTimerState,
+  TaskTimerState,
   TimerPreset,
+  TransitionTimerState,
 } from './timerTypes'
 import { DEFAULT_ROUTINE_CONTROLS } from './routineSchedule'
 
@@ -88,3 +91,58 @@ export const SIMPLE_TIMER_SCREEN_IDS: SimpleTimerScreenId[] = [
   'reading',
   'spelling',
 ]
+
+export function createDefaultTransitionTimer(
+  label = 'Transition',
+  durationMs = 4 * 60 * 1000,
+): TransitionTimerState {
+  return {
+    label,
+    presetId: 'custom',
+    durationMs,
+    status: 'idle',
+    remainingMs: durationMs,
+    endsAt: null,
+    appearance: 'calm',
+    chimeEnabled: false,
+  }
+}
+
+/** Default transition timers keyed by VibePageId. */
+export const DEFAULT_TRANSITION_TIMERS: Record<string, TransitionTimerState> = {
+  'math-wrap-up': createDefaultTransitionTimer('Math → Snack and Shurley', 4 * 60 * 1000),
+  'homeroom-clean-up-math': createDefaultTransitionTimer('Homeroom → Math', 3 * 60 * 1000),
+}
+
+export const DEFAULT_TASK_TIMER: TaskTimerState = {
+  title: 'Bathroom & Water',
+  groups: ['Table 1', 'Table 2', 'Table 3', 'Table 4', 'Table 5', 'Table 6'],
+  durationPerGroupMs: 2 * 60 * 1000,
+  autoAdvance: true,
+  status: 'idle',
+  currentGroupIndex: 0,
+  remainingMs: 2 * 60 * 1000,
+  endsAt: null,
+  appearance: 'calm',
+  chimeEnabled: false,
+}
+
+export const DEFAULT_ROUTINE_TIMERS: Record<string, RoutineTimerState> = {
+  'lunch-routine': {
+    title: 'Lunch Routine',
+    steps: [
+      { id: 'clear-desk', label: 'Clear desk', durationMinutes: 1, instructions: 'Clear everything off your desk.', styleToken: 'cleanup' },
+      { id: 'wash-hands', label: 'Wash hands', durationMinutes: 2, instructions: 'Wash hands with soap and water.', styleToken: 'calm' },
+      { id: 'get-lunch', label: 'Get lunch', durationMinutes: 3, instructions: 'Get your lunch and return to your seat.', styleToken: 'transition' },
+      { id: 'line-up', label: 'Line up', durationMinutes: 2, instructions: 'Line up quietly if directed.', styleToken: 'transition' },
+      { id: 'quiet-check', label: 'Quiet check', durationMinutes: 1, instructions: 'Sit quietly and wait for directions.', styleToken: 'focus' },
+    ],
+    autoAdvance: true,
+    chimeBetweenSteps: true,
+    status: 'idle',
+    currentStepIndex: 0,
+    remainingMs: 1 * 60 * 1000,
+    endsAt: null,
+    appearance: 'calm',
+  },
+}
