@@ -12,6 +12,11 @@ import {
   prepareOmniNoteLessonHandoff,
 } from './lessonPackageExport'
 import { writeHandoffPackageToDisk } from './localHandoffWriter'
+import { writeOmniLessonPackageToDisk } from './omnilessonWriter'
+import {
+  MIN_VISIBLE_LESSON_PDF_BYTES,
+  VISIBLE_SAXON_PDF_MARKERS,
+} from './visibleLessonPdf'
 import { buildOmniNoteLessonUrlFromAbsolutePath, encodeFileSource, resolveRelativeHandoffPath } from './omniNoteUrl'
 import { validateExportPrivacy, isTeacherOnlyOmniNoteKind } from './privacy'
 
@@ -148,6 +153,29 @@ function testUrlFullyEncoded() {
   console.log('  URL fully encoded OK')
 }
 
+function testOmniLessonExport() {
+  const state = bootstrapPilotIndex()
+  const saxon = findFetchedLesson(state.packages, 'math', 2)!
+  const plan = prepareOmniNoteLessonHandoff(saxon, `/tmp/omnilesson-test-${Date.now()}`)
+  const result = writeOmniLessonPackageToDisk(plan)
+  assert(fs.existsSync(result.omnilessonPath), '.omnilesson written')
+  assert(result.omnilessonPath.endsWith('saxon-math-lesson-02.omnilesson'), 'Saxon archive name')
+  assert(result.writtenFiles.some((p) => p.endsWith('package.json')), 'package.json present')
+  assert(result.writtenFiles.some((p) => p.includes('lesson2-slides.pdf')), 'slides pdf present')
+
+  const archive = fs.readFileSync(result.omnilessonPath)
+  assert(archive.includes(Buffer.from('package.json')), 'package.json in zip')
+  for (const marker of VISIBLE_SAXON_PDF_MARKERS) {
+    assert(archive.includes(Buffer.from(marker)), `visible marker in zip: ${marker}`)
+  }
+  const slidesPath = result.writtenFiles.find((p) => p.includes('lesson2-slides.pdf'))
+  assert(Boolean(slidesPath), 'slides path written')
+  const slidesStat = fs.statSync(slidesPath!)
+  assert(slidesStat.size >= MIN_VISIBLE_LESSON_PDF_BYTES, 'visible slides PDF size')
+  assert(!archive.includes(Buffer.from('lesson2-script')), 'teacher script excluded')
+  console.log('  .omnilesson export OK')
+}
+
 function runTests() {
   console.log('OmniNote handoff export tests:')
   testSaxonLesson2Export()
@@ -160,6 +188,7 @@ function runTests() {
   testGitignoreCoversLocal()
   testCanTeachGating()
   testLocalWrite()
+  testOmniLessonExport()
   console.log('OmniNote handoff export tests passed.')
 }
 

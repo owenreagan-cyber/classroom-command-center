@@ -25,6 +25,8 @@
   "include": ["src"],
   "exclude": [
     "src/features/omninote-handoff/localHandoffWriter.ts",
+    "src/features/omninote-handoff/omnilessonWriter.ts",
+    "src/features/omninote-handoff/visibleLessonPdf.ts",
     "src/features/omninote-handoff/tests.ts"
   ]
 }

@@ -49,6 +49,8 @@ trap cleanup EXIT
   "$ROOT/src/features/omninote-handoff/omniNoteUrl.ts" \
   "$ROOT/src/features/omninote-handoff/lessonPackageExport.ts" \
   "$ROOT/src/features/omninote-handoff/localHandoffWriter.ts" \
+  "$ROOT/src/features/omninote-handoff/visibleLessonPdf.ts" \
+  "$ROOT/src/features/omninote-handoff/omnilessonWriter.ts" \
   "$ROOT/src/features/omninote-handoff/tests.ts"
 
 printf '{"type":"commonjs"}\n' > "$OUT/package.json"

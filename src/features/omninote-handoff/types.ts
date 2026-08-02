@@ -52,4 +52,5 @@ export interface OmniNoteLessonHandoffPlan {
 export interface OmniNoteHandoffExportResult {
   plan: OmniNoteLessonHandoffPlan
   writtenFiles: readonly string[]
+  omnilessonPath?: string
 }
