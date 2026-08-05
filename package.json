@@ -15,6 +15,7 @@
     "test:local-packets": "bash scripts/test-local-packets.sh",
     "test:pages": "bash scripts/test-pages.sh",
     "test:studio-canvas": "bash scripts/test-studio-canvas.sh",
+    "test:display-studio": "bash scripts/test-display-studio.sh",
     "test:app-route": "bash scripts/test-app-route.sh && bash scripts/test-app-route-shell.sh",
     "test:display-launch": "bash scripts/test-display-launch.sh",
     "test:display-polish": "bash scripts/test-display-polish.sh",
