@@ -3,6 +3,10 @@ import { useDisplayComposerStore } from '../display-composer/displayComposerStor
 import { useDisplayStudioUI } from './useDisplayStudioUI'
 import { DisplayScreenRenderer } from '../display-composer/DisplayScreenRenderer'
 import { toDisplaySafeScreen } from '../display-composer/displaySafe'
+import { useAtmosphereStore, getDisplayMusicLabel } from '../classroom-atmosphere/atmosphereStore'
+import { usePressYourLuckStore } from '../prize-board/pressYourLuck/pressYourLuckStore'
+import { usePickerStore } from '../student-picker/pickerStore'
+import { getMysteryDisplayStatus } from '../roster/displaySafe'
 
 export function DisplayStudioPresenter() {
   const { presenterMode, togglePresenterMode, selectScreen, selectedScreenId } = useDisplayStudioUI()
@@ -25,6 +29,18 @@ export function DisplayStudioPresenter() {
     if (nextId) selectScreen(nextId)
   }, [nextId, selectScreen])
 
+  // Active tool status (hooks must be before conditional return)
+  const musicMode = useAtmosphereStore((s) => s.activeMode)
+  const isMusicPlaying = useAtmosphereStore((s) => s.isPlaying)
+  const musicLabel = getDisplayMusicLabel(musicMode)
+
+  const pylPhase = usePressYourLuckStore((s) => s.phase)
+  const pylActive = pylPhase !== 'idle'
+
+  const sessions = usePickerStore((s) => s.activeMysterySessions)
+  const firstActive = Object.values(sessions).find((s) => s?.status === 'active' || s?.status?.startsWith('revealed-'))
+  const mysteryStatus = getMysteryDisplayStatus(firstActive)
+
   if (!presenterMode) return null
 
   const currentScreen = activeId ? screens[activeId] : undefined
@@ -33,6 +49,8 @@ export function DisplayStudioPresenter() {
   const safeCurrent = currentScreen ? toDisplaySafeScreen(currentScreen) : null
   const safeNext = nextScreen ? toDisplaySafeScreen(nextScreen) : null
   const isLive = currentScreen ? currentScreen.id === activeScreenId : false
+
+  const hasActiveTools = musicLabel || pylActive || mysteryStatus.isActive
 
   return (
     <div className="fixed inset-0 z-[60] flex bg-slate-950" data-display-studio-presenter>
@@ -110,6 +128,29 @@ export function DisplayStudioPresenter() {
             Blank Screen
           </button>
         </div>
+
+        {/* Active Tool Status */}
+        {hasActiveTools && (
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {musicLabel && (
+              <span className={`rounded-md border px-1.5 py-0.5 text-[9px] font-semibold ${
+                isMusicPlaying ? 'border-emerald-400/40 bg-emerald-950/30 text-emerald-200' : 'border-slate-600 bg-slate-900/50 text-slate-400'
+              }`}>
+                🎵 {musicLabel}{!isMusicPlaying ? ' (paused)' : ''}
+              </span>
+            )}
+            {pylActive && (
+              <span className="rounded-md border border-amber-400/40 bg-amber-950/30 px-1.5 py-0.5 text-[9px] font-semibold text-amber-200">
+                🎰 Press Your Luck Active
+              </span>
+            )}
+            {mysteryStatus.isActive && (
+              <span className="rounded-md border border-amber-400/40 bg-amber-950/30 px-1.5 py-0.5 text-[9px] font-semibold text-amber-200">
+                🌟 {mysteryStatus.statusLabel}
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Right: Next screen + Notes + Quick Jump */}

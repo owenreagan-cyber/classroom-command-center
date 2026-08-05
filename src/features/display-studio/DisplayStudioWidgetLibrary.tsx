@@ -9,11 +9,11 @@ const CATEGORIES: WidgetCategory[] = ['time', 'classroom', 'engagement', 'reward
 const secondaryBtn =
   'rounded-lg border border-slate-600 bg-slate-900/70 px-2 py-1 text-[10px] font-semibold text-slate-200 transition hover:bg-slate-800'
 
-const WIDGET_TYPE_MAP: Record<string, { canvasType: CanvasWidgetType | null; defaultSize: WidgetSizePreset }> = {
+const WIDGET_TYPE_MAP: Record<string, { canvasType: CanvasWidgetType | string | null; defaultSize: WidgetSizePreset }> = {
   clock: { canvasType: null, defaultSize: 'small' },
-  'countdown-timer': { canvasType: null, defaultSize: 'medium' },
+  'countdown-timer': { canvasType: 'countdown-timer', defaultSize: 'medium' },
   stopwatch: { canvasType: null, defaultSize: 'medium' },
-  'routine-timer': { canvasType: null, defaultSize: 'medium' },
+  'routine-timer': { canvasType: 'routine-timer', defaultSize: 'large' },
   'directions-text': { canvasType: 'directions-text', defaultSize: 'wide' },
   materials: { canvasType: 'materials', defaultSize: 'medium' },
   checklist: { canvasType: 'checklist', defaultSize: 'medium' },
@@ -23,7 +23,8 @@ const WIDGET_TYPE_MAP: Record<string, { canvasType: CanvasWidgetType | null; def
   '100-board': { canvasType: '100-board', defaultSize: 'medium' },
   'prize-board': { canvasType: 'prize-board', defaultSize: 'large' },
   'press-your-luck': { canvasType: 'press-your-luck', defaultSize: 'large' },
-  'noise-meter': { canvasType: null, defaultSize: 'small' },
+  'noise-meter': { canvasType: 'noise-meter', defaultSize: 'small' },
+  atmosphere: { canvasType: 'atmosphere', defaultSize: 'small' },
   'qr-code': { canvasType: null, defaultSize: 'small' },
   'dice-spinner': { canvasType: null, defaultSize: 'medium' },
   poll: { canvasType: null, defaultSize: 'medium' },
@@ -54,28 +55,10 @@ export function DisplayStudioWidgetLibrary() {
       updateScreen(screen.id, { showClock: !screen.showClock })
       return
     }
-    if (widgetId === 'countdown-timer') {
-      updateScreen(screen.id, {
-        timerWidget: { kind: screen.timerWidget.kind === 'general' ? 'none' : 'general', timerId: screen.timerWidget.timerId },
-      })
-      return
-    }
-    if (widgetId === 'transition-timer') {
-      updateScreen(screen.id, {
-        timerWidget: { kind: screen.timerWidget.kind === 'transition' ? 'none' : 'transition', timerId: screen.timerWidget.timerId },
-      })
-      return
-    }
-    if (widgetId === 'routine-timer') {
-      updateScreen(screen.id, {
-        timerWidget: { kind: screen.timerWidget.kind === 'routine' ? 'none' : 'routine', timerId: screen.timerWidget.timerId },
-      })
-      return
-    }
 
     if (map.canvasType) {
       const definition = STUDIO_WIDGETS.find((w) => w.id === widgetId)
-      const newWidgetId = addWidget(screen.id, map.canvasType, definition?.label ?? widgetId, map.defaultSize)
+      const newWidgetId = addWidget(screen.id, map.canvasType as CanvasWidgetType, definition?.label ?? widgetId, map.defaultSize)
       if (newWidgetId) {
         selectWidget(newWidgetId)
         closeWidgetLibrary()
@@ -84,9 +67,7 @@ export function DisplayStudioWidgetLibrary() {
     }
 
     // Fallback for non-canvas widgets: toggle existing screen fields
-    if (widgetId === 'directions-text') {
-      updateScreen(screen.id, { studentMessage: screen.studentMessage ? undefined : 'Add your message here.' })
-    } else if (widgetId === 'materials') {
+    if (widgetId === 'materials') {
       updateScreen(screen.id, {
         materialsCard: screen.materialsCard
           ? undefined
@@ -106,12 +87,6 @@ export function DisplayStudioWidgetLibrary() {
     if (!screen) return false
     switch (widgetId) {
       case 'clock': return screen.showClock
-      case 'countdown-timer': return screen.timerWidget.kind === 'general'
-      case 'transition-timer': return screen.timerWidget.kind === 'transition'
-      case 'routine-timer': return screen.timerWidget.kind === 'routine'
-      case 'directions-text': return Boolean(screen.studentMessage)
-      case 'materials': return Boolean(screen.materialsCard)
-      case 'checklist': return Boolean(screen.checklistCard)
       default: {
         const map = WIDGET_TYPE_MAP[widgetId]
         if (map?.canvasType) {
@@ -189,6 +164,7 @@ export function DisplayStudioWidgetLibrary() {
               <span className="text-[9px] font-semibold leading-tight text-slate-300">{widget.label}</span>
               {active && <span className="text-[8px] text-cyan-400">● Active</span>}
               {isPlaceholder && <span className="text-[8px] text-slate-600">Coming soon</span>}
+              {widget.status === 'connected' && !active && <span className="text-[8px] text-emerald-500">Ready</span>}
             </button>
           )
         })}

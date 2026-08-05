@@ -67,10 +67,14 @@ export interface ChecklistCard {
 /** Widget types that can be placed on the display canvas. */
 export type CanvasWidgetType =
   | 'clock'
+  | 'countdown-timer'
+  | 'routine-timer'
   | 'directions-text'
   | 'materials'
   | 'checklist'
   | 'work-symbols'
+  | 'noise-meter'
+  | 'atmosphere'
   | 'random-picker'
   | 'mystery-student'
   | '100-board'

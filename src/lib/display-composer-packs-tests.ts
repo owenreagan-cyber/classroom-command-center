@@ -42,10 +42,10 @@ assert(transitionScreens.every((s) => s.mode === 'transition'), 'filterScreensBy
 // --- Non-empty packs (Phase 15B added more templates) ---
 
 const lessonLaunchScreens = filterScreensByPack(seededScreens, 'lessonLaunch')
-assert(lessonLaunchScreens.length === 2, `lessonLaunch pack has 2 seeded screens, got ${lessonLaunchScreens.length}`)
+assert(lessonLaunchScreens.length === 4, `lessonLaunch pack has 4 seeded screens, got ${lessonLaunchScreens.length}`)
 
 const workTimeScreens = filterScreensByPack(seededScreens, 'workTime')
-assert(workTimeScreens.length === 2, `workTime pack has 2 seeded screens, got ${workTimeScreens.length}`)
+assert(workTimeScreens.length === 3, `workTime pack has 3 seeded screens, got ${workTimeScreens.length}`)
 
 const packUpScreens = filterScreensByPack(seededScreens, 'packUp')
 assert(packUpScreens.length === 2, `packUp pack has 2 seeded screens, got ${packUpScreens.length}`)
@@ -60,10 +60,10 @@ assert(filterScreensByPack([], 'arrival').length === 0, 'filtering an empty scre
 const counts = countScreensByPack(seededScreens)
 assert(counts.arrival === 1, 'arrival pack count is 1')
 assert(counts.transition === 5, 'transition pack count is 5')
-assert(counts.lunch === 1, 'lunch pack count is 1')
+assert(counts.lunch === 2, 'lunch pack count is 2')
 assert(counts.specials === 1, 'specials pack count is 1')
-assert(counts.workTime === 2, 'workTime pack count is 2')
-assert(counts.lessonLaunch === 2, 'lessonLaunch pack count is 2')
+assert(counts.workTime === 3, 'workTime pack count is 3')
+assert(counts.lessonLaunch === 4, 'lessonLaunch pack count is 4')
 assert(counts.packUp === 2, 'packUp pack count is 2')
 
 // --- Quick-start templates ---
