@@ -1,9 +1,9 @@
-import type { DisplayScreen } from './types'
+import type { DisplayScreen, CanvasWidget } from './types'
 
 /**
  * Student-safe projection of a DisplayScreen — strips internal bookkeeping
- * (updatedAt/version) and enforces the studentSafe kill-switch. Mirrors the
- * codebase-wide displaySafe.ts convention (see prize-board, roster, random-number).
+ * (updatedAt/version), teacherNotes, and enforces the studentSafe kill-switch.
+ * Mirrors the codebase-wide displaySafe.ts convention.
  */
 export interface DisplaySafeScreen {
   id: string
@@ -14,6 +14,8 @@ export interface DisplaySafeScreen {
   materialsCard?: DisplayScreen['materialsCard']
   checklistCard?: DisplayScreen['checklistCard']
   studentMessage?: string
+  /** Only visible, unlocked widgets that don't expose teacher data. */
+  widgets?: CanvasWidget[]
 }
 
 /** Safe fallback when a screen record is missing a required field — e.g. an
@@ -31,6 +33,19 @@ export function toDisplaySafeScreen(screen: DisplayScreen | undefined): DisplayS
   if (!screen) return null
   if (!screen.studentSafe) return null
 
+  // Filter widgets: only visible, non-teacher-data widgets pass through
+  const safeWidgets = (screen.widgets ?? [])
+    .filter((w) => w.visible)
+    .map((w) => {
+      // Strip settings that could leak teacher data
+      const safeSettings: Record<string, unknown> = {}
+      const allowedKeys = ['text', 'heading', 'items', 'count', 'mode', 'symbol']
+      for (const key of allowedKeys) {
+        if (key in w.settings) safeSettings[key] = w.settings[key]
+      }
+      return { ...w, settings: safeSettings }
+    })
+
   return {
     id: screen.id,
     title: screen.title ?? 'Classroom',
@@ -40,10 +55,11 @@ export function toDisplaySafeScreen(screen: DisplayScreen | undefined): DisplayS
     materialsCard: screen.materialsCard,
     checklistCard: screen.checklistCard,
     studentMessage: screen.studentMessage,
+    widgets: safeWidgets.length > 0 ? safeWidgets : undefined,
   }
 }
 
-const DISPLAY_SAFE_FORBIDDEN_KEYS = ['updatedAt', 'version'] as const
+const DISPLAY_SAFE_FORBIDDEN_KEYS = ['updatedAt', 'version', 'teacherNotes'] as const
 
 /** Assert no teacher-only bookkeeping keys leak into a display-safe payload. */
 export function displaySafeScreenHasNoForbiddenKeys(safe: DisplaySafeScreen): boolean {

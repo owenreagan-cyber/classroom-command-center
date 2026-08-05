@@ -36,15 +36,19 @@ assert(!isValidPackId('not-a-real-pack'), 'isValidPackId false for an unknown pa
 
 const seededScreens = Object.values(buildSeededScreensState().screens)
 const transitionScreens = filterScreensByPack(seededScreens, 'transition')
-assert(transitionScreens.length === 4, `transition pack has 4 seeded screens, got ${transitionScreens.length}`)
+assert(transitionScreens.length === 5, `transition pack has 5 seeded screens (4 originals + cleanup), got ${transitionScreens.length}`)
 assert(transitionScreens.every((s) => s.mode === 'transition'), 'filterScreensByPack only returns matching-mode screens')
 
-// --- Failure mode: empty pack (no seeded screen uses workTime/lessonLaunch/packUp) ---
+// --- Non-empty packs (Phase 15B added more templates) ---
 
-for (const emptyPackId of ['workTime', 'lessonLaunch', 'packUp']) {
-  const result = filterScreensByPack(seededScreens, emptyPackId)
-  assert(result.length === 0, `${emptyPackId} pack is empty by default, got ${result.length}`)
-}
+const lessonLaunchScreens = filterScreensByPack(seededScreens, 'lessonLaunch')
+assert(lessonLaunchScreens.length === 2, `lessonLaunch pack has 2 seeded screens, got ${lessonLaunchScreens.length}`)
+
+const workTimeScreens = filterScreensByPack(seededScreens, 'workTime')
+assert(workTimeScreens.length === 2, `workTime pack has 2 seeded screens, got ${workTimeScreens.length}`)
+
+const packUpScreens = filterScreensByPack(seededScreens, 'packUp')
+assert(packUpScreens.length === 2, `packUp pack has 2 seeded screens, got ${packUpScreens.length}`)
 
 // --- Failure mode: unknown pack id never throws, just returns empty ---
 
@@ -55,10 +59,12 @@ assert(filterScreensByPack([], 'arrival').length === 0, 'filtering an empty scre
 
 const counts = countScreensByPack(seededScreens)
 assert(counts.arrival === 1, 'arrival pack count is 1')
-assert(counts.transition === 4, 'transition pack count is 4')
+assert(counts.transition === 5, 'transition pack count is 5')
 assert(counts.lunch === 1, 'lunch pack count is 1')
 assert(counts.specials === 1, 'specials pack count is 1')
-assert(counts.workTime === 0, 'workTime pack count is 0 (empty pack)')
+assert(counts.workTime === 2, 'workTime pack count is 2')
+assert(counts.lessonLaunch === 2, 'lessonLaunch pack count is 2')
+assert(counts.packUp === 2, 'packUp pack count is 2')
 
 // --- Quick-start templates ---
 

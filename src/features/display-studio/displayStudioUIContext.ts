@@ -5,6 +5,7 @@ import type { InspectorSectionId } from './displayStudioTypes'
 export interface DisplayStudioUIContextValue {
   isOpen: boolean
   selectedScreenId: string | null
+  selectedWidgetId: string | null
   expandedInspectorSections: InspectorSectionId[]
   widgetLibraryOpen: boolean
   widgetLibraryCategory: WidgetCategory | null
@@ -12,6 +13,7 @@ export interface DisplayStudioUIContextValue {
   open: () => void
   close: () => void
   selectScreen: (id: string) => void
+  selectWidget: (id: string | null) => void
   toggleInspectorSection: (section: InspectorSectionId) => void
   expandInspectorSection: (section: InspectorSectionId) => void
   collapseInspectorSection: (section: InspectorSectionId) => void
