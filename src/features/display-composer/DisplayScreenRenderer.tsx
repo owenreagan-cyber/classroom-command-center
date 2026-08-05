@@ -4,6 +4,7 @@ import { ChecklistCardView } from './elements/ChecklistCardView'
 import { ClockBlock } from './elements/ClockBlock'
 import { MaterialsCardView } from './elements/MaterialsCardView'
 import { TimerSlot } from './elements/TimerSlot'
+import { WidgetDisplayOverlay } from './WidgetDisplayOverlay'
 import type { DisplaySafeScreen } from './displaySafe'
 
 interface DisplayScreenRendererProps {
@@ -43,6 +44,9 @@ export function DisplayScreenRenderer({ screen, variant, className = '' }: Displ
     >
       {/* Contrast scrim so text stays readable over any background image. */}
       <div className="absolute inset-0 bg-gradient-to-b from-slate-950/55 via-slate-950/25 to-slate-950/55" />
+
+      {/* Canvas widget overlay — student-safe rendering */}
+      {variant === 'display' && <WidgetDisplayOverlay widgets={screen.widgets} />}
 
       <div className="relative flex h-full flex-col gap-4 p-6 md:gap-6 md:p-10">
         <header className="flex items-start justify-between gap-4">

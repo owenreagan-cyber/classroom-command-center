@@ -311,7 +311,7 @@ function WidgetDetailSection({ screen, widget }: { screen: DisplayScreen; widget
         />
       </div>
 
-      {/* Text content for directions/checklist */}
+      {/* Widget-specific controls */}
       {widget.type === 'directions-text' && (
         <div>
           <label className={labelClass}>Text</label>
@@ -323,6 +323,87 @@ function WidgetDetailSection({ screen, widget }: { screen: DisplayScreen; widget
             placeholder="Display text for students..."
           />
         </div>
+      )}
+
+      {widget.type === 'countdown-timer' && (
+        <div>
+          <label className={labelClass}>Timer Kind</label>
+          <select
+            className={inputClass}
+            value={(widget.settings.timerKind as string) ?? 'general'}
+            onChange={(e) => updateWidget(screen.id, widget.id, { settings: { ...widget.settings, timerKind: e.target.value } })}
+          >
+            <option value="general">General</option>
+            <option value="transition">Transition</option>
+          </select>
+        </div>
+      )}
+
+      {widget.type === 'routine-timer' && (
+        <div>
+          <label className={labelClass}>Routine ID</label>
+          <input
+            className={inputClass}
+            value={(widget.settings.routineId as string) ?? 'lunch-routine'}
+            onChange={(e) => updateWidget(screen.id, widget.id, { settings: { ...widget.settings, routineId: e.target.value } })}
+            placeholder="e.g. lunch-routine"
+          />
+        </div>
+      )}
+
+      {widget.type === 'noise-meter' && (
+        <>
+          <div>
+            <label className={labelClass}>Mode</label>
+            <select
+              className={inputClass}
+              value={(widget.settings.mode as string) ?? 'manual'}
+              onChange={(e) => updateWidget(screen.id, widget.id, { settings: { ...widget.settings, mode: e.target.value } })}
+            >
+              <option value="manual">Manual</option>
+              <option value="live">Live (board store)</option>
+            </select>
+          </div>
+          {(widget.settings.mode as string) !== 'live' && (
+            <div>
+              <label className={labelClass}>Level</label>
+              <select
+                className={inputClass}
+                value={(widget.settings.level as string) ?? 'whisper'}
+                onChange={(e) => updateWidget(screen.id, widget.id, { settings: { ...widget.settings, level: e.target.value } })}
+              >
+                <option value="silent">Silent</option>
+                <option value="whisper">Whisper</option>
+                <option value="normal">Normal</option>
+                <option value="loud">Too Loud</option>
+              </select>
+            </div>
+          )}
+        </>
+      )}
+
+      {widget.type === 'work-symbols' && (
+        <div>
+          <label className={labelClass}>Symbol</label>
+          <select
+            className={inputClass}
+            value={(widget.settings.symbol as string) ?? 'silent'}
+            onChange={(e) => updateWidget(screen.id, widget.id, { settings: { ...widget.settings, symbol: e.target.value } })}
+          >
+            <option value="silent">Silent Work</option>
+            <option value="whisper">Whisper</option>
+            <option value="partner">Partner Work</option>
+            <option value="group">Group Work</option>
+            <option value="independent">Independent</option>
+          </select>
+        </div>
+      )}
+
+      {/* Status badges for connected widgets */}
+      {['mystery-student', 'random-picker', '100-board', 'prize-board', 'press-your-luck', 'atmosphere'].includes(widget.type) && (
+        <p className="rounded-lg border border-cyan-400/30 bg-cyan-950/20 px-2 py-1 text-[9px] text-cyan-200">
+          Connected to existing tool — status shown in widget
+        </p>
       )}
 
       {/* Size preset */}
