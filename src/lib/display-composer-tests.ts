@@ -18,8 +18,8 @@ function assert(condition: boolean, message: string): void {
 
 // --- Default screens load ---
 
-assert(DEFAULT_DISPLAY_SCREENS.length === 7, 'exactly 7 default display screens are seeded')
-assert(DEFAULT_DISPLAY_SCREEN_ORDER.length === 7, 'default order has 7 entries')
+assert(DEFAULT_DISPLAY_SCREENS.length === 15, 'exactly 15 default display screens are seeded')
+assert(DEFAULT_DISPLAY_SCREEN_ORDER.length === 15, 'default order has 15 entries')
 
 const expectedTitles = [
   '7:20 Arrival',
@@ -29,6 +29,11 @@ const expectedTitles = [
   'Movement → Spelling/Reading',
   'Spelling/Reading → Lunch',
   'Specials',
+  'Lesson Launch',
+  'Work Time',
+  'Cleanup',
+  'Pack Up',
+  'End of Day',
 ]
 for (const title of expectedTitles) {
   assert(
@@ -61,8 +66,8 @@ assert(lunchScreen.timerWidget.kind === 'routine' && lunchScreen.timerWidget.tim
 // --- Seeded store state shape ---
 
 const seeded = buildSeededScreensState()
-assert(Object.keys(seeded.screens).length === 7, 'seeded state has 7 screens')
-assert(seeded.order.length === 7, 'seeded order has 7 entries')
+assert(Object.keys(seeded.screens).length === 15, 'seeded state has 15 screens')
+assert(seeded.order.length === 15, 'seeded order has 15 entries')
 
 // --- Screen CRUD logic ---
 

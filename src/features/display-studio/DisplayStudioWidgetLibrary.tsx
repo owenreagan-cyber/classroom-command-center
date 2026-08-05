@@ -2,15 +2,40 @@ import { useDisplayStudioUI } from './useDisplayStudioUI'
 import { STUDIO_WIDGETS, WIDGET_CATEGORY_LABELS, type WidgetCategory } from './studioWidgets'
 import { useDisplayComposerStore } from '../display-composer/displayComposerStore'
 import { QUICK_START_TEMPLATES } from '../display-composer/quickStartTemplates'
+import type { CanvasWidgetType, WidgetSizePreset } from '../display-composer/types'
 
 const CATEGORIES: WidgetCategory[] = ['time', 'classroom', 'engagement', 'rewards', 'instruction']
 
 const secondaryBtn =
   'rounded-lg border border-slate-600 bg-slate-900/70 px-2 py-1 text-[10px] font-semibold text-slate-200 transition hover:bg-slate-800'
 
+const WIDGET_TYPE_MAP: Record<string, { canvasType: CanvasWidgetType | null; defaultSize: WidgetSizePreset }> = {
+  clock: { canvasType: null, defaultSize: 'small' },
+  'countdown-timer': { canvasType: null, defaultSize: 'medium' },
+  stopwatch: { canvasType: null, defaultSize: 'medium' },
+  'routine-timer': { canvasType: null, defaultSize: 'medium' },
+  'directions-text': { canvasType: 'directions-text', defaultSize: 'wide' },
+  materials: { canvasType: 'materials', defaultSize: 'medium' },
+  checklist: { canvasType: 'checklist', defaultSize: 'medium' },
+  'work-symbols': { canvasType: 'work-symbols', defaultSize: 'small' },
+  'random-picker': { canvasType: 'random-picker', defaultSize: 'medium' },
+  'mystery-student': { canvasType: 'mystery-student', defaultSize: 'medium' },
+  '100-board': { canvasType: '100-board', defaultSize: 'medium' },
+  'prize-board': { canvasType: 'prize-board', defaultSize: 'large' },
+  'press-your-luck': { canvasType: 'press-your-luck', defaultSize: 'large' },
+  'noise-meter': { canvasType: null, defaultSize: 'small' },
+  'qr-code': { canvasType: null, defaultSize: 'small' },
+  'dice-spinner': { canvasType: null, defaultSize: 'medium' },
+  poll: { canvasType: null, defaultSize: 'medium' },
+  scoreboard: { canvasType: null, defaultSize: 'wide' },
+  image: { canvasType: null, defaultSize: 'large' },
+  'pdf-embed': { canvasType: null, defaultSize: 'large' },
+}
+
 export function DisplayStudioWidgetLibrary() {
-  const { widgetLibraryOpen, widgetLibraryCategory, toggleWidgetLibrary, closeWidgetLibrary, selectScreen } = useDisplayStudioUI()
+  const { widgetLibraryOpen, widgetLibraryCategory, toggleWidgetLibrary, closeWidgetLibrary, selectScreen, selectWidget } = useDisplayStudioUI()
   const updateScreen = useDisplayComposerStore((s) => s.updateScreen)
+  const addWidget = useDisplayComposerStore((s) => s.addWidget)
   const order = useDisplayComposerStore((s) => s.order)
   const screens = useDisplayComposerStore((s) => s.screens)
   const selectedScreenId = useDisplayStudioUI().selectedScreenId
@@ -20,47 +45,61 @@ export function DisplayStudioWidgetLibrary() {
   const activeId = selectedScreenId ?? order[0] ?? null
   const screen = activeId ? screens[activeId] : undefined
 
-  const handleWidgetToggle = (widgetId: string) => {
+  const handleWidgetAdd = (widgetId: string) => {
     if (!screen) return
-    switch (widgetId) {
-      case 'clock':
-        updateScreen(screen.id, { showClock: !screen.showClock })
-        break
-      case 'countdown-timer':
-        updateScreen(screen.id, {
-          timerWidget: { kind: screen.timerWidget.kind === 'general' ? 'none' : 'general', timerId: screen.timerWidget.timerId },
-        })
-        break
-      case 'transition-timer':
-        updateScreen(screen.id, {
-          timerWidget: { kind: screen.timerWidget.kind === 'transition' ? 'none' : 'transition', timerId: screen.timerWidget.timerId },
-        })
-        break
-      case 'routine-timer':
-        updateScreen(screen.id, {
-          timerWidget: { kind: screen.timerWidget.kind === 'routine' ? 'none' : 'routine', timerId: screen.timerWidget.timerId },
-        })
-        break
-      case 'directions-text':
-        updateScreen(screen.id, { studentMessage: screen.studentMessage ? undefined : 'Add your message here.' })
-        break
-      case 'materials':
-        updateScreen(screen.id, {
-          materialsCard: screen.materialsCard
-            ? undefined
-            : { heading: 'Materials', sections: [{ id: 'sec-1', items: [] }] },
-        })
-        break
-      case 'checklist':
-        updateScreen(screen.id, {
-          checklistCard: screen.checklistCard
-            ? undefined
-            : { heading: 'Checklist', items: [] },
-        })
-        break
-      default:
-        closeWidgetLibrary()
+    const map = WIDGET_TYPE_MAP[widgetId]
+    if (!map) return
+
+    if (widgetId === 'clock') {
+      updateScreen(screen.id, { showClock: !screen.showClock })
+      return
     }
+    if (widgetId === 'countdown-timer') {
+      updateScreen(screen.id, {
+        timerWidget: { kind: screen.timerWidget.kind === 'general' ? 'none' : 'general', timerId: screen.timerWidget.timerId },
+      })
+      return
+    }
+    if (widgetId === 'transition-timer') {
+      updateScreen(screen.id, {
+        timerWidget: { kind: screen.timerWidget.kind === 'transition' ? 'none' : 'transition', timerId: screen.timerWidget.timerId },
+      })
+      return
+    }
+    if (widgetId === 'routine-timer') {
+      updateScreen(screen.id, {
+        timerWidget: { kind: screen.timerWidget.kind === 'routine' ? 'none' : 'routine', timerId: screen.timerWidget.timerId },
+      })
+      return
+    }
+
+    if (map.canvasType) {
+      const definition = STUDIO_WIDGETS.find((w) => w.id === widgetId)
+      const newWidgetId = addWidget(screen.id, map.canvasType, definition?.label ?? widgetId, map.defaultSize)
+      if (newWidgetId) {
+        selectWidget(newWidgetId)
+        closeWidgetLibrary()
+      }
+      return
+    }
+
+    // Fallback for non-canvas widgets: toggle existing screen fields
+    if (widgetId === 'directions-text') {
+      updateScreen(screen.id, { studentMessage: screen.studentMessage ? undefined : 'Add your message here.' })
+    } else if (widgetId === 'materials') {
+      updateScreen(screen.id, {
+        materialsCard: screen.materialsCard
+          ? undefined
+          : { heading: 'Materials', sections: [{ id: 'sec-1', items: [] }] },
+      })
+    } else if (widgetId === 'checklist') {
+      updateScreen(screen.id, {
+        checklistCard: screen.checklistCard
+          ? undefined
+          : { heading: 'Checklist', items: [] },
+      })
+    }
+    closeWidgetLibrary()
   }
 
   const isWidgetActive = (widgetId: string): boolean => {
@@ -73,7 +112,14 @@ export function DisplayStudioWidgetLibrary() {
       case 'directions-text': return Boolean(screen.studentMessage)
       case 'materials': return Boolean(screen.materialsCard)
       case 'checklist': return Boolean(screen.checklistCard)
-      default: return false
+      default: {
+        const map = WIDGET_TYPE_MAP[widgetId]
+        if (map?.canvasType) {
+          const widgets = screen.widgets ?? []
+          return widgets.some((w) => w.type === map.canvasType)
+        }
+        return false
+      }
     }
   }
 
@@ -97,6 +143,7 @@ export function DisplayStudioWidgetLibrary() {
           type="button"
           onClick={closeWidgetLibrary}
           className="text-[10px] text-slate-500 hover:text-slate-300"
+          aria-label="Close widget library"
         >
           ✕
         </button>
@@ -127,14 +174,14 @@ export function DisplayStudioWidgetLibrary() {
             <button
               key={widget.id}
               type="button"
-              onClick={() => handleWidgetToggle(widget.id)}
+              onClick={() => handleWidgetAdd(widget.id)}
               disabled={isPlaceholder}
               title={widget.description}
               className={`flex flex-col items-center gap-0.5 rounded-lg border px-2 py-2 text-center transition ${
                 active
                   ? 'border-cyan-400/40 bg-cyan-950/30'
                   : isPlaceholder
-                    ? 'border-slate-800 bg-slate-900/30 opacity-50'
+                    ? 'border-slate-800 bg-slate-900/30 opacity-50 cursor-not-allowed'
                     : 'border-slate-700 bg-slate-900/50 hover:border-slate-500'
               }`}
             >

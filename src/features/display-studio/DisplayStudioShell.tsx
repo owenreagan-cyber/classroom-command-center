@@ -1,5 +1,6 @@
 import { type ReactNode } from 'react'
 import { useDisplayStudioUI } from './useDisplayStudioUI'
+import { isTypingTarget } from '../../lib/inputSafety'
 
 interface DisplayStudioShellProps {
   leftRail: ReactNode
@@ -27,16 +28,7 @@ export function DisplayStudioShell({
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Escape') {
-      // Only close if not typing in an input/textarea/contenteditable
-      const target = e.target as HTMLElement
-      if (
-        target.tagName === 'INPUT' ||
-        target.tagName === 'TEXTAREA' ||
-        target.isContentEditable ||
-        target.getAttribute('role') === 'textbox'
-      ) {
-        return
-      }
+      if (isTypingTarget(e.target)) return
       close()
     }
   }

@@ -8,6 +8,7 @@ const DEFAULT_EXPANDED_SECTIONS: InspectorSectionId[] = ['screen']
 export function DisplayStudioUIProvider({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false)
   const [selectedScreenId, setSelectedScreenId] = useState<string | null>(null)
+  const [selectedWidgetId, setSelectedWidgetId] = useState<string | null>(null)
   const [expandedInspectorSections, setExpandedInspectorSections] = useState<InspectorSectionId[]>(
     DEFAULT_EXPANDED_SECTIONS,
   )
@@ -16,10 +17,18 @@ export function DisplayStudioUIProvider({ children }: { children: ReactNode }) {
   const [presenterMode, setPresenterMode] = useState(false)
 
   const open = useCallback(() => setIsOpen(true), [])
-  const close = useCallback(() => setIsOpen(false), [])
+  const close = useCallback(() => {
+    setIsOpen(false)
+    setSelectedWidgetId(null)
+  }, [])
 
   const selectScreen = useCallback((id: string) => {
     setSelectedScreenId(id)
+    setSelectedWidgetId(null)
+  }, [])
+
+  const selectWidget = useCallback((id: string | null) => {
+    setSelectedWidgetId(id)
   }, [])
 
   const toggleInspectorSection = useCallback((section: InspectorSectionId) => {
@@ -59,6 +68,7 @@ export function DisplayStudioUIProvider({ children }: { children: ReactNode }) {
     () => ({
       isOpen,
       selectedScreenId,
+      selectedWidgetId,
       expandedInspectorSections,
       widgetLibraryOpen,
       widgetLibraryCategory,
@@ -66,6 +76,7 @@ export function DisplayStudioUIProvider({ children }: { children: ReactNode }) {
       open,
       close,
       selectScreen,
+      selectWidget,
       toggleInspectorSection,
       expandInspectorSection,
       collapseInspectorSection,
@@ -76,6 +87,7 @@ export function DisplayStudioUIProvider({ children }: { children: ReactNode }) {
     [
       isOpen,
       selectedScreenId,
+      selectedWidgetId,
       expandedInspectorSections,
       widgetLibraryOpen,
       widgetLibraryCategory,
@@ -83,6 +95,7 @@ export function DisplayStudioUIProvider({ children }: { children: ReactNode }) {
       open,
       close,
       selectScreen,
+      selectWidget,
       toggleInspectorSection,
       expandInspectorSection,
       collapseInspectorSection,

@@ -64,6 +64,50 @@ export interface ChecklistCard {
   items: ChecklistItem[]
 }
 
+/** Widget types that can be placed on the display canvas. */
+export type CanvasWidgetType =
+  | 'clock'
+  | 'directions-text'
+  | 'materials'
+  | 'checklist'
+  | 'work-symbols'
+  | 'random-picker'
+  | 'mystery-student'
+  | '100-board'
+  | 'prize-board'
+  | 'press-your-luck'
+
+/** Size preset for canvas widgets (applied as percentage of 16:9 canvas). */
+export type WidgetSizePreset = 'small' | 'medium' | 'large' | 'wide' | 'full-width'
+
+/** Percentage-based size presets resolved to width/height on a 100×100 grid. */
+export const WIDGET_SIZE_PRESETS: Record<WidgetSizePreset, { w: number; h: number }> = {
+  small: { w: 20, h: 20 },
+  medium: { w: 30, h: 30 },
+  large: { w: 45, h: 45 },
+  wide: { w: 60, h: 30 },
+  'full-width': { w: 90, h: 20 },
+}
+
+/** Individual canvas widget — positioned relative to the 16:9 canvas. */
+export interface CanvasWidget {
+  id: string
+  type: CanvasWidgetType
+  label: string
+  /** Percentage-based position (0–100). Origin: top-left of canvas. */
+  x: number
+  y: number
+  /** Percentage-based size relative to canvas. */
+  w: number
+  h: number
+  visible: boolean
+  locked: boolean
+  /** Widget-specific configuration payload. */
+  settings: Record<string, unknown>
+  /** Z-index for layering. Higher = on top. */
+  zIndex: number
+}
+
 export interface DisplayScreen {
   id: string
   title: string
@@ -74,6 +118,10 @@ export interface DisplayScreen {
   materialsCard?: MaterialsCard
   checklistCard?: ChecklistCard
   studentMessage?: string
+  /** Free-form canvas widgets (Phase 15B). If present, renders above/supplementing dedicated cards. */
+  widgets?: CanvasWidget[]
+  /** Teacher-only notes. Never sent to /display. */
+  teacherNotes?: string
   /** Kill-switch: false means this screen must never render on /display. */
   studentSafe: boolean
   updatedAt: number
