@@ -27,6 +27,10 @@ export const DEFAULT_DISPLAY_SCREENS: DisplayScreen[] = [
     background: { type: 'image', token: 'homeroom-morning-briefing' },
     showClock: true,
     timerWidget: { kind: 'general', timerId: 'dc-arrival-general' },
+    widgets: [
+      { id: 'ar-symbol', type: 'work-symbols', label: 'Arrival Mode', x: 75, y: 5, w: 22, h: 18, visible: true, locked: false, settings: { symbol: 'independent' }, zIndex: 1 },
+      { id: 'ar-dir', type: 'directions-text', label: 'Morning Directions', x: 2, y: 60, w: 45, h: 25, visible: true, locked: false, settings: { text: '1. Unpack your backpack\n2. Turn in homework\n3. Begin morning work' }, zIndex: 2 },
+    ],
     materialsCard: {
       heading: 'Get Ready For The Day',
       sections: [
@@ -64,6 +68,9 @@ export const DEFAULT_DISPLAY_SCREENS: DisplayScreen[] = [
     showClock: true,
     // Reuses the existing seeded transition timer (label "Homeroom → Math", 3 min).
     timerWidget: { kind: 'transition', timerId: 'homeroom-clean-up-math' },
+    widgets: [
+      { id: 'mw-nm', type: 'noise-meter', label: 'Voice Level', x: 78, y: 5, w: 20, h: 20, visible: true, locked: false, settings: { mode: 'manual', level: 'whisper' }, zIndex: 1 },
+    ],
     materialsCard: {
       heading: 'Math Materials',
       sections: [materialsSection(['Math notebook', 'Pencil', 'Whiteboard + marker'])],
@@ -200,6 +207,9 @@ export const DEFAULT_DISPLAY_SCREENS: DisplayScreen[] = [
     showClock: true,
     timerWidget: { kind: 'general', timerId: 'dc-lesson-launch-general' },
     studentMessage: 'Today we are learning about...',
+    widgets: [
+      { id: 'll-dir', type: 'directions-text', label: 'Directions', x: 2, y: 30, w: 40, h: 20, visible: true, locked: false, settings: { text: '1. Watch the board\n2. Listen to directions\n3. Begin when ready' }, zIndex: 1 },
+    ],
     checklistCard: {
       heading: 'Lesson Checklist',
       items: [
@@ -220,6 +230,10 @@ export const DEFAULT_DISPLAY_SCREENS: DisplayScreen[] = [
     showClock: true,
     timerWidget: { kind: 'general', timerId: 'dc-work-time-general' },
     studentMessage: 'Work quietly at your seat. Raise your hand if you need help.',
+    widgets: [
+      { id: 'wt-symbol', type: 'work-symbols', label: 'Work Mode', x: 2, y: 5, w: 20, h: 20, visible: true, locked: false, settings: { symbol: 'independent' }, zIndex: 1 },
+      { id: 'wt-noise', type: 'noise-meter', label: 'Voice Level', x: 78, y: 5, w: 20, h: 20, visible: true, locked: false, settings: { mode: 'manual', level: 'whisper' }, zIndex: 2 },
+    ],
     checklistCard: {
       heading: 'Work Time Checklist',
       items: [
@@ -312,12 +326,16 @@ export const DEFAULT_DISPLAY_SCREENS: DisplayScreen[] = [
   },
   {
     id: 'game-review',
-    title: 'Game / Review',
+    title: 'Review Game',
     mode: 'lessonLaunch',
     background: { type: 'gradient', token: 'sunny-specials' },
     showClock: true,
     timerWidget: { kind: 'general', timerId: 'dc-game-review-general' },
     studentMessage: 'Let\'s review what we learned! Be ready to participate.',
+    widgets: [
+      { id: 'gr-picker', type: 'random-picker', label: 'Random Pick', x: 2, y: 5, w: 28, h: 28, visible: true, locked: false, settings: {}, zIndex: 1 },
+      { id: 'gr-board', type: '100-board', label: 'Number Board', x: 70, y: 5, w: 28, h: 28, visible: true, locked: false, settings: {}, zIndex: 2 },
+    ],
     checklistCard: {
       heading: 'Review Rules',
       items: [
@@ -338,6 +356,9 @@ export const DEFAULT_DISPLAY_SCREENS: DisplayScreen[] = [
     showClock: false,
     timerWidget: { kind: 'none' },
     studentMessage: 'Great work! Let\'s see what prizes are available!',
+    widgets: [
+      { id: 'pb-pb', type: 'prize-board', label: 'Prize Board', x: 35, y: 15, w: 30, h: 30, visible: true, locked: false, settings: {}, zIndex: 1 },
+    ],
     materialsCard: {
       heading: 'How to Play',
       sections: [materialsSection(['Spin the wheel', 'Answer correctly to earn a spin', 'Collect prizes for great work'], 'Instructions', 'amber')],

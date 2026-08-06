@@ -21,6 +21,10 @@ interface DisplayComposerStoreState {
   screens: Record<string, DisplayScreen>
   order: string[]
   activeScreenId: string | null
+  /** When true, /display shows a blank black screen instead of any content. */
+  displayBlanked: boolean
+  /** Saved screen id to restore after unblanking. */
+  _previousScreenId: string | null
 }
 
 interface DisplayComposerStoreActions {
@@ -30,6 +34,10 @@ interface DisplayComposerStoreActions {
   createCustomScreen: (title: string) => string
   sendToDisplay: (id: string) => void
   clearDisplay: () => void
+  /** Blank the display (black screen), saving current screen for restore. */
+  blankDisplay: () => void
+  /** Restore the display to the screen that was showing before blanking. */
+  unblankDisplay: () => void
   addWidget: (screenId: string, widgetType: CanvasWidgetType, label: string, sizePreset: WidgetSizePreset) => string | undefined
   removeWidget: (screenId: string, widgetId: string) => void
   updateWidget: (screenId: string, widgetId: string, patch: Partial<CanvasWidget>) => void
@@ -49,6 +57,8 @@ export const useDisplayComposerStore = create<DisplayComposerStore>()(
     (set, get) => ({
       ...buildSeededScreensState(),
       activeScreenId: null,
+      displayBlanked: false,
+      _previousScreenId: null,
 
       updateScreen: (id, patch) => {
         const screen = get().screens[id]
@@ -94,7 +104,26 @@ export const useDisplayComposerStore = create<DisplayComposerStore>()(
         set({ activeScreenId: id })
       },
 
-      clearDisplay: () => set({ activeScreenId: null }),
+      clearDisplay: () => set({ activeScreenId: null, displayBlanked: false }),
+
+      blankDisplay: () => {
+        const { activeScreenId, _previousScreenId } = get()
+        set({
+          displayBlanked: true,
+          _previousScreenId: activeScreenId ?? _previousScreenId,
+          activeScreenId: null,
+        })
+      },
+
+      unblankDisplay: () => {
+        const { _previousScreenId } = get()
+        const restoreId = _previousScreenId && get().screens[_previousScreenId] ? _previousScreenId : null
+        set({
+          displayBlanked: false,
+          activeScreenId: restoreId,
+          _previousScreenId: null,
+        })
+      },
 
       addWidget: (screenId, widgetType, label, sizePreset) => {
         const screen = get().screens[screenId]
@@ -270,6 +299,8 @@ export const useDisplayComposerStore = create<DisplayComposerStore>()(
         screens: state.screens,
         order: state.order,
         activeScreenId: state.activeScreenId,
+        displayBlanked: state.displayBlanked,
+        _previousScreenId: state._previousScreenId,
       }),
     },
   ),

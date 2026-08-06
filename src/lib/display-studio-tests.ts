@@ -341,6 +341,54 @@ test('widget display overlay filters hidden widgets', () => {
   assert(visible[0].id === 'w1')
 })
 
+// ── Phase 15D: Presenter, Blank Screen, and Display Flow Tests ──
+
+test('existing templates with widgets are student-safe', () => {
+  const byId: Record<string, typeof DEFAULT_DISPLAY_SCREENS[number]> = {}
+  for (const s of DEFAULT_DISPLAY_SCREENS) byId[s.id] = s
+  assert(byId['work-time']?.studentSafe === true, 'work-time should be studentSafe')
+  assert(byId['lesson-launch']?.studentSafe === true, 'lesson-launch should be studentSafe')
+  assert(byId['game-review']?.studentSafe === true, 'game-review should be studentSafe')
+  assert(byId['prize-board-screen']?.studentSafe === true, 'prize-board-screen should be studentSafe')
+  assert(byId['arrival-720']?.studentSafe === true, 'arrival-720 should be studentSafe')
+})
+
+test('polished templates have widgets', () => {
+  const byId: Record<string, typeof DEFAULT_DISPLAY_SCREENS[number]> = {}
+  for (const s of DEFAULT_DISPLAY_SCREENS) byId[s.id] = s
+  assert(byId['work-time']?.widgets?.length === 2, 'work-time should have 2 widgets (work-symbols + noise-meter)')
+  assert(byId['lesson-launch']?.widgets?.length === 1, 'lesson-launch should have 1 widget (directions)')
+  assert(byId['game-review']?.widgets?.length === 2, 'game-review should have 2 widgets (random-picker + 100-board)')
+  assert(byId['prize-board-screen']?.widgets?.length === 1, 'prize-board-screen should have 1 widget')
+  assert(byId['arrival-720']?.widgets?.length === 2, 'arrival-720 should have 2 widgets')
+  assert(byId['morning-work-to-math']?.widgets?.length === 1, 'morning-work-to-math should have 1 widget')
+})
+
+test('student message exists on polished templates', () => {
+  const byId: Record<string, typeof DEFAULT_DISPLAY_SCREENS[number]> = {}
+  for (const s of DEFAULT_DISPLAY_SCREENS) byId[s.id] = s
+  assert(byId['work-time']?.studentMessage !== undefined, 'work-time should have student message')
+  assert(byId['lesson-launch']?.studentMessage !== undefined, 'lesson-launch should have student message')
+  assert(byId['game-review']?.studentMessage !== undefined, 'game-review should have student message')
+})
+
+test('blank screen does not expose teacher data', () => {
+  // blankDisplay sets displayBlanked and clears activeScreenId
+  // teacherNotes should never appear on /display when blanked
+  const screen = { ...DEFAULT_DISPLAY_SCREENS[0], teacherNotes: 'Confidential' }
+  const safe = toDisplaySafeScreen(screen)
+  assert(safe !== null)
+  assert(!('teacherNotes' in safe!), 'teacherNotes must never appear in safe screen')
+})
+
+test('arrival template directions widget has safe text', () => {
+  const arrival = DEFAULT_DISPLAY_SCREENS.find((s) => s.id === 'arrival-720')
+  assert(arrival?.widgets?.some((w) => w.type === 'directions-text'), 'arrival should have directions-text widget')
+  const dirW = arrival?.widgets?.find((w) => w.type === 'directions-text')
+  assert(typeof dirW?.settings.text === 'string', 'directions text should be a string')
+  assert((dirW?.settings.text as string).length > 0, 'directions text should not be empty')
+})
+
 // ── Summary ──
 
 console.log(`\nDisplay Studio Tests: ${passed} passed, ${failed} failed`)

@@ -11,13 +11,16 @@ export function DisplayStudioCommandBar() {
   const screens = useDisplayComposerStore((s) => s.screens)
   const order = useDisplayComposerStore((s) => s.order)
   const activeScreenId = useDisplayComposerStore((s) => s.activeScreenId)
+  const displayBlanked = useDisplayComposerStore((s) => s.displayBlanked)
   const sendToDisplay = useDisplayComposerStore((s) => s.sendToDisplay)
   const clearDisplay = useDisplayComposerStore((s) => s.clearDisplay)
+  const blankDisplay = useDisplayComposerStore((s) => s.blankDisplay)
+  const unblankDisplay = useDisplayComposerStore((s) => s.unblankDisplay)
   const { selectedScreenId, close, togglePresenterMode } = useDisplayStudioUI()
 
   const activeId = selectedScreenId ?? order[0] ?? null
   const screen = activeId ? screens[activeId] : undefined
-  const isLive = screen ? screen.id === activeScreenId : false
+  const isLive = screen ? screen.id === activeScreenId && !displayBlanked : false
 
   return (
     <div className="flex items-center justify-between px-4 py-2">
@@ -26,6 +29,11 @@ export function DisplayStudioCommandBar() {
         {screen && (
           <span className="text-[10px] text-slate-500">
             — {screen.title}
+          </span>
+        )}
+        {displayBlanked && (
+          <span className="rounded border border-amber-400/30 bg-amber-950/20 px-1.5 py-0.5 text-[9px] font-semibold text-amber-200">
+            Display Blanked
           </span>
         )}
       </div>
@@ -42,7 +50,7 @@ export function DisplayStudioCommandBar() {
           {isLive ? '🟢 Live on Display' : 'Send to Display'}
         </button>
 
-        {activeScreenId && (
+        {activeScreenId && !displayBlanked && (
           <button
             type="button"
             className={barBtn}
@@ -50,6 +58,26 @@ export function DisplayStudioCommandBar() {
             data-studio-action="clear-display"
           >
             Clear Display
+          </button>
+        )}
+
+        {displayBlanked ? (
+          <button
+            type="button"
+            className={barBtn}
+            onClick={unblankDisplay}
+            data-studio-action="unblank-display"
+          >
+            Restore Display
+          </button>
+        ) : (
+          <button
+            type="button"
+            className={barBtn}
+            onClick={blankDisplay}
+            data-studio-action="blank-display"
+          >
+            Blank Screen
           </button>
         )}
 
