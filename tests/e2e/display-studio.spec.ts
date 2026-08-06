@@ -31,7 +31,7 @@ test.describe('Phase 15A — Display Studio shell', () => {
     await expect(rail).toBeVisible()
 
     const thumbButtons = rail.locator('[data-display-screen-thumb]')
-    await expect(thumbButtons).toHaveCount(20)
+    await expect(thumbButtons).toHaveCount(29)
 
     for (const title of [
       '7:20 Arrival',
@@ -319,7 +319,7 @@ test.describe('Phase 15A — Regression: existing features preserved', () => {
 
     const rail = page.locator('[data-display-studio-thumbnail-rail]')
     const thumbs = rail.locator('[data-display-screen-thumb]')
-    await expect(thumbs).toHaveCount(20)
+    await expect(thumbs).toHaveCount(29)
 
     // Check each screen is selectable
     for (const id of [

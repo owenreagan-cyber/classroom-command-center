@@ -3,15 +3,18 @@ import type { CanvasWidget } from './types'
 /**
  * Renders student-safe display content for a single widget.
  * Only renders widgets that are visible. Teacher-only data is never rendered.
+ * Phase 15F: Enhanced card labels and richer static content.
  */
 export function WidgetDisplayCard({ widget }: { widget: CanvasWidget }) {
   if (!widget.visible) return null
 
+  const cardClasses = 'rounded-2xl bg-slate-950/50 px-6 py-4 backdrop-blur-sm shadow-lg'
+
   switch (widget.type) {
     case 'directions-text':
       return (
-        <div className="rounded-2xl bg-slate-950/40 px-5 py-3 backdrop-blur-sm">
-          <p className="text-xl font-semibold leading-snug text-white">
+        <div className={cardClasses}>
+          <p className="text-xl font-semibold leading-relaxed text-white whitespace-pre-line">
             {(widget.settings.text as string) ?? ''}
           </p>
         </div>
@@ -24,7 +27,7 @@ export function WidgetDisplayCard({ widget }: { widget: CanvasWidget }) {
       }
       const symbol = (widget.settings.symbol as string) ?? 'silent'
       return (
-        <div className="rounded-2xl bg-slate-950/40 px-5 py-3 backdrop-blur-sm text-center">
+        <div className={`${cardClasses} text-center`}>
           <p className="text-2xl font-bold text-white">{symbolLabels[symbol] ?? symbol}</p>
         </div>
       )
@@ -32,37 +35,37 @@ export function WidgetDisplayCard({ widget }: { widget: CanvasWidget }) {
 
     case 'mystery-student':
       return (
-        <div className="rounded-2xl bg-amber-950/40 px-5 py-3 backdrop-blur-sm text-center">
+        <div className="rounded-2xl bg-amber-950/50 px-6 py-4 backdrop-blur-sm shadow-lg text-center">
           <p className="text-2xl font-bold text-amber-200">🌟 Mystery Star is watching</p>
-          <p className="text-lg text-amber-100/70 mt-1">Keep showing your best effort</p>
+          <p className="text-lg text-amber-100/70 mt-1.5">Keep showing your best effort</p>
         </div>
       )
 
     case 'random-picker':
       return (
-        <div className="rounded-2xl bg-slate-950/40 px-5 py-3 backdrop-blur-sm text-center">
-          <p className="text-2xl font-bold text-white">🎯 Ready</p>
+        <div className={`${cardClasses} text-center`}>
+          <p className="text-2xl font-bold text-white">🎯 {widget.label || 'Random Pick'}</p>
         </div>
       )
 
     case '100-board':
       return (
-        <div className="rounded-2xl bg-slate-950/40 px-5 py-3 backdrop-blur-sm text-center">
-          <p className="text-2xl font-bold text-white">🔢 100 Board</p>
+        <div className={`${cardClasses} text-center`}>
+          <p className="text-2xl font-bold text-white">🔢 {widget.label || '100 Board'}</p>
         </div>
       )
 
     case 'prize-board':
       return (
-        <div className="rounded-2xl bg-amber-950/40 px-5 py-3 backdrop-blur-sm text-center">
-          <p className="text-2xl font-bold text-amber-200">🎁 Prize Board</p>
+        <div className="rounded-2xl bg-amber-950/50 px-6 py-4 backdrop-blur-sm shadow-lg text-center">
+          <p className="text-2xl font-bold text-amber-200">🎁 {widget.label || 'Prize Board'}</p>
         </div>
       )
 
     case 'press-your-luck':
       return (
-        <div className="rounded-2xl bg-amber-950/40 px-5 py-3 backdrop-blur-sm text-center">
-          <p className="text-2xl font-bold text-amber-200">🎰 Press Your Luck</p>
+        <div className="rounded-2xl bg-amber-950/50 px-6 py-4 backdrop-blur-sm shadow-lg text-center">
+          <p className="text-2xl font-bold text-amber-200">🎰 {widget.label || 'Press Your Luck'}</p>
         </div>
       )
 
@@ -71,9 +74,9 @@ export function WidgetDisplayCard({ widget }: { widget: CanvasWidget }) {
       const labels: Record<string, string> = { silent: 'Silent', whisper: 'Whisper', normal: 'Normal', loud: 'Too Loud' }
       const colors: Record<string, string> = { silent: 'bg-emerald-500', whisper: 'bg-sky-500', normal: 'bg-amber-500', loud: 'bg-rose-500' }
       return (
-        <div className="rounded-2xl bg-slate-950/40 px-5 py-3 backdrop-blur-sm text-center">
+        <div className={`${cardClasses} text-center`}>
           <p className="text-lg font-semibold text-white">🔊 Voice Level</p>
-          <div className="mt-2 flex items-center justify-center gap-2">
+          <div className="mt-2 flex items-center justify-center gap-2.5">
             <div className={`h-3 w-3 rounded-full ${colors[level] ?? 'bg-sky-500'}`} />
             <p className="text-2xl font-bold text-white">{labels[level] ?? level}</p>
           </div>
@@ -83,30 +86,30 @@ export function WidgetDisplayCard({ widget }: { widget: CanvasWidget }) {
 
     case 'atmosphere':
       return (
-        <div className="rounded-2xl bg-slate-950/40 px-5 py-3 backdrop-blur-sm text-center">
-          <p className="text-2xl font-bold text-white">🎵 Music</p>
+        <div className={`${cardClasses} text-center`}>
+          <p className="text-2xl font-bold text-white">🎵 {widget.label || 'Music'}</p>
         </div>
       )
 
     case 'countdown-timer':
     case 'routine-timer':
       return (
-        <div className="rounded-2xl bg-slate-950/40 px-5 py-3 backdrop-blur-sm text-center">
-          <p className="text-2xl font-bold text-white">⏱ {widget.label}</p>
+        <div className={`${cardClasses} text-center`}>
+          <p className="text-2xl font-bold text-white">⏱ {widget.label || 'Timer'}</p>
         </div>
       )
 
     case 'materials':
       return (
-        <div className="rounded-2xl bg-slate-950/40 px-5 py-3 backdrop-blur-sm text-center">
-          <p className="text-2xl font-bold text-white">📋 Materials</p>
+        <div className={`${cardClasses} text-center`}>
+          <p className="text-2xl font-bold text-white">📋 {widget.label || 'Materials'}</p>
         </div>
       )
 
     case 'checklist':
       return (
-        <div className="rounded-2xl bg-slate-950/40 px-5 py-3 backdrop-blur-sm text-center">
-          <p className="text-2xl font-bold text-white">✅ Checklist</p>
+        <div className={`${cardClasses} text-center`}>
+          <p className="text-2xl font-bold text-white">✅ {widget.label || 'Checklist'}</p>
         </div>
       )
 

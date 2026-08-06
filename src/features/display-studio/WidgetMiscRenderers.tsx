@@ -14,18 +14,18 @@ export function NoiseLevelContent({ widget }: { widget: CanvasWidget }) {
       silent: 'text-emerald-300', whisper: 'text-sky-300', normal: 'text-amber-300', loud: 'text-rose-300',
     }
     return (
-      <div className="flex h-full flex-col items-center justify-center p-2 text-center">
-        <span className="text-lg">🔊</span>
-        <span className={`text-[12px] font-bold ${colorMap[level] ?? 'text-slate-200'}`}>{NOISE_LABELS[level] ?? level}</span>
-        <span className="text-[7px] text-slate-500 mt-0.5">Voice Level</span>
+      <div className="flex h-full flex-col items-center justify-center p-3 text-center">
+        <span className="text-xl">🔊</span>
+        <span className={`text-[14px] font-bold ${colorMap[level] ?? 'text-slate-200'}`}>{NOISE_LABELS[level] ?? level}</span>
+        <span className="text-[10px] text-slate-500 mt-1">Voice Level</span>
       </div>
     )
   }
   return (
-    <div className="flex h-full flex-col items-center justify-center p-2 text-center">
-      <span className="text-lg">🔊</span>
-      <span className="text-[9px] text-slate-300">Noise Meter</span>
-      <span className="text-[7px] text-slate-500 mt-0.5">Live monitoring</span>
+    <div className="flex h-full flex-col items-center justify-center p-3 text-center">
+      <span className="text-xl">🔊</span>
+      <span className="text-[11px] text-slate-300">Noise Meter</span>
+      <span className="text-[10px] text-slate-500 mt-1">Live monitoring</span>
     </div>
   )
 }
@@ -37,14 +37,14 @@ export function AtmosphereContent({ widget }: { widget: CanvasWidget }) {
   const label = getDisplayMusicLabel(activeMode)
 
   return (
-    <div className="flex h-full flex-col items-center justify-center p-2 text-center">
-      <span className="text-lg">🎵</span>
+    <div className="flex h-full flex-col items-center justify-center p-3 text-center">
+      <span className="text-xl">🎵</span>
       {label && isPlaying ? (
-        <span className="text-[10px] font-semibold text-emerald-200 mt-1">{label}</span>
+        <span className="text-[12px] font-semibold text-emerald-200 mt-1.5">{label}</span>
       ) : label ? (
-        <span className="text-[9px] text-slate-400 mt-1">{label}</span>
+        <span className="text-[11px] text-slate-400 mt-1.5">{label}</span>
       ) : (
-        <span className="text-[8px] text-slate-500 mt-1">No music</span>
+        <span className="text-[10px] text-slate-500 mt-1.5">No music</span>
       )}
     </div>
   )
@@ -53,12 +53,14 @@ export function AtmosphereContent({ widget }: { widget: CanvasWidget }) {
 export function DirectionsTextContent({ widget }: { widget: CanvasWidget }) {
   const text = (widget.settings.text as string) ?? ''
   return (
-    <div className="flex h-full flex-col items-center justify-center p-2 text-center">
-      <span className="text-[8px] font-semibold uppercase tracking-wide text-slate-400 mb-0.5">{widget.label}</span>
+    <div className="flex h-full flex-col p-3">
+      <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-300 mb-1.5 text-center">
+        {widget.label}
+      </span>
       {text ? (
-        <span className="text-[10px] leading-snug text-slate-200 line-clamp-3">{text}</span>
+        <span className="text-[12px] leading-snug text-slate-200 whitespace-pre-line">{text}</span>
       ) : (
-        <span className="text-[9px] text-slate-500">Add text in inspector</span>
+        <span className="text-[11px] text-slate-500 text-center">Add text in inspector</span>
       )}
     </div>
   )
@@ -71,9 +73,9 @@ export function WorkSymbolsContent({ widget }: { widget: CanvasWidget }) {
     group: '👨‍👩‍👧‍👦 Group Work', independent: '✍️ Independent',
   }
   return (
-    <div className="flex h-full flex-col items-center justify-center p-2 text-center">
-      <span className="text-[11px] font-semibold text-sky-200">{symbolLabels[symbol] ?? symbol}</span>
-      <span className="text-[7px] text-slate-500 mt-0.5">Work Mode</span>
+    <div className="flex h-full flex-col items-center justify-center p-3 text-center">
+      <span className="text-[13px] font-semibold text-sky-200">{symbolLabels[symbol] ?? symbol}</span>
+      <span className="text-[10px] text-slate-500 mt-1">Work Mode</span>
     </div>
   )
 }
@@ -90,13 +92,13 @@ export function MaterialsContent({ widget }: { widget: CanvasWidget }) {
   const itemCount = card?.sections.reduce((sum, s) => sum + s.items.length, 0) ?? 0
 
   return (
-    <div className="flex h-full flex-col items-center justify-center p-2 text-center">
-      <span className="text-lg">📋</span>
-      <span className="text-[10px] font-semibold text-slate-200 mt-1">{card?.heading ?? 'Materials'}</span>
+    <div className="flex h-full flex-col items-center justify-center p-3 text-center">
+      <span className="text-xl">📋</span>
+      <span className="text-[12px] font-semibold text-slate-200 mt-1.5">{card?.heading ?? 'Materials'}</span>
       {itemCount > 0 ? (
-        <span className="text-[8px] text-slate-400 mt-0.5">{itemCount} item{itemCount !== 1 ? 's' : ''}</span>
+        <span className="text-[10px] text-slate-400 mt-1">{itemCount} item{itemCount !== 1 ? 's' : ''}</span>
       ) : (
-        <span className="text-[8px] text-slate-500 mt-0.5">Add items in inspector</span>
+        <span className="text-[10px] text-slate-500 mt-1">Add items in inspector</span>
       )}
     </div>
   )
@@ -115,13 +117,13 @@ export function ChecklistContent({ widget }: { widget: CanvasWidget }) {
   const checked = card?.items.filter((i) => i.checked).length ?? 0
 
   return (
-    <div className="flex h-full flex-col items-center justify-center p-2 text-center">
-      <span className="text-lg">✅</span>
-      <span className="text-[10px] font-semibold text-slate-200 mt-1">{card?.heading ?? 'Checklist'}</span>
+    <div className="flex h-full flex-col items-center justify-center p-3 text-center">
+      <span className="text-xl">✅</span>
+      <span className="text-[12px] font-semibold text-slate-200 mt-1.5">{card?.heading ?? 'Checklist'}</span>
       {totalItems > 0 ? (
-        <span className="text-[8px] text-slate-400 mt-0.5">{checked}/{totalItems} done</span>
+        <span className="text-[10px] text-slate-400 mt-1">{checked}/{totalItems} done</span>
       ) : (
-        <span className="text-[8px] text-slate-500 mt-0.5">Add items in inspector</span>
+        <span className="text-[10px] text-slate-500 mt-1">Add items in inspector</span>
       )}
     </div>
   )
@@ -129,10 +131,10 @@ export function ChecklistContent({ widget }: { widget: CanvasWidget }) {
 
 export function PlaceholderContent({ widget }: { widget: CanvasWidget }) {
   return (
-    <div className="flex h-full flex-col items-center justify-center p-2 text-center">
-      <span className="text-lg">📦</span>
-      <span className="text-[9px] font-semibold text-slate-300">{widget.label}</span>
-      <span className="text-[8px] text-slate-600 mt-0.5">Coming soon</span>
+    <div className="flex h-full flex-col items-center justify-center p-3 text-center">
+      <span className="text-xl">📦</span>
+      <span className="text-[11px] font-semibold text-slate-300">{widget.label}</span>
+      <span className="text-[10px] text-slate-600 mt-1">Coming soon</span>
     </div>
   )
 }

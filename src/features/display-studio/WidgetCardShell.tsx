@@ -18,12 +18,12 @@ export function WidgetCardShell({
     <div
       data-widget-id={widget.id}
       data-widget-type={widget.type}
-      className={`absolute cursor-pointer select-none overflow-hidden rounded-xl border-2 transition-colors ${
+      className={`absolute cursor-pointer select-none overflow-hidden rounded-xl border-2 transition-all duration-150 ${
         isSelected
-          ? 'border-cyan-400 bg-slate-800/95 shadow-lg shadow-cyan-400/20 z-[100]'
+          ? 'border-cyan-400 bg-slate-800/95 shadow-lg shadow-cyan-400/30 ring-1 ring-cyan-400/50 z-[100] scale-[1.02]'
           : widget.locked
             ? 'border-slate-600 bg-slate-900/85 opacity-70'
-            : 'border-slate-700/50 bg-slate-900/75 hover:border-slate-500'
+            : 'border-slate-700/50 bg-slate-900/75 hover:border-slate-500 hover:bg-slate-900/85'
       } ${widget.visible ? '' : 'opacity-20'}`}
       style={{
         left: `${widget.x}%`,
@@ -44,9 +44,9 @@ export function WidgetCardShell({
     >
       {children}
       {isSelected && (
-        <div className="absolute top-0.5 right-1 flex gap-0.5">
-          {widget.locked && <span className="text-[9px]">🔒</span>}
-          {!widget.visible && <span className="text-[9px]">👁‍🗨</span>}
+        <div className="absolute top-1 right-1.5 flex gap-1">
+          {widget.locked && <span className="text-[10px]">🔒</span>}
+          {!widget.visible && <span className="text-[10px]">👁‍🗨</span>}
         </div>
       )}
     </div>
