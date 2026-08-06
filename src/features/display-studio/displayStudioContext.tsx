@@ -14,6 +14,8 @@ export function DisplayStudioUIProvider({ children }: { children: ReactNode }) {
   )
   const [widgetLibraryOpen, setWidgetLibraryOpen] = useState(false)
   const [widgetLibraryCategory, setWidgetLibraryCategory] = useState<WidgetCategory | null>(null)
+  const [templatePickerOpen, setTemplatePickerOpen] = useState(false)
+  const [quickStartOpen, setQuickStartOpen] = useState(false)
   const [presenterMode, setPresenterMode] = useState(false)
 
   const open = useCallback(() => setIsOpen(true), [])
@@ -52,12 +54,27 @@ export function DisplayStudioUIProvider({ children }: { children: ReactNode }) {
       if (!next) setWidgetLibraryCategory(null)
       return next
     })
-    if (category) setWidgetLibraryCategory(category)
   }, [])
 
   const closeWidgetLibrary = useCallback(() => {
     setWidgetLibraryOpen(false)
     setWidgetLibraryCategory(null)
+  }, [])
+
+  const toggleTemplatePicker = useCallback(() => {
+    setTemplatePickerOpen((prev) => !prev)
+  }, [])
+
+  const closeTemplatePicker = useCallback(() => {
+    setTemplatePickerOpen(false)
+  }, [])
+
+  const toggleQuickStart = useCallback(() => {
+    setQuickStartOpen((prev) => !prev)
+  }, [])
+
+  const closeQuickStart = useCallback(() => {
+    setQuickStartOpen(false)
   }, [])
 
   const togglePresenterMode = useCallback(() => {
@@ -72,6 +89,8 @@ export function DisplayStudioUIProvider({ children }: { children: ReactNode }) {
       expandedInspectorSections,
       widgetLibraryOpen,
       widgetLibraryCategory,
+      templatePickerOpen,
+      quickStartOpen,
       presenterMode,
       open,
       close,
@@ -82,25 +101,21 @@ export function DisplayStudioUIProvider({ children }: { children: ReactNode }) {
       collapseInspectorSection,
       toggleWidgetLibrary,
       closeWidgetLibrary,
+      toggleTemplatePicker,
+      closeTemplatePicker,
+      toggleQuickStart,
+      closeQuickStart,
       togglePresenterMode,
     }),
     [
-      isOpen,
-      selectedScreenId,
-      selectedWidgetId,
-      expandedInspectorSections,
-      widgetLibraryOpen,
-      widgetLibraryCategory,
-      presenterMode,
-      open,
-      close,
-      selectScreen,
-      selectWidget,
-      toggleInspectorSection,
-      expandInspectorSection,
-      collapseInspectorSection,
-      toggleWidgetLibrary,
-      closeWidgetLibrary,
+      isOpen, selectedScreenId, selectedWidgetId,
+      expandedInspectorSections, widgetLibraryOpen, widgetLibraryCategory,
+      templatePickerOpen, quickStartOpen, presenterMode,
+      open, close, selectScreen, selectWidget,
+      toggleInspectorSection, expandInspectorSection, collapseInspectorSection,
+      toggleWidgetLibrary, closeWidgetLibrary,
+      toggleTemplatePicker, closeTemplatePicker,
+      toggleQuickStart, closeQuickStart,
       togglePresenterMode,
     ],
   )

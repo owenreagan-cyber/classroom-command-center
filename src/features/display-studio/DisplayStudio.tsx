@@ -4,8 +4,10 @@ import { DisplayStudioThumbnailRail } from './DisplayStudioThumbnailRail'
 import { DisplayStudioCanvas } from './DisplayStudioCanvas'
 import { DisplayStudioInspector } from './DisplayStudioInspector'
 import { DisplayStudioWidgetLibrary } from './DisplayStudioWidgetLibrary'
+import { DisplayStudioTemplatePicker } from './DisplayStudioTemplatePicker'
 import { DisplayStudioCommandBar } from './DisplayStudioCommandBar'
 import { DisplayStudioPresenter } from './DisplayStudioPresenter'
+import { DisplayStudioQuickStart } from './DisplayStudioQuickStart'
 
 /**
  * Display Studio — PowerPoint/Classroomscreen-style classroom display builder.
@@ -26,6 +28,8 @@ export function DisplayStudio() {
         inspector={<DisplayStudioInspector />}
         commandBar={<DisplayStudioCommandBar />}
         widgetLibrary={<DisplayStudioWidgetLibrary />}
+        templatePicker={<DisplayStudioTemplatePicker />}
+        quickStart={<DisplayStudioQuickStart />}
       />
       <DisplayStudioPresenter />
     </>

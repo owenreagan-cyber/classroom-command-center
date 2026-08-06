@@ -12,7 +12,7 @@ export function DisplayStudioThumbnailRail() {
   const screens = useDisplayComposerStore((s) => s.screens)
   const order = useDisplayComposerStore((s) => s.order)
   const activeScreenId = useDisplayComposerStore((s) => s.activeScreenId)
-  const { selectedScreenId, selectScreen, close } = useDisplayStudioUI()
+  const { selectedScreenId, selectScreen, close, toggleTemplatePicker } = useDisplayStudioUI()
   const [packFilter, setPackFilter] = useState('all')
 
   const allScreens = useMemo(
@@ -98,7 +98,12 @@ export function DisplayStudioThumbnailRail() {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="truncate">{screen.title}</span>
-                  {isLive && <span className="ml-1 shrink-0 text-emerald-400">●</span>}
+                  {isLive && (
+                    <span className="ml-1 shrink-0 flex items-center gap-0.5 text-[9px] font-semibold text-emerald-400">
+                      <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      Live
+                    </span>
+                  )}
                 </div>
               </button>
             )
@@ -106,7 +111,14 @@ export function DisplayStudioThumbnailRail() {
         </div>
       </div>
 
-      <div className="shrink-0 border-t border-slate-800 p-2">
+      <div className="shrink-0 border-t border-slate-800 p-2 flex flex-col gap-1.5">
+        <button
+          type="button"
+          className="w-full rounded-lg border border-cyan-400/30 bg-cyan-950/20 px-2 py-1.5 text-[10px] font-semibold text-cyan-200 transition hover:bg-cyan-950/40"
+          onClick={toggleTemplatePicker}
+        >
+          📁 Browse Templates
+        </button>
         <button
           type="button"
           className="w-full rounded-lg border border-slate-600 bg-slate-900/70 px-2 py-1.5 text-[10px] font-semibold text-slate-300 transition hover:bg-slate-800"
