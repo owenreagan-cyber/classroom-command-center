@@ -72,6 +72,7 @@ export const RARITY_WEIGHTS: Record<PrizeRarity, number> = {
   rare: 15,
   veryRare: 8,
   legendary: 2,
+  premiumUltraRare: 1,
 }
 
 export function weightedRandomPrize(

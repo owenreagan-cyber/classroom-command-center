@@ -6,6 +6,7 @@ export const RARITY_STYLES: Record<PrizeRarity, string> = {
   rare: 'bg-blue-900/60 text-blue-200 border-blue-400/40',
   veryRare: 'bg-purple-900/60 text-purple-200 border-purple-400/40',
   legendary: 'bg-amber-900/70 text-amber-200 border-amber-400/50',
+  premiumUltraRare: 'bg-rose-900/80 text-rose-100 border-rose-400/50 ring-2 ring-rose-400/60',
 }
 
 export const RARITY_LABELS: Record<PrizeRarity, string> = {
@@ -14,6 +15,7 @@ export const RARITY_LABELS: Record<PrizeRarity, string> = {
   rare: 'Rare',
   veryRare: 'Very Rare',
   legendary: 'Legendary',
+  premiumUltraRare: 'Premium Ultra Rare',
 }
 
 export function titleRarityBadgeClass(rarity: string): string {

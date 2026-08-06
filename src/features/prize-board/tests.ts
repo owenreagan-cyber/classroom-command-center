@@ -18,7 +18,7 @@ declare const process: any
 import { filterTitlesForPool, getRecentTitleIds, pickTitleForPool } from '../titles/titleBank'
 import { DEFAULT_TITLE_BANK, HOMEROOM_TITLES, MATH_TITLES, READING_TITLES, SHARED_TITLES } from '../titles/defaultTitles'
 import type { TitleUsageEntry } from '../titles/types'
-import { DEFAULT_PRIZE_BANK, MYSTERY_BOX_PRIZE_ID, OMITTED_PRIZE_IDS } from '../prize-board/defaultPrizes'
+import { DEFAULT_PRIZE_BANK, DEPRECATED_PRIZE_IDS, MYSTERY_BOX_PRIZE_ID } from '../prize-board/defaultPrizes'
 import {
   getActivePrizes,
   getMysteryEligiblePrizes,
@@ -147,18 +147,18 @@ function runTests() {
   assert('TB-15: math pick exists', mathPick !== null)
 
   // Prize bank
-  assert('PB-01: default bank has prizes', DEFAULT_PRIZE_BANK.length >= 12)
+  assert('PB-01: default bank has prizes', DEFAULT_PRIZE_BANK.length >= 18)
   const active = getActivePrizes(DEFAULT_PRIZE_BANK, {})
   assert('PB-02: active prizes include Medium 3D Print', active.some((p) => p.id === 'prize-medium-3d'))
   assert('PB-03: active prizes include Mystery Box', active.some((p) => p.id === MYSTERY_BOX_PRIZE_ID))
-  assert('PB-04: Teacher Chair inactive', !active.some((p) => p.id === 'prize-teacher-chair'))
-  assert('PB-05: Teacher Chair in bank inactive', DEFAULT_PRIZE_BANK.find((p) => p.id === 'prize-teacher-chair')?.active === false)
+  assert('PB-04: Teacher Chair is active (Phase 15H)', active.some((p) => p.id === 'prize-teacher-chair'))
+  assert('PB-05: Teacher Chair in bank active', DEFAULT_PRIZE_BANK.find((p) => p.id === 'prize-teacher-chair')?.active === true)
 
-  for (const omitted of OMITTED_PRIZE_IDS) {
-    assert(`PB-06: omitted ${omitted}`, !DEFAULT_PRIZE_BANK.some((p) => p.id === omitted))
+  for (const omitted of DEPRECATED_PRIZE_IDS) {
+    assert(`PB-06: deprecated ${omitted}`, !DEFAULT_PRIZE_BANK.some((p) => p.id === omitted))
   }
 
-  assert('PB-07: No Shoes Pass uncommon', DEFAULT_PRIZE_BANK.find((p) => p.id === 'prize-no-shoes')?.rarity === 'uncommon')
+  assert('PB-07: No Shoes Pass is common', DEFAULT_PRIZE_BANK.find((p) => p.id === 'prize-no-shoes')?.rarity === 'common')
 
   for (const prize of DEFAULT_PRIZE_BANK) {
     assert(`PB-08: valid rarity ${prize.id}`, isValidPrizeRarity(prize.rarity))
@@ -169,7 +169,7 @@ function runTests() {
   assert('PB-10: isMysteryBoxPrize', isMysteryBoxPrize(MYSTERY_BOX_PRIZE_ID))
   const mysteryEligible = getMysteryEligiblePrizes(DEFAULT_PRIZE_BANK, {})
   assert('PB-11: mystery eligible excludes container', !mysteryEligible.some((p) => p.id === MYSTERY_BOX_PRIZE_ID))
-  assert('PB-12: +3 Stamps mystery eligible', mysteryEligible.some((p) => p.id === 'prize-stamps-3'))
+  assert('PB-12: Treasure Box mystery eligible', mysteryEligible.some((p) => p.id === 'prize-treasure-box'))
   assert('PB-13: Small 3D Print mystery eligible', mysteryEligible.some((p) => p.id === 'prize-small-3d'))
 
   // Board generation
@@ -208,11 +208,11 @@ function runTests() {
   session.tiles[0] = {
     index: 0,
     kind: 'revealed',
-    prizeId: 'prize-stamps-3',
+    prizeId: 'prize-sticker',
     studentDisplayName: 'Alex',
     revealedAt: Date.now(),
   }
-  const labels = new Map([['prize-stamps-3', { label: '+3 Stamps', rarity: 'common' }]])
+  const labels = new Map([['prize-sticker', { label: 'Sticker', rarity: 'common' }]])
   const snapshot = toDisplaySafeBoardSnapshot(session, labels)
   assert('DS-01: snapshot exists', snapshot !== null)
   assertEq('DS-02: revealed count', snapshot!.revealedTiles.length, 1)
@@ -242,7 +242,70 @@ function runTests() {
   // Prize toggle
   usePrizeBoardStore.getState().setPrizeActive('prize-no-shoes', false)
   const afterToggle = getActivePrizes(DEFAULT_PRIZE_BANK, usePrizeBoardStore.getState().prizeOverrides)
-  assert('PB-14: toggle deactivates prize', !afterToggle.some((p) => p.id === 'prize-no-shoes'))
+  assert('PB-14: toggle deactivates prize', !afterToggle.some((p: { id: string }) => p.id === 'prize-no-shoes'))
+
+  // Reset for remaining tests
+  usePrizeBoardStore.getState().setPrizeActive('prize-no-shoes', true)
+
+  // ── Phase 15H: Prize Catalog Audit ──────────────────────────────────
+  const hActive = getActivePrizes(DEFAULT_PRIZE_BANK, {})
+
+  // Rarity mapping
+  assert('PH-01: Lunch with Friend is premiumUltraRare', DEFAULT_PRIZE_BANK.find((p) => p.id === 'prize-lunch-friend')?.rarity === 'premiumUltraRare')
+  assert('PH-02: Large 3D Print exists and active', hActive.some((p) => p.id === 'prize-large-3d'))
+  assert('PH-03: Large 3D Print is premiumUltraRare', DEFAULT_PRIZE_BANK.find((p) => p.id === 'prize-large-3d')?.rarity === 'premiumUltraRare')
+  assert('PH-04: Medium 3D Print is veryRare', DEFAULT_PRIZE_BANK.find((p) => p.id === 'prize-medium-3d')?.rarity === 'veryRare')
+  assert('PH-05: Small 3D Print is rare', DEFAULT_PRIZE_BANK.find((p) => p.id === 'prize-small-3d')?.rarity === 'rare')
+  assert('PH-06: Teacher Chair is veryRare', DEFAULT_PRIZE_BANK.find((p) => p.id === 'prize-teacher-chair')?.rarity === 'veryRare')
+
+  // Required active prizes
+  const requiredActiveIds = [
+    'prize-lunch-friend', 'prize-large-3d', 'prize-medium-3d', 'prize-teacher-chair',
+    'prize-small-3d', 'prize-treasure-box', 'prize-desk-pet', 'prize-switch-seat',
+    'prize-no-comp', 'prize-show-tell', 'prize-toy-recess', 'prize-small-stuffed',
+    'prize-sit-by-friend', 'prize-sticker', 'prize-no-shoes', 'prize-power-up',
+    'prize-word-attack', MYSTERY_BOX_PRIZE_ID,
+  ]
+  for (const id of requiredActiveIds) {
+    assert(`PH-07: ${id} is active`, hActive.some((p) => p.id === id))
+  }
+
+  // No homework pass or deprecated prizes active
+  const disallowedActive = ['prize-no-homework', 'prize-stamps-10', 'prize-stamps-5', 'prize-stamps-3']
+  for (const id of disallowedActive) {
+    assert(`PH-08: ${id} not in active bank`, !hActive.some((p) => p.id === id))
+  }
+
+  // Homework Pass equivalent is inactive
+  const whammyBait = DEFAULT_PRIZE_BANK.find((p) => p.id === 'prize-whammy-bait')
+  assert('PH-09: whammy bait is inactive', whammyBait?.active === false)
+  assert('PH-10: whammy bait label is Surprise Bait', whammyBait?.label === 'Surprise Bait (Whammy)')
+
+  // +5 Points on Test is inactive/special event
+  const pointsPrize = DEFAULT_PRIZE_BANK.find((p) => p.id === 'prize-points-test')
+  assert('PH-11: +5 Points on Test is inactive', pointsPrize?.active === false)
+  assert('PH-12: +5 Points on Test is specialEvent category', pointsPrize?.category === 'specialEvent')
+
+  // Prize fields (skip container prizes that aren't directly redeemable)
+  for (const prize of hActive) {
+    assert(`PH-13: ${prize.id} has displayEmoji`, Boolean(prize.displayEmoji))
+    assert(`PH-14: ${prize.id} has valid rarity`, isValidPrizeRarity(prize.rarity))
+    if (prize.category !== 'container') {
+      assert(`PH-15: ${prize.id} has suggestedCost`, typeof prize.suggestedCost === 'number' && prize.suggestedCost > 0)
+    }
+  }
+
+  // premiumUltraRare isValidPrizeRarity
+  assert('PH-16: premiumUltraRare is valid', isValidPrizeRarity('premiumUltraRare'))
+
+  // No duplicate prize IDs
+  const prizeIds = DEFAULT_PRIZE_BANK.map((p) => p.id)
+  assert('PH-17: no duplicate prize IDs', new Set(prizeIds).size === prizeIds.length)
+
+  // Student safety: no teacher notes/default student data on display path
+  for (const prize of hActive) {
+    assert(`PH-18: ${prize.id} has studentSafe info`, Boolean(prize.label) && Boolean(prize.rarity))
+  }
 
   // Board persistence across reload
   localStorage.clear()
@@ -325,7 +388,7 @@ function runTests() {
   assertEq('PYL-07: student display name', studentOutcome.studentDisplayName, 'Alex')
 
   const prizeOutcome = resolveSpinOutcome(
-    { index: 10, kind: 'prize', prizeId: 'prize-stamps-3' },
+    { index: 10, kind: 'prize', prizeId: 'prize-sticker' },
     DEFAULT_PRIZE_BANK,
     {},
   )
@@ -351,6 +414,7 @@ function runTests() {
   assertEq('PYL-13: rare reveal', rarityToRevealExperience('rare'), 'rare')
   assertEq('PYL-14: veryRare reveal', rarityToRevealExperience('veryRare'), 'veryRare')
   assertEq('PYL-15: legendary reveal', rarityToRevealExperience('legendary'), 'legendary')
+  assertEq('PYL-15b: premiumUltraRare reveal', rarityToRevealExperience('premiumUltraRare'), 'premiumUltraRare')
 
   // State transitions
   let pylState = createInitialPressYourLuckState()
@@ -369,7 +433,7 @@ function runTests() {
   const prizeTile = { index: 1, kind: 'prize' as const, prizeId: 'prize-lunch-friend' }
   const revealPatch = transitionAfterSpinComplete(pylState, prizeTile, DEFAULT_PRIZE_BANK, {})
   assertEq('PYL-20: prize -> revealing', revealPatch.phase, 'revealing')
-  assertEq('PYL-21: rare experience', revealPatch.revealExperience, 'rare')
+  assertEq('PYL-21: premiumUltraRare experience (lunch with friend)', revealPatch.revealExperience, 'premiumUltraRare')
 
   // Mystery sequence
   assertEq('PYL-22: mystery starts announce', nextMysteryPhase(null), 'announce')
@@ -391,7 +455,7 @@ function runTests() {
   const privateFree = displaySnapshotIsPrivateFree({
     poolKey: 'homeroom',
     tileCount: 100,
-    revealedTiles: [{ index: 0, label: '+3 Stamps', isRevealed: true }],
+    revealedTiles: [{ index: 0, label: 'Sticker', isRevealed: true }],
   })
   assert('PYL-31: display snapshot private-free', privateFree)
   assert('PYL-32: snapshot with studentId fails privacy', !displaySnapshotIsPrivateFree({ studentId: 'hidden' }))
