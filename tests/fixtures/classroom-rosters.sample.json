@@ -1,0 +1,68 @@
+{
+  "schoolYear": "2025-2026",
+  "privacy": "SAMPLE — fake data only. Do not commit real student names.",
+  "classes": {
+    "homeroom": {
+      "label": "Sample Homeroom",
+      "students": [
+        { "firstName": "Avery", "lastName": "Sample", "preferredName": "Avi" },
+        { "firstName": "Blake", "lastName": "Sample" },
+        { "firstName": "Casey", "lastName": "Sample" },
+        { "firstName": "Drew", "lastName": "Sample" },
+        { "firstName": "Ellis", "lastName": "Sample", "preferredName": "El" },
+        { "firstName": "Frankie", "lastName": "Sample" },
+        { "firstName": "Gale", "lastName": "Sample" },
+        { "firstName": "Harper", "lastName": "Sample" },
+        { "firstName": "Indigo", "lastName": "Sample", "preferredName": "Indy" },
+        { "firstName": "Jordan", "lastName": "Sample" },
+        { "firstName": "Kellan", "lastName": "Sample" },
+        { "firstName": "Lennon", "lastName": "Sample" },
+        { "firstName": "Marley", "lastName": "Sample" },
+        { "firstName": "Nico", "lastName": "Sample" },
+        { "firstName": "Oakley", "lastName": "Sample" }
+      ]
+    },
+    "math": {
+      "label": "Math",
+      "students": [
+        { "firstName": "Avery", "lastName": "Sample" },
+        { "firstName": "Blake", "lastName": "Sample" },
+        { "firstName": "Casey", "lastName": "Sample" },
+        { "firstName": "Drew", "lastName": "Sample" },
+        { "firstName": "Ellis", "lastName": "Sample" },
+        { "firstName": "Harper", "lastName": "Sample" },
+        { "firstName": "Jordan", "lastName": "Sample" },
+        { "firstName": "Marley", "lastName": "Sample" },
+        { "firstName": "Nico", "lastName": "Sample" },
+        { "firstName": "Oakley", "lastName": "Sample" },
+        { "firstName": "Peyton", "lastName": "Sample" },
+        { "firstName": "Quinn", "lastName": "Sample" }
+      ]
+    },
+    "reading": {
+      "label": "Reading",
+      "sections": {
+        "RM4": [
+          { "firstName": "Avery", "lastName": "Sample", "preferredName": "Avi" },
+          { "firstName": "Blake", "lastName": "Sample" },
+          { "firstName": "Casey", "lastName": "Sample" },
+          { "firstName": "Drew", "lastName": "Sample" },
+          { "firstName": "Ellis", "lastName": "Sample" },
+          { "firstName": "Harper", "lastName": "Sample" },
+          { "firstName": "Jordan", "lastName": "Sample" },
+          { "firstName": "Lennon", "lastName": "Sample" }
+        ],
+        "SM5": [
+          { "firstName": "Frankie", "lastName": "Sample" },
+          { "firstName": "Gale", "lastName": "Sample" },
+          { "firstName": "Indigo", "lastName": "Sample" },
+          { "firstName": "Kellan", "lastName": "Sample" },
+          { "firstName": "Marley", "lastName": "Sample" },
+          { "firstName": "Nico", "lastName": "Sample" },
+          { "firstName": "Oakley", "lastName": "Sample" },
+          { "firstName": "Peyton", "lastName": "Sample" }
+        ]
+      }
+    }
+  }
+}

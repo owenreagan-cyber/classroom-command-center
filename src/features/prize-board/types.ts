@@ -1,6 +1,6 @@
 import type { PickerPoolKey } from '../roster/types'
 
-export type PrizeRarity = 'common' | 'uncommon' | 'rare' | 'veryRare' | 'legendary'
+export type PrizeRarity = 'common' | 'uncommon' | 'rare' | 'veryRare' | 'legendary' | 'premiumUltraRare'
 
 export type PrizeCategory =
   | 'physical'
@@ -8,6 +8,7 @@ export type PrizeCategory =
   | 'stamps'
   | 'container'
   | 'experience'
+  | 'specialEvent'
 
 export interface Prize {
   id: string
@@ -18,6 +19,12 @@ export interface Prize {
   category: PrizeCategory
   stock?: number | null
   notes?: string
+  /** Teacher-only notes never shown on /display */
+  teacherNotes?: string
+  suggestedCost?: number
+  physicalPrize?: boolean
+  passPrivilege?: boolean
+  displayEmoji?: string
   mysteryBoxEligible?: boolean
   /** Reserved for Phase 12C+ Whammy behavior */
   whammyEligible?: boolean
@@ -96,4 +103,5 @@ export const VALID_PRIZE_RARITIES: readonly PrizeRarity[] = [
   'rare',
   'veryRare',
   'legendary',
+  'premiumUltraRare',
 ]

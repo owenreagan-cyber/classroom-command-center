@@ -106,7 +106,7 @@ test.describe('Phase 12C.1 Prize Board projector snapshots', () => {
       outcome: {
         kind: 'whammy',
         tileIndex: 20,
-        prizeLabel: 'Homework Pass',
+        prizeLabel: 'Surprise Reward',
       },
     })
 

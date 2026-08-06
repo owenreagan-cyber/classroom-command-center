@@ -97,15 +97,17 @@ function CelebrationReveal({
   rarityLabel?: string
   isTest?: boolean
 }) {
+  const isPremiumUltraRare = experience === 'premiumUltraRare'
   const isLegendary = experience === 'legendary'
   const isVeryRare = experience === 'veryRare'
+  const isHighTier = isPremiumUltraRare || isLegendary
 
   return (
     <div className={`absolute inset-0 z-50 flex items-center justify-center p-6 ${
-      isLegendary ? 'bg-gradient-to-b from-amber-950/95 to-slate-950/95' : 'bg-slate-950/92'
+      isHighTier ? 'bg-gradient-to-b from-amber-950/95 to-slate-950/95' : 'bg-slate-950/92'
     }`}
     >
-      {isLegendary && <ConfettiLayer />}
+      {isHighTier && <ConfettiLayer />}
       <div
         className={`text-center ${experienceStyles(experience)}`}
         style={{
@@ -119,14 +121,14 @@ function CelebrationReveal({
         )}
         {rarityLabel && (
           <p className={`font-bold uppercase tracking-widest ${
-            isLegendary ? 'text-amber-300 text-lg' : isVeryRare ? 'text-purple-300' : 'text-blue-300 text-sm'
+            isPremiumUltraRare ? 'text-rose-300 text-xl' : isLegendary ? 'text-amber-300 text-lg' : isVeryRare ? 'text-purple-300' : 'text-blue-300 text-sm'
           }`}
           >
             {rarityLabel}
           </p>
         )}
         <p className={`mt-2 font-black text-white ${
-          isLegendary ? 'text-5xl md:text-7xl' : isVeryRare ? 'text-4xl md:text-6xl' : 'text-3xl md:text-5xl'
+          isPremiumUltraRare ? 'text-6xl md:text-8xl' : isLegendary ? 'text-5xl md:text-7xl' : isVeryRare ? 'text-4xl md:text-6xl' : 'text-3xl md:text-5xl'
         }`}
         >
           {label}
@@ -163,6 +165,8 @@ function ConfettiLayer() {
 
 function experienceStyles(level: RevealExperienceLevel): string {
   switch (level) {
+    case 'premiumUltraRare':
+      return 'relative rounded-3xl border-4 border-rose-400 px-8 py-6 shadow-[0_0_80px_rgba(244,114,182,0.5)]'
     case 'legendary':
       return 'relative rounded-3xl border-4 border-amber-400 px-8 py-6 shadow-[0_0_60px_rgba(251,191,36,0.4)]'
     case 'veryRare':
@@ -175,12 +179,13 @@ function experienceStyles(level: RevealExperienceLevel): string {
 }
 
 function playRevealSound(experience: RevealExperienceLevel, enabled: boolean): void {
-  if (experience === 'legendary') prizeBoardAudio.legendaryWin(enabled)
+  if (experience === 'premiumUltraRare' || experience === 'legendary') prizeBoardAudio.legendaryWin(enabled)
   else if (experience === 'veryRare' || experience === 'rare') prizeBoardAudio.rareWin(enabled)
   else prizeBoardAudio.commonWin(enabled)
 }
 
 function getRevealDuration(experience: RevealExperienceLevel | null): number {
+  if (experience === 'premiumUltraRare') return 4500
   if (experience === 'legendary') return 3500
   if (experience === 'veryRare') return 2800
   if (experience === 'rare') return 2200

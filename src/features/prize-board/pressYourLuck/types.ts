@@ -23,7 +23,7 @@ export interface SpinOutcome {
   prizeRarity?: PrizeRarity
 }
 
-export type RevealExperienceLevel = 'common' | 'rare' | 'veryRare' | 'legendary'
+export type RevealExperienceLevel = 'common' | 'rare' | 'veryRare' | 'legendary' | 'premiumUltraRare'
 
 export type MysteryRevealPhase = 'announce' | 'shake' | 'select' | 'reveal'
 
@@ -39,7 +39,7 @@ export interface WhammyConfig {
 
 export const DEFAULT_WHAMMY_CONFIG: WhammyConfig = {
   consequence: 'loseSpin',
-  fakeRewardLabel: 'Homework Pass',
+  fakeRewardLabel: 'Surprise Reward',
 }
 
 export const DEFAULT_SPIN_DURATION_MS = 12_000
@@ -76,6 +76,7 @@ export function isActiveProjectorPhase(phase: PressYourLuckPhase): boolean {
 }
 
 export function rarityToRevealExperience(rarity: PrizeRarity): RevealExperienceLevel {
+  if (rarity === 'premiumUltraRare') return 'premiumUltraRare'
   if (rarity === 'legendary') return 'legendary'
   if (rarity === 'veryRare') return 'veryRare'
   if (rarity === 'rare' || rarity === 'uncommon') return 'rare'
