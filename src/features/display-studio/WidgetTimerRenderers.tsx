@@ -23,12 +23,12 @@ export function TimerWidgetContent({ widget }: { widget: CanvasWidget }) {
   const label = (timer as { label?: string }).label ?? widget.label
 
   return (
-    <div className="flex h-full flex-col items-center justify-center p-2 text-center">
-      <span className="text-[8px] font-semibold uppercase tracking-wide text-slate-400 mb-0.5">{label}</span>
-      <span className={`text-xl font-black tabular-nums ${running ? 'text-cyan-300' : 'text-slate-200'}`}>
+    <div className="flex h-full flex-col items-center justify-center p-3 text-center">
+      <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-300 mb-1">{label}</span>
+      <span className={`text-2xl font-black tabular-nums ${running ? 'text-cyan-300' : 'text-slate-200'}`}>
         {mins}:{secs.toString().padStart(2, '0')}
       </span>
-      <span className="text-[7px] font-semibold uppercase tracking-wide text-slate-500 mt-0.5">
+      <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 mt-1">
         {timer.status === 'idle' ? 'Ready' : timer.status === 'running' ? 'Running' : timer.status === 'paused' ? 'Paused' : 'Done'}
       </span>
     </div>
@@ -48,28 +48,28 @@ export function RoutineTimerContent({ widget }: { widget: CanvasWidget }) {
   const running = timer.status === 'running'
 
   return (
-    <div className="flex h-full flex-col justify-center p-2">
-      <span className="text-[8px] font-semibold uppercase tracking-wide text-slate-400 mb-1 text-center">
+    <div className="flex h-full flex-col justify-center p-3">
+      <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-300 mb-1.5 text-center">
         {widget.label}
       </span>
       {currentStep ? (
         <>
-          <div className="flex items-center justify-between gap-1">
-            <span className="text-[10px] font-semibold text-cyan-200 truncate">{currentStep.label}</span>
-            <span className={`text-sm font-black tabular-nums shrink-0 ${running ? 'text-cyan-300' : 'text-slate-300'}`}>
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[12px] font-semibold text-cyan-200 truncate">{currentStep.label}</span>
+            <span className={`text-base font-black tabular-nums shrink-0 ${running ? 'text-cyan-300' : 'text-slate-300'}`}>
               {mins}:{secs.toString().padStart(2, '0')}
             </span>
           </div>
-          <div className="mt-1 h-1 rounded-full bg-slate-700 overflow-hidden">
+          <div className="mt-1.5 h-1.5 rounded-full bg-slate-700 overflow-hidden">
             <div
               className="h-full rounded-full bg-cyan-500 transition-all duration-1000"
               style={{ width: `${currentStep.durationMinutes > 0 ? (remaining / (currentStep.durationMinutes * 60000)) * 100 : 0}%` }}
             />
           </div>
-          {nextStep && <span className="text-[8px] text-slate-500 mt-0.5">Next: {nextStep.label}</span>}
+          {nextStep && <span className="text-[10px] text-slate-500 mt-1">Next: {nextStep.label}</span>}
         </>
       ) : (
-        <span className="text-[9px] text-slate-400 text-center">No routine loaded</span>
+        <span className="text-[11px] text-slate-400 text-center">No routine loaded</span>
       )}
     </div>
   )

@@ -18,16 +18,16 @@ export function MysteryStudentContent({ widget }: { widget: CanvasWidget }) {
   const status = getMysteryDisplayStatus(activeSession)
 
   return (
-    <div className="flex h-full flex-col items-center justify-center p-2 text-center">
-      <span className="text-lg">🌟</span>
+    <div className="flex h-full flex-col items-center justify-center p-3 text-center">
+      <span className="text-xl">🌟</span>
       {status.isActive ? (
         <>
-          <span className="text-[10px] font-semibold text-amber-200 mt-1">{status.statusLabel}</span>
-          {status.hasHiddenDraw && <span className="text-[8px] text-slate-400 mt-0.5">Keep showing expectations</span>}
-          {status.celebratingWin && <span className="text-[8px] text-amber-300 mt-0.5">Great job!</span>}
+          <span className="text-[12px] font-semibold text-amber-200 mt-1.5">{status.statusLabel}</span>
+          {status.hasHiddenDraw && <span className="text-[10px] text-slate-400 mt-1">Keep showing expectations</span>}
+          {status.celebratingWin && <span className="text-[10px] text-amber-300 mt-1">Great job!</span>}
         </>
       ) : (
-        <span className="text-[9px] text-slate-400 mt-1">No active Mystery Star</span>
+        <span className="text-[11px] text-slate-400 mt-1.5">No active Mystery Star</span>
       )}
     </div>
   )
@@ -35,10 +35,10 @@ export function MysteryStudentContent({ widget }: { widget: CanvasWidget }) {
 
 export function RandomPickerContent({ widget }: { widget: CanvasWidget }) {
   return (
-    <div className="flex h-full flex-col items-center justify-center p-2 text-center">
-      <span className="text-lg">🎯</span>
-      <span className="text-[10px] font-semibold text-slate-200 mt-1">{widget.label}</span>
-      <span className="text-[8px] text-slate-400 mt-0.5">Ready to pick</span>
+    <div className="flex h-full flex-col items-center justify-center p-3 text-center">
+      <span className="text-xl">🎯</span>
+      <span className="text-[12px] font-semibold text-slate-200 mt-1.5">{widget.label}</span>
+      <span className="text-[10px] text-slate-400 mt-1">Ready to pick</span>
     </div>
   )
 }
@@ -48,17 +48,17 @@ export function HundredBoardContent({ widget }: { widget: CanvasWidget }) {
   const showOnDisplay = useRandomNumberStore((s) => s.showOnDisplay)
 
   return (
-    <div className="flex h-full flex-col items-center justify-center p-2 text-center">
-      <span className="text-lg">🔢</span>
+    <div className="flex h-full flex-col items-center justify-center p-3 text-center">
+      <span className="text-xl">🔢</span>
       {lastResult !== null && showOnDisplay ? (
         <>
           <span className="text-2xl font-black text-cyan-300">{lastResult}</span>
-          <span className="text-[8px] text-slate-400 mt-0.5">Current number</span>
+          <span className="text-[10px] text-slate-400 mt-1">Current number</span>
         </>
       ) : (
         <>
-          <span className="text-[10px] font-semibold text-slate-200">{widget.label}</span>
-          <span className="text-[8px] text-slate-400 mt-0.5">Draw a number to show it here</span>
+          <span className="text-[12px] font-semibold text-slate-200">{widget.label}</span>
+          <span className="text-[10px] text-slate-400 mt-1">Draw a number to show it here</span>
         </>
       )}
     </div>
@@ -75,16 +75,16 @@ export function PrizeBoardContent({ widget }: { widget: CanvasWidget }) {
   }
 
   return (
-    <div className="flex h-full flex-col items-center justify-center p-2 text-center">
-      <span className="text-lg">🎁</span>
-      <span className="text-[10px] font-semibold text-slate-200 mt-1">{widget.label}</span>
+    <div className="flex h-full flex-col items-center justify-center p-3 text-center">
+      <span className="text-xl">🎁</span>
+      <span className="text-[12px] font-semibold text-slate-200 mt-1.5">{widget.label}</span>
       {isActive ? (
         <>
-          <span className="text-[9px] font-semibold text-amber-200 mt-0.5">{phaseLabels[phase] ?? phase}</span>
-          <span className="text-[8px] text-slate-400 mt-0.5">{remainingSpins} spins left</span>
+          <span className="text-[11px] font-semibold text-amber-200 mt-1">{phaseLabels[phase] ?? phase}</span>
+          <span className="text-[10px] text-slate-400 mt-1">{remainingSpins} spins left</span>
         </>
       ) : (
-        <span className="text-[8px] text-slate-400 mt-0.5">Open Prize Board to start</span>
+        <span className="text-[10px] text-slate-400 mt-1">Open Prize Board to start</span>
       )}
     </div>
   )
@@ -96,12 +96,12 @@ export function PressYourLuckContent({ widget }: { widget: CanvasWidget }) {
   const isActive = phase !== 'idle'
 
   return (
-    <div className="flex h-full flex-col items-center justify-center p-2 text-center">
-      <span className="text-lg">🎰</span>
+    <div className="flex h-full flex-col items-center justify-center p-3 text-center">
+      <span className="text-xl">🎰</span>
       {isActive ? (
-        <span className="text-[9px] font-semibold text-amber-200 mt-1">{phase}</span>
+        <span className="text-[11px] font-semibold text-amber-200 mt-1.5">{phase}</span>
       ) : (
-        <span className="text-[8px] text-slate-400 mt-1">Open Press Your Luck to start</span>
+        <span className="text-[10px] text-slate-400 mt-1.5">Open Press Your Luck to start</span>
       )}
     </div>
   )
