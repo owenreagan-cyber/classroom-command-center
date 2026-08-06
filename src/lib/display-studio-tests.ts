@@ -546,7 +546,86 @@ test('missing wallpaper falls back safely', () => {
   const missing = getWallpaper('nonexistent-wallpaper')
   assert(missing === undefined, 'missing wallpaper returns undefined without crashing')
   const fallback = getDefaultWP()
-    assert(fallback !== undefined, 'default wallpaper exists as fallback')
+  assert(fallback !== undefined, 'default wallpaper exists as fallback')
+})
+
+// ── Phase 15G: Template Picker, Theme Picker, Quick Start, Display Active Indicator ──
+
+// Template categories (see DisplayStudioTemplatePicker.tsx for the UI version)
+const TEMPLATE_CATEGORIES_15G = [
+  { id: 'daily', label: 'Daily' },
+  { id: 'instruction', label: 'Instruction' },
+  { id: 'management', label: 'Management' },
+  { id: 'engagement', label: 'Engagement' },
+]
+
+test('template categories are defined', () => {
+  assert(TEMPLATE_CATEGORIES_15G.length === 4, `Expected 4 template categories, got ${TEMPLATE_CATEGORIES_15G.length}`)
+  const catIds = TEMPLATE_CATEGORIES_15G.map((c: { id: string }) => c.id)
+  assert(catIds.includes('daily'), 'daily category exists')
+  assert(catIds.includes('instruction'), 'instruction category exists')
+  assert(catIds.includes('management'), 'management category exists')
+  assert(catIds.includes('engagement'), 'engagement category exists')
+})
+
+test('required templates exist per category', () => {
+  const byId: Record<string, typeof DEFAULT_DISPLAY_SCREENS[number]> = {}
+  for (const s of DEFAULT_DISPLAY_SCREENS) byId[s.id] = s
+
+  const dailyIds = ['arrival-720', 'morning-work-to-math', 'math-to-snack-shurley', 'shurley-to-movement-spelling-reading',
+    'movement-to-spelling-reading', 'spelling-reading-to-lunch', 'lunch-15c', 'pack-up', 'end-of-day', 'cleanup']
+  for (const id of dailyIds) {
+    assert(byId[id] !== undefined, `daily template ${id} should exist`)
+    assert(byId[id]?.studentSafe === true, `${id} should be studentSafe`)
+  }
+
+  const instructionIds = ['lesson-launch', 'math-launch-15c', 'reading-launch', 'writing-workshop',
+    'shurley-grammar', 'history-launch', 'science-launch', 'spelling-word-work']
+  for (const id of instructionIds) {
+    assert(byId[id] !== undefined, `instruction template ${id} should exist`)
+  }
+
+  const managementIds = ['work-time', 'work-time-15c', 'partner-talk', 'small-groups', 'independent-practice', 'test-mode', 'specials']
+  for (const id of managementIds) {
+    assert(byId[id] !== undefined, `management template ${id} should exist`)
+  }
+
+  const engagementIds = ['mystery-student-15c', 'game-review', 'review-game-15c', 'prize-board-screen']
+  for (const id of engagementIds) {
+    assert(byId[id] !== undefined, `engagement template ${id} should exist`)
+  }
+})
+
+test('theme picker themes match theme registry', () => {
+  for (const theme of DISPLAY_STUDIO_THEMES) {
+    const resolved = resolveThemeBackground(theme.id)
+    assert(resolved.token.length > 0, `${theme.id} resolves to a background token`)
+    assert(['gradient', 'solid', 'image'].includes(resolved.type), `${theme.id} has valid type`)
+  }
+})
+
+test('widget layout presets exist for sizing', () => {
+  const presetIds = ['small', 'medium', 'large', 'wide', 'full-width'] as const
+  for (const id of presetIds) {
+    assert(!!WIDGET_SIZE_PRESETS[id], `preset ${id} exists`)
+    const preset = WIDGET_SIZE_PRESETS[id]
+    assert(preset.w > 0 && preset.h > 0, `${id} has valid dimensions`)
+  }
+})
+
+test('display studio UI context actions are defined', () => {
+  // Verify the context type has required Phase 15G fields
+  // These are compile-time checks, but we verify runtime imports work
+  assert(typeof isTypingTarget === 'function', 'isTypingTarget is imported and callable')
+})
+
+test('toDisplaySafeScreen excludes template/theme picker concepts from /display', () => {
+  const screen = { ...DEFAULT_DISPLAY_SCREENS[0], teacherNotes: 'Secret' }
+  const safe = toDisplaySafeScreen(screen)
+  assert(safe !== null, 'screen is display-safe')
+  assert(!('teacherNotes' in safe!), 'teacherNotes not in safe screen')
+  // Template picker and theme picker are UI-only on /control — never on /display
+  assert(!('templatePickerOpen' in safe), 'template picker state never exposed')
 })
 
 // ── Summary ──

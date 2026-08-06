@@ -6,6 +6,7 @@ import { DISPLAY_BACKGROUND_GRADIENTS, DISPLAY_BACKGROUND_SOLIDS } from '../disp
 import { BACKGROUND_ASSETS } from '../../data/backgroundAssets'
 import { computeReadabilityWarnings } from '../display-composer/readabilityChecks'
 import { isDefaultScreenId } from '../display-composer/defaultScreens'
+import { DisplayStudioThemePicker } from './DisplayStudioThemePicker'
 import type {
   DisplayScreen,
   DisplayBackgroundType,
@@ -204,6 +205,9 @@ function StyleSection({ screen }: { screen: DisplayScreen }) {
           )}
         </div>
       </div>
+
+      {/* Phase 15G: Theme Picker */}
+      <DisplayStudioThemePicker />
     </div>
   )
 }

@@ -8,6 +8,10 @@ interface DisplayStudioShellProps {
   inspector: ReactNode
   commandBar: ReactNode
   widgetLibrary?: ReactNode
+  /** Phase 15G: Template gallery in right panel. */
+  templatePicker?: ReactNode
+  /** Phase 15G: Quick Start panel below command bar. */
+  quickStart?: ReactNode
 }
 
 /**
@@ -21,8 +25,10 @@ export function DisplayStudioShell({
   inspector,
   commandBar,
   widgetLibrary,
+  templatePicker,
+  quickStart,
 }: DisplayStudioShellProps) {
-  const { isOpen, close } = useDisplayStudioUI()
+  const { isOpen, close, templatePickerOpen } = useDisplayStudioUI()
 
   if (!isOpen) return null
 
@@ -47,12 +53,15 @@ export function DisplayStudioShell({
         {leftRail}
       </aside>
 
-      {/* Center: Canvas + Command Bar */}
+      {/* Center: Canvas + Command Bar + Quick Start */}
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         {/* Top Command Bar */}
         <div className="shrink-0 border-b border-slate-800 bg-slate-950" data-display-studio-command-bar>
           {commandBar}
         </div>
+
+        {/* Quick Start panel (optional, collapsible) */}
+        {quickStart}
 
         {/* Canvas Area */}
         <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto p-6" data-display-studio-canvas-area>
@@ -60,13 +69,18 @@ export function DisplayStudioShell({
         </div>
       </div>
 
-      {/* Right: Inspector + optional Widget Library */}
+      {/* Right: Inspector + optional Widget Library or Template Picker */}
       <aside
         className="flex w-72 shrink-0 flex-col border-l border-slate-800 bg-slate-950"
         data-display-studio-inspector
       >
-        {widgetLibrary}
-        {inspector}
+        {/* Phase 15G: Template picker replaces right panel area when open */}
+        {templatePickerOpen ? templatePicker : (
+          <>
+            {widgetLibrary}
+            {inspector}
+          </>
+        )}
       </aside>
     </div>
   )
