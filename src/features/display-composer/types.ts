@@ -80,6 +80,7 @@ export type CanvasWidgetType =
   | '100-board'
   | 'prize-board'
   | 'press-your-luck'
+  | 'lotto-board'
 
 /** Size preset for canvas widgets (applied as percentage of 16:9 canvas). */
 export type WidgetSizePreset = 'small' | 'medium' | 'large' | 'wide' | 'full-width'

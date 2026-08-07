@@ -42,6 +42,8 @@ export const STUDIO_WIDGETS: WidgetDefinition[] = [
   { id: 'press-your-luck', label: 'Press Your Luck', description: 'Spin-to-win game status', category: 'rewards', status: 'connected', icon: '🎰' },
   { id: 'scoreboard', label: 'Scoreboard', description: 'Team or class scoreboard', category: 'rewards', status: 'placeholder', icon: '🏆' },
   // Instruction
+  { id: 'lotto-board', label: 'Lotto Board', description: 'Bingo-style 1-100 ball draw', category: 'engagement', status: 'connected', icon: '🎱' },
+  // Instruction
   { id: 'image', label: 'Image', description: 'Show an image on the display', category: 'instruction', status: 'placeholder', icon: '🖼' },
   { id: 'pdf-embed', label: 'PDF / Embed', description: 'Embed a document or webpage', category: 'instruction', status: 'placeholder', icon: '📄' },
 ]

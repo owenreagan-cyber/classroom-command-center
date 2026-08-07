@@ -113,6 +113,16 @@ export const TEACHER_TOOL_REGISTRY: readonly ToolDefinition[] = [
     description: 'Draw random numbers with optional no-repeat mode.',
   },
   {
+    id: 'lotto-board',
+    title: 'Lotto Board',
+    category: 'students',
+    icon: '🎱',
+    status: 'docked',
+    permissions: ['teacher-only', 'control-route-only'],
+    componentId: 'lotto-board',
+    description: 'Draw bingo-style lotto balls 1–100 with weekly count.',
+  },
+  {
     id: 'materials',
     title: 'Materials',
     category: 'instruction',

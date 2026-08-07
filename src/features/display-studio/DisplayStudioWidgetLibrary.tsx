@@ -23,6 +23,7 @@ const WIDGET_TYPE_MAP: Record<string, { canvasType: CanvasWidgetType | string | 
   '100-board': { canvasType: '100-board', defaultSize: 'medium' },
   'prize-board': { canvasType: 'prize-board', defaultSize: 'large' },
   'press-your-luck': { canvasType: 'press-your-luck', defaultSize: 'large' },
+  'lotto-board': { canvasType: 'lotto-board', defaultSize: 'medium' },
   'noise-meter': { canvasType: 'noise-meter', defaultSize: 'small' },
   atmosphere: { canvasType: 'atmosphere', defaultSize: 'small' },
   'qr-code': { canvasType: null, defaultSize: 'small' },

@@ -198,6 +198,17 @@ export const WIDGET_REGISTRY: WidgetTypeConfig[] = [
     defaultSettings: {},
     studentSafe: true,
   },
+  {
+    type: 'lotto-board',
+    label: 'Lotto Board',
+    category: 'engagement',
+    description: 'Bingo-style 1-100 ball draw for classroom use',
+    status: 'connected',
+    icon: '🎱',
+    defaultSize: 'medium',
+    defaultSettings: {},
+    studentSafe: true,
+  },
 ]
 
 const REGISTRY_BY_TYPE = new Map(WIDGET_REGISTRY.map((w) => [w.type, w]))
