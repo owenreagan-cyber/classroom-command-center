@@ -1,4 +1,5 @@
 import type { CanvasWidget } from './types'
+import { HundredBoardDisplayWidget } from './HundredBoardDisplayWidget'
 
 /**
  * Renders student-safe display content for a single widget.
@@ -49,11 +50,7 @@ export function WidgetDisplayCard({ widget }: { widget: CanvasWidget }) {
       )
 
     case '100-board':
-      return (
-        <div className={`${cardClasses} text-center`}>
-          <p className="text-2xl font-bold text-white">🔢 {widget.label || '100 Board'}</p>
-        </div>
-      )
+      return <HundredBoardDisplayWidget />
 
     case 'prize-board':
       return (

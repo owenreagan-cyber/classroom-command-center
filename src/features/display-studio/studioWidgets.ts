@@ -34,7 +34,7 @@ export const STUDIO_WIDGETS: WidgetDefinition[] = [
   // Engagement
   { id: 'random-picker', label: 'Random Picker', description: 'Pick a random student', category: 'engagement', status: 'connected', icon: '🎯' },
   { id: 'mystery-student', label: 'Mystery Student', description: 'Mystery Star random reveal', category: 'engagement', status: 'connected', icon: '🌟' },
-  { id: '100-board', label: '100 Board', description: 'Random number display', category: 'engagement', status: 'connected', icon: '🔢' },
+  { id: '100-board', label: '100 Board', description: 'Interactive number board with prize reveals', category: 'engagement', status: 'connected', icon: '🔢' },
   { id: 'dice-spinner', label: 'Dice / Spinner', description: 'Interactive dice roll or spinner', category: 'engagement', status: 'placeholder', icon: '🎲' },
   { id: 'poll', label: 'Poll', description: 'Quick classroom poll widget', category: 'engagement', status: 'placeholder', icon: '📊' },
   // Rewards
