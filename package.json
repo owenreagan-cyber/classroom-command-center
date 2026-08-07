@@ -12,6 +12,7 @@
     "test:student-picker": "bash scripts/test-student-picker.sh",
     "test:prize-board": "bash scripts/test-prize-board.sh",
     "test:hundred-board": "bash scripts/test-hundred-board.sh",
+    "test:lotto-board": "bash scripts/test-lotto-board.sh",
     "test:random-number": "bash scripts/test-random-number.sh",
     "test:local-packets": "bash scripts/test-local-packets.sh",
     "test:pages": "bash scripts/test-pages.sh",

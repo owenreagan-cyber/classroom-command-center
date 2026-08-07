@@ -16,6 +16,7 @@ export const REGISTERED_TOOL_PANEL_IDS: readonly ToolId[] = [
   'quick-picker',
   'prize-board',
   'random-number',
+  'lotto-board',
   'jobs',
   'noise',
   'board-control',

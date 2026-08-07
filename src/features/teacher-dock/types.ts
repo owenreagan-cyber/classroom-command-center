@@ -25,6 +25,7 @@ export type ToolId =
   | 'quick-picker'
   | 'prize-board'
   | 'random-number'
+  | 'lotto-board'
   | 'materials'
   | 'display'
   | 'display-composer'

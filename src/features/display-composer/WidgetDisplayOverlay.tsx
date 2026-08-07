@@ -1,5 +1,6 @@
 import type { CanvasWidget } from './types'
 import { HundredBoardDisplayWidget } from './HundredBoardDisplayWidget'
+import { LottoBoardStudentDisplay } from '../lotto-board/LottoBoardStudentDisplay'
 
 /**
  * Renders student-safe display content for a single widget.
@@ -51,6 +52,9 @@ export function WidgetDisplayCard({ widget }: { widget: CanvasWidget }) {
 
     case '100-board':
       return <HundredBoardDisplayWidget />
+
+    case 'lotto-board':
+      return <LottoBoardStudentDisplay />
 
     case 'prize-board':
       return (

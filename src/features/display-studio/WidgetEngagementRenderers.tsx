@@ -4,6 +4,7 @@ import { usePickerStore } from '../student-picker/pickerStore'
 import { getMysteryDisplayStatus } from '../roster/displaySafe'
 import { useHundredBoardStore } from '../hundred-board/hundredBoardStore'
 import { usePressYourLuckStore } from '../prize-board/pressYourLuck/pressYourLuckStore'
+import { useLottoBoardStore } from '../lotto-board/lottoBoardStore'
 
 export function MysteryStudentContent({ widget }: { widget: CanvasWidget }) {
   void widget // consumed by stores
@@ -107,6 +108,31 @@ export function PressYourLuckContent({ widget }: { widget: CanvasWidget }) {
         <span className="text-[11px] font-semibold text-amber-200 mt-1.5">{phase}</span>
       ) : (
         <span className="text-[10px] text-slate-400 mt-1.5">Open Press Your Luck to start</span>
+      )}
+    </div>
+  )
+}
+
+export function LottoBoardContent({ widget }: { widget: CanvasWidget }) {
+  const pendingNumbers = useLottoBoardStore((s) => s.pendingNumbers)
+  const remainingCount = useLottoBoardStore((s) => s.availableNumbers.length)
+  const usedCount = useLottoBoardStore((s) => s.usedNumbers.length)
+  const hasPending = pendingNumbers.length > 0
+  const hasHistory = usedCount > 0
+
+  return (
+    <div className="flex h-full flex-col items-center justify-center p-3 text-center">
+      <span className="text-xl">🎱</span>
+      <span className="text-[12px] font-semibold text-slate-200 mt-1.5">{widget.label}</span>
+      {hasPending ? (
+        <>
+          <span className="text-sm font-bold text-cyan-300 mt-1">{pendingNumbers.join(', ')}</span>
+          <span className="text-[10px] text-cyan-200 mt-0.5">Pending — confirm to remove</span>
+        </>
+      ) : hasHistory ? (
+        <span className="text-[10px] text-slate-400 mt-1">{remainingCount} remaining, {usedCount} used</span>
+      ) : (
+        <span className="text-[10px] text-slate-400 mt-1">Open Lotto Board to draw</span>
       )}
     </div>
   )

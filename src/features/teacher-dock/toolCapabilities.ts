@@ -75,6 +75,12 @@ export const TOOL_CAPABILITY_REGISTRY: ToolCapabilityMap = {
     permissions: ['teacher-only', 'control-route-only'],
     modeSupport: [],
   },
+  'lotto-board': {
+    requiredDeviceRole: 'teacher-command-center',
+    displayTarget: 'student-display',
+    permissions: ['teacher-only', 'control-route-only'],
+    modeSupport: ['morning', 'math', 'reading', 'shurley', 'reward', 'transition'],
+  },
   materials: {
     requiredDeviceRole: 'teacher-command-center',
     displayTarget: 'optional',
