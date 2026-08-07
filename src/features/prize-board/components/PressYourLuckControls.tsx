@@ -9,7 +9,7 @@ interface PressYourLuckControlsProps {
   hasBoard: boolean
 }
 
-const TEST_RARITIES: PrizeRarity[] = ['common', 'rare', 'veryRare', 'legendary']
+const TEST_RARITIES: PrizeRarity[] = ['common', 'rare', 'veryRare', 'legendary', 'premiumUltraRare']
 
 export function PressYourLuckControls({ poolKey, hasBoard }: PressYourLuckControlsProps) {
   const phase = usePressYourLuckStore((s) => s.phase)

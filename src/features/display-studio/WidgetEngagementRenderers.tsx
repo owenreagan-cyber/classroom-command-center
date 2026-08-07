@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import type { CanvasWidget } from '../display-composer/types'
 import { usePickerStore } from '../student-picker/pickerStore'
 import { getMysteryDisplayStatus } from '../roster/displaySafe'
-import { useRandomNumberStore } from '../random-number/randomNumberStore'
+import { useHundredBoardStore } from '../hundred-board/hundredBoardStore'
 import { usePressYourLuckStore } from '../prize-board/pressYourLuck/pressYourLuckStore'
 
 export function MysteryStudentContent({ widget }: { widget: CanvasWidget }) {
@@ -44,21 +44,26 @@ export function RandomPickerContent({ widget }: { widget: CanvasWidget }) {
 }
 
 export function HundredBoardContent({ widget }: { widget: CanvasWidget }) {
-  const lastResult = useRandomNumberStore((s) => s.lastResult)
-  const showOnDisplay = useRandomNumberStore((s) => s.showOnDisplay)
+  const completedCount = useHundredBoardStore((s) => s.completedCount)
+  const activeTileNumber = useHundredBoardStore((s) => s.activeTileNumber)
+  const tiles = useHundredBoardStore((s) => s.tiles)
+  const hasBoard = tiles.some((t) => t.outcomeIndex !== null)
 
   return (
     <div className="flex h-full flex-col items-center justify-center p-3 text-center">
       <span className="text-xl">🔢</span>
-      {lastResult !== null && showOnDisplay ? (
+      {hasBoard ? (
         <>
-          <span className="text-2xl font-black text-cyan-300">{lastResult}</span>
-          <span className="text-[10px] text-slate-400 mt-1">Current number</span>
+          <span className="text-[12px] font-semibold text-slate-200 mt-1.5">{widget.label}</span>
+          <span className="text-[11px] font-semibold text-cyan-300 mt-1">{completedCount}/100 revealed</span>
+          {activeTileNumber && (
+            <span className="text-[10px] text-cyan-200 mt-0.5">#{activeTileNumber} selected</span>
+          )}
         </>
       ) : (
         <>
           <span className="text-[12px] font-semibold text-slate-200">{widget.label}</span>
-          <span className="text-[10px] text-slate-400 mt-1">Draw a number to show it here</span>
+          <span className="text-[10px] text-slate-400 mt-1">Generate a board to start</span>
         </>
       )}
     </div>
