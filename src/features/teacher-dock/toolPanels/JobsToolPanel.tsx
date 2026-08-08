@@ -1,17 +1,6 @@
 import { memo } from 'react'
-import { DailyBriefPanel } from '../../../board/DailyBriefPanel'
-import { useTeacherDockContext } from '../useTeacherDockContext'
+import { JobsManagerTeacherPanel } from '../../jobs-manager/JobsManagerTeacherPanel'
 
 export const JobsToolPanel = memo(function JobsToolPanel() {
-  const { activeScreen, boardState, onContentsChange, onNoiseVoiceLevelChange } =
-    useTeacherDockContext()
-
-  return (
-    <DailyBriefPanel
-      activeScreen={activeScreen}
-      contents={boardState.contents}
-      onContentsChange={onContentsChange}
-      onNoiseVoiceLevelChange={onNoiseVoiceLevelChange}
-    />
-  )
+  return <JobsManagerTeacherPanel />
 })

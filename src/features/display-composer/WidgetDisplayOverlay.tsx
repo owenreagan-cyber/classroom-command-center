@@ -1,6 +1,7 @@
 import type { CanvasWidget } from './types'
 import { HundredBoardDisplayWidget } from './HundredBoardDisplayWidget'
 import { LottoBoardStudentDisplay } from '../lotto-board/LottoBoardStudentDisplay'
+import { JobsManagerStudentDisplay } from '../jobs-manager/JobsManagerStudentDisplay'
 
 /**
  * Renders student-safe display content for a single widget.
@@ -56,7 +57,8 @@ export function WidgetDisplayCard({ widget }: { widget: CanvasWidget }) {
     case 'lotto-board':
       return <LottoBoardStudentDisplay />
 
-    case 'prize-board':
+    case 'jobs-manager':
+      return <JobsManagerStudentDisplay />
       return (
         <div className="rounded-2xl bg-amber-950/50 px-6 py-4 backdrop-blur-sm shadow-lg text-center">
           <p className="text-2xl font-bold text-amber-200">🎁 {widget.label || 'Prize Board'}</p>

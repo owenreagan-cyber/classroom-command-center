@@ -1,7 +1,7 @@
 import type { CanvasWidget } from '../display-composer/types'
 import { WidgetCardShell } from './WidgetCardShell'
 import { TimerWidgetContent, RoutineTimerContent } from './WidgetTimerRenderers'
-import { MysteryStudentContent, RandomPickerContent, HundredBoardContent, PrizeBoardContent, PressYourLuckContent, LottoBoardContent } from './WidgetEngagementRenderers'
+import { MysteryStudentContent, RandomPickerContent, HundredBoardContent, PrizeBoardContent, PressYourLuckContent, LottoBoardContent, JobsManagerContent } from './WidgetEngagementRenderers'
 import { NoiseLevelContent, AtmosphereContent, DirectionsTextContent, WorkSymbolsContent, MaterialsContent, ChecklistContent, PlaceholderContent } from './WidgetMiscRenderers'
 
 export function WidgetCanvasCard({
@@ -25,6 +25,7 @@ export function WidgetCanvasCard({
       case 'prize-board': return <PrizeBoardContent widget={widget} />
       case 'press-your-luck': return <PressYourLuckContent widget={widget} />
       case 'lotto-board': return <LottoBoardContent widget={widget} />
+      case 'jobs-manager': return <JobsManagerContent widget={widget} />
       case 'noise-meter': return <NoiseLevelContent widget={widget} />
       case 'atmosphere': return <AtmosphereContent widget={widget} />
       case 'directions-text': return <DirectionsTextContent widget={widget} />

@@ -287,7 +287,7 @@ test('connected widget types are in CanvasWidgetType', () => {
   const canvasTypes = new Set([
     'clock', 'countdown-timer', 'routine-timer', 'directions-text', 'materials', 'checklist',
     'work-symbols', 'noise-meter', 'atmosphere', 'random-picker', 'mystery-student',
-    '100-board', 'prize-board', 'press-your-luck',
+    '100-board', 'prize-board', 'press-your-luck', 'lotto-board', 'jobs-manager',
   ])
   for (const id of connectedIds) {
     assert(canvasTypes.has(id) || id === 'stopwatch' || id === 'qr-code' || id === 'dice-spinner' || id === 'poll' || id === 'scoreboard' || id === 'image' || id === 'pdf-embed',
