@@ -48,8 +48,7 @@ export function DisplayScreenRenderer({ screen, variant, className = '' }: Displ
       {/* Canvas widget overlay — student-safe rendering (display variant only) */}
       {variant === 'display' && <WidgetDisplayOverlay widgets={screen.widgets} />}
 
-      <div className="relative flex h-full flex-col gap-3 p-4 md:gap-4 md:p-8">"@
-      -- I'll actually do this differently, just update key layout areas.
+      <div className="relative flex h-full flex-col gap-3 p-4 md:gap-4 md:p-8">
         <header className="flex items-start justify-between gap-4">
           <h1 className="max-w-[75%] rounded-2xl bg-slate-950/80 px-6 py-3 text-4xl font-black leading-tight tracking-tight text-white shadow-xl backdrop-blur-sm md:text-6xl">
             {screen.title}

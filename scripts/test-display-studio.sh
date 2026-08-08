@@ -44,3 +44,13 @@ if [ -z "$TEST_FILE" ]; then
 fi
 
 node "$TEST_FILE"
+
+
+echo "Checking student-facing renderer for leaked implementation notes..."
+if grep -RIn \
+  "I'll actually do this differently\|actually do this differently\|update key layout areas" \
+  src/features/display-composer/DisplayScreenRenderer.tsx; then
+  echo "FAIL: leaked implementation note text found in student-facing display renderer"
+  exit 1
+fi
+
