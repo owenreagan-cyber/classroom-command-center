@@ -209,6 +209,17 @@ export const WIDGET_REGISTRY: WidgetTypeConfig[] = [
     defaultSettings: {},
     studentSafe: true,
   },
+  {
+    type: 'jobs-manager',
+    label: 'Jobs Manager',
+    category: 'classroom',
+    description: 'Show current classroom job assignments',
+    status: 'connected',
+    icon: '🧰',
+    defaultSize: 'large',
+    defaultSettings: {},
+    studentSafe: true,
+  },
 ]
 
 const REGISTRY_BY_TYPE = new Map(WIDGET_REGISTRY.map((w) => [w.type, w]))

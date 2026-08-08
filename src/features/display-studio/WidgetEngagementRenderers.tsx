@@ -5,6 +5,7 @@ import { getMysteryDisplayStatus } from '../roster/displaySafe'
 import { useHundredBoardStore } from '../hundred-board/hundredBoardStore'
 import { usePressYourLuckStore } from '../prize-board/pressYourLuck/pressYourLuckStore'
 import { useLottoBoardStore } from '../lotto-board/lottoBoardStore'
+import { useJobsManagerStore } from '../jobs-manager/jobsManagerStore'
 
 export function MysteryStudentContent({ widget }: { widget: CanvasWidget }) {
   void widget // consumed by stores
@@ -133,6 +134,28 @@ export function LottoBoardContent({ widget }: { widget: CanvasWidget }) {
         <span className="text-[10px] text-slate-400 mt-1">{remainingCount} remaining, {usedCount} used</span>
       ) : (
         <span className="text-[10px] text-slate-400 mt-1">Open Lotto Board to draw</span>
+      )}
+    </div>
+  )
+}
+
+export function JobsManagerContent({ widget }: { widget: CanvasWidget }) {
+  const activeCycle = useJobsManagerStore((s) => s.activeCycle)
+  const jobs = useJobsManagerStore((s) => s.jobs)
+  const totalAssigned = activeCycle?.assignments.length ?? 0
+  const totalSlots = jobs.filter((j) => j.active).reduce((s, j) => s + j.capacity, 0)
+
+  return (
+    <div className="flex h-full flex-col items-center justify-center p-3 text-center">
+      <span className="text-xl">🧰</span>
+      <span className="text-[12px] font-semibold text-slate-200 mt-1.5">{widget.label}</span>
+      {activeCycle ? (
+        <>
+          <span className="text-[11px] font-semibold text-cyan-200 mt-1">{activeCycle.label}</span>
+          <span className="text-[10px] text-slate-400 mt-0.5">{totalAssigned}/{totalSlots} assigned</span>
+        </>
+      ) : (
+        <span className="text-[10px] text-slate-400 mt-1">Start a cycle to assign</span>
       )}
     </div>
   )
