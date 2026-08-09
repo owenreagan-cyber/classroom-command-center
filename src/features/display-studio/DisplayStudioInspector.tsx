@@ -608,12 +608,9 @@ function TeacherNotesSection({ screen }: { screen: DisplayScreen }) {
 }
 
 function DisplaySection({ screen }: { screen: DisplayScreen }) {
-  const sendToDisplay = useDisplayComposerStore((s) => s.sendToDisplay)
-  const clearDisplay = useDisplayComposerStore((s) => s.clearDisplay)
   const duplicateScreen = useDisplayComposerStore((s) => s.duplicateScreen)
   const resetScreenToDefault = useDisplayComposerStore((s) => s.resetScreenToDefault)
   const activeScreenId = useDisplayComposerStore((s) => s.activeScreenId)
-  const { togglePresenterMode } = useDisplayStudioUI()
 
   const isLive = screen.id === activeScreenId
 
@@ -646,29 +643,12 @@ function DisplaySection({ screen }: { screen: DisplayScreen }) {
         </div>
       )}
 
-      <div className="flex flex-wrap gap-1.5">
-        <button
-          type="button"
-          className={primarySmBtn}
-          onClick={() => {
-            sendToDisplay(screen.id)
-            showStatus(`"${screen.title}" sent to display.`)
-          }}
-          data-studio-action="send-to-display"
-        >
-          {isLive ? '🟢 Live on Display' : 'Send to Display'}
-        </button>
-        {activeScreenId && (
-          <button
-            type="button"
-            className={secondaryBtn}
-            onClick={clearDisplay}
-            data-studio-action="clear-display"
-          >
-            Clear Display
-          </button>
-        )}
-      </div>
+      {/* Display status indicator (15L.2: collapsed from duplicate buttons to passive status text) */}
+      {isLive && (
+        <p className="rounded-lg border border-emerald-400/30 bg-emerald-950/20 px-2 py-1 text-[10px] text-emerald-200">
+          🟢 This screen is live on display. Use the command bar to send, clear, or blank.
+        </p>
+      )}
 
       <div className="flex flex-wrap gap-1.5">
         <button
@@ -693,13 +673,6 @@ function DisplaySection({ screen }: { screen: DisplayScreen }) {
             Reset
           </button>
         )}
-        <button
-          type="button"
-          className={secondaryBtn}
-          onClick={togglePresenterMode}
-        >
-          Presenter
-        </button>
       </div>
 
       {status && (
