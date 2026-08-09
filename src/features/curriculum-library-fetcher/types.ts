@@ -68,10 +68,10 @@ export interface OmniNoteFetchPayload {
   omninoteReady: boolean
 }
 
-export const FETCHER_STORAGE_KEY = 'classroom-curriculum-library-v1'
+export const FETCHER_STORAGE_KEY = 'classroom-curriculum-library-fetcher-v1'
 export const FETCHER_STORAGE_VERSION = 1 as const
 
-/** @deprecated Use FETCHER_STORAGE_KEY — alias for curriculum library cache key. */
+/** @deprecated Use FETCHER_STORAGE_KEY — alias for the fetcher/index cache key. */
 export const CURRICULUM_LIBRARY_CACHE_KEY = FETCHER_STORAGE_KEY
 
 export type CurriculumSyncStatus = 'ready' | 'syncing' | 'offline-cache'
