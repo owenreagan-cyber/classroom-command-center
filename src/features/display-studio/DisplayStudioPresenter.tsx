@@ -19,10 +19,6 @@ export function DisplayStudioPresenter() {
   const order = useDisplayComposerStore((s) => s.order)
   const activeScreenId = useDisplayComposerStore((s) => s.activeScreenId)
   const displayBlanked = useDisplayComposerStore((s) => s.displayBlanked)
-  const sendToDisplay = useDisplayComposerStore((s) => s.sendToDisplay)
-  const clearDisplay = useDisplayComposerStore((s) => s.clearDisplay)
-  const blankDisplay = useDisplayComposerStore((s) => s.blankDisplay)
-  const unblankDisplay = useDisplayComposerStore((s) => s.unblankDisplay)
 
   const activeId = selectedScreenId ?? order[0] ?? null
   const currentIndex = activeId ? order.indexOf(activeId) : -1
@@ -36,18 +32,6 @@ export function DisplayStudioPresenter() {
   const goToNext = useCallback(() => {
     if (nextId) selectScreen(nextId)
   }, [nextId, selectScreen])
-
-  const sendCurrentToDisplay = useCallback(() => {
-    const id = activeId ?? order[0]
-    if (id) sendToDisplay(id)
-  }, [activeId, order, sendToDisplay])
-
-  const sendNextToDisplay = useCallback(() => {
-    if (nextId) {
-      sendToDisplay(nextId)
-      selectScreen(nextId)
-    }
-  }, [nextId, sendToDisplay, selectScreen])
 
   // Active tool status (hooks must be before conditional return)
   const musicMode = useAtmosphereStore((s) => s.activeMode)
@@ -159,52 +143,31 @@ export function DisplayStudioPresenter() {
             )}
           </div>
 
-          {/* Primary action buttons */}
+          {/* Presenter navigation controls (15L.2: Send to Display, Blank/Restore, Clear Display all moved to CommandBar) */}
           <div className="mt-3 flex items-center gap-2">
-            <button
-              type="button"
-              className="rounded-lg border border-cyan-400/50 bg-cyan-950/40 px-4 py-2 text-sm font-semibold text-cyan-100 transition hover:bg-cyan-900/50"
-              onClick={sendCurrentToDisplay}
-            >
-              {isLive && !displayBlanked ? '🟢 Live on Display' : 'Send to Display'}
-            </button>
+            {/* Send to Display — use the command bar */}
+            {!(isLive && !displayBlanked) && (
+              <span className="rounded-lg border border-cyan-400/20 bg-cyan-950/15 px-3 py-2 text-[11px] font-semibold text-cyan-200/70">
+                Use the command bar to send this screen to display
+              </span>
+            )}
+            {isLive && !displayBlanked && (
+              <span className="rounded-lg border border-emerald-400/20 bg-emerald-950/15 px-3 py-2 text-[11px] font-semibold text-emerald-200/70">
+                🟢 Live on display
+              </span>
+            )}
 
             {nextId && (
-              <button
-                type="button"
-                className="rounded-lg border border-indigo-400/50 bg-indigo-950/30 px-4 py-2 text-sm font-semibold text-indigo-100 transition hover:bg-indigo-900/40"
-                onClick={sendNextToDisplay}
-              >
-                Next to Display →
-              </button>
+              <span className="rounded-lg border border-indigo-400/20 bg-indigo-950/15 px-3 py-2 text-[11px] font-semibold text-indigo-200/70">
+                Next: {screens[nextId]?.title ?? '—'} — use the command bar to send
+              </span>
             )}
 
-            {displayBlanked ? (
-              <button
-                type="button"
-                className="rounded-lg border border-emerald-400/50 bg-emerald-950/30 px-4 py-2 text-sm font-semibold text-emerald-100 transition hover:bg-emerald-900/40"
-                onClick={unblankDisplay}
-              >
-                Restore Display
-              </button>
-            ) : (
-              <button
-                type="button"
-                className="rounded-lg border border-amber-400/50 bg-amber-950/30 px-4 py-2 text-sm font-semibold text-amber-100 transition hover:bg-amber-900/40"
-                onClick={blankDisplay}
-              >
-                Blank Screen
-              </button>
-            )}
-
-            {activeScreenId && !displayBlanked && (
-              <button
-                type="button"
-                className="rounded-lg border border-slate-600 bg-slate-900/70 px-4 py-2 text-sm font-semibold text-slate-200 transition hover:bg-slate-800"
-                onClick={clearDisplay}
-              >
-                Clear Display
-              </button>
+            {/* Blank/Restore & Clear Display — use the command bar for these actions */}
+            {displayBlanked && (
+              <span className="rounded-lg border border-amber-400/20 bg-amber-950/15 px-3 py-2 text-[11px] font-semibold text-amber-200/70">
+                Display is blanked — use the command bar to restore
+              </span>
             )}
           </div>
 
@@ -259,13 +222,7 @@ export function DisplayStudioPresenter() {
           {nextScreen && (
             <div className="mt-1.5 flex items-center justify-between">
               <p className="text-[11px] font-semibold text-slate-300">{nextScreen.title}</p>
-              <button
-                type="button"
-                className="rounded border border-slate-600 px-1.5 py-0.5 text-[9px] font-semibold text-slate-400 hover:text-slate-200"
-                onClick={sendNextToDisplay}
-              >
-                Send Next
-              </button>
+              {/* Send Next removed in 15L.2 — use the command bar */}
             </div>
           )}
 

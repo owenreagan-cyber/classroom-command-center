@@ -4,6 +4,7 @@ import { DisplayScreenRenderer } from '../display-composer/DisplayScreenRenderer
 import { toDisplaySafeScreen } from '../display-composer/displaySafe'
 import { useDisplayStudioUI } from './useDisplayStudioUI'
 import { WidgetCanvasCard } from './WidgetCanvasCard'
+import { detectScreenOverlapsWithZones, DISPLAY_STUDIO_RESERVED_ZONES } from '../../lib/canvasWidgetOverlapDetector'
 
 export function DisplayStudioCanvas() {
   const screens = useDisplayComposerStore((s) => s.screens)
@@ -19,6 +20,10 @@ export function DisplayStudioCanvas() {
     if (!selected) return null
     return toDisplaySafeScreen(selected)
   }, [selected])
+
+  // Phase 15L.2: Overlap detection for CanvasWidget (teacher-only, /control only)
+  // Includes widget-vs-widget overlap + reserved-zone (title bar, top-right status) checks
+  const overlapReport = useMemo(() => detectScreenOverlapsWithZones(selected?.widgets, DISPLAY_STUDIO_RESERVED_ZONES), [selected?.widgets])
 
   // Drag state
   const [dragState, setDragState] = useState<{
@@ -112,6 +117,28 @@ export function DisplayStudioCanvas() {
           {selected.mode} · {selected.studentSafe ? 'Student-safe' : 'Not student-safe'}
         </span>
       </div>
+
+      {/* Phase 15L.2: Overlap warnings (teacher-only, never on /display) */}
+      {overlapReport.hasWarnings && (
+        <div
+          className="rounded-lg border border-amber-400/40 bg-amber-950/30 px-3 py-2 text-[10px] text-amber-100"
+          data-overlap-warnings
+        >
+          <p className="font-semibold uppercase tracking-wide text-amber-300/90">
+            Widget Overlap Warning{overlapReport.warnings.length > 1 ? 's' : ''} (teacher-only)
+          </p>
+          <ul className="mt-0.5 flex flex-col gap-0.5">
+            {overlapReport.warnings.map((w) => (
+              <li key={w.id} className="flex items-start gap-1">
+                <span aria-hidden="true">
+                  {w.severity === 'overlap' ? '⚠' : w.severity === 'touching' ? '━' : '◇'}
+                </span>
+                <span>{w.message}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div
         className="flex-1 overflow-hidden rounded-xl border border-slate-700 shadow-2xl"

@@ -21,7 +21,6 @@ export function DisplayStudioCommandBar() {
   const unblankDisplay = useDisplayComposerStore((s) => s.unblankDisplay)
   const {
     selectedScreenId, close, togglePresenterMode,
-    toggleTemplatePicker, templatePickerOpen,
     toggleQuickStart, quickStartOpen,
   } = useDisplayStudioUI()
 
@@ -64,14 +63,7 @@ export function DisplayStudioCommandBar() {
 
       {/* Right: Actions */}
       <div className="flex items-center gap-1.5">
-        {/* Phase 15G: Template Gallery button */}
-        <button
-          type="button"
-          className={`${smallBtn} ${templatePickerOpen ? 'border-cyan-400/40 bg-cyan-950/30 text-cyan-200' : ''}`}
-          onClick={toggleTemplatePicker}
-        >
-          📁 Templates
-        </button>
+        {/* Phase 15G: Template Gallery button — removed in 15L.2 (Browse Templates now only in ThumbnailRail) */}
 
         {/* Quick Start toggle */}
         <button
