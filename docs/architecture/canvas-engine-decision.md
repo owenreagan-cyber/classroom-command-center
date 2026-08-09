@@ -48,9 +48,9 @@ A dedicated canvas engine (rather than a grow-your-own DOM layout) would provide
 
 **Fit for single-teacher local-first classroom use:** Excellent — no cloud sync, no external services.
 
-**Fit for live classroom widgets:** Weak — hand-rolled drag/resize/zoom has poor touch and stylus UX on iPad and interactive whiteboards.
+**Fit for live classroom widgets:** Hand-rolled drag/resize/zoom is weak for authoring-time interactions (drag, resize, zoom, camera, stylus). It is not necessarily weak for existing live classroom widgets themselves, because many live interactions are regular React components: Mystery Star, Lotto, 100 Board, Prize Board, Jobs, timers, etc. These widgets respond to clicks and state changes — not to canvas-level gestures. The risk is long-term authoring/editor complexity, not current live-widget click behavior.
 
-**Fit for iPad/Mac teaching workflow:** Weak — no gesture system, no native-feeling canvas interactions.
+**Fit for iPad/Mac teaching workflow:** Weak — no gesture system, no native-feeling canvas interactions for authoring. Live-widget tap interactions (clicking a prize tile, picking a student) work fine as plain DOM events.
 
 **Fit for /control and /display split:** Same as today — two separate rendering paths with no shared canvas instance.
 
@@ -108,9 +108,9 @@ A dedicated canvas engine (rather than a grow-your-own DOM layout) would provide
 
 For /control (teacher-only view): The watermark is acceptable — it's a teacher workspace, not a student-facing surface.
 
-For /display (projected student view): This is the critical decision point. The watermark appears on the projected classroom display. Students will see "Made with tldraw" in the bottom-right corner of every scene. For some classrooms this is acceptable (many educational tools have branding). For others it is a non-starter (teachers expect clean, professional projection surfaces).
+For /display (projected student view): Under the Display Boundary Decision (see below), /display does not load tldraw. It renders a student-safe lightweight projection that is engine-agnostic. Therefore the tldraw watermark does not appear on the student-facing /display route. This substantially lowers the projector watermark risk.
 
-**If the watermark is unacceptable on /display, React-Konva is the recommended fallback.**
+The tldraw decision should still consider license terms, hobby approval, and whether the teacher/editor watermark is acceptable on /control. If tldraw is ever used to power a student-facing surface directly (for example, a shared iPad used by students to annotate), that would be a new watermark question to evaluate on its own — this analysis covers /display only.
 
 **Fit for single-teacher local-first classroom use:** Good. tldraw is local-first by default. License keys are validated client-side. No cloud dependency unless sync is explicitly added.
 
@@ -118,12 +118,12 @@ For /display (projected student view): This is the critical decision point. The 
 
 **Fit for iPad/Mac teaching workflow:** Good. tldraw has built-in touch and stylus support, pinch-to-zoom, and Apple Pencil pressure sensitivity. Test extensively on iPad before committing.
 
-**Fit for /control and /display split:** Requires careful design:
-- One `Editor` instance with the full document
-- /control renders the `Editor` in editable mode with toolbar/sidebar
-- /display renders a read-only `Editor` or a lightweight projection of the same document's shapes
+**Fit for /control and /display split:** The /control route may use tldraw for authoring. The /display route remains a separate engine-agnostic renderer that projects DisplaySafeScene/DisplaySafeWidget through a lightweight renderer and does not load tldraw Editor, Konva Stage, or any editing engine. This means:
+- /control renders the tldraw `Editor` in editable mode with toolbar/sidebar
+- /display renders a read-only projection of the same document's shapes without loading tldraw
 - Display-safe projection: each shape type exposes `displayProps` via its `ShapeUtil`, and a shared `toDisplaySafe()` filter strips teacher-only fields
 - Camera states can differ: instructor sees one scene, students see another (controlled via `displaySceneId`)
+- Keeping /display engine-agnostic is the Display Boundary Decision (see below) — it also eliminates the projector watermark risk if tldraw is scoped to /control only
 
 **Migration complexity:** High but structured:
 - All `CanvasWidget` and `PageWidget` instances must be converted to tldraw shapes
@@ -136,7 +136,7 @@ For /display (projected student view): This is the critical decision point. The 
 
 **Risk level:** Medium. tldraw is well-maintained and documented. The primary risk is the licensing/watermark issue and the migration effort for custom ShapeUtil widgets.
 
-**Recommendation:** Preferred option IF the watermark is acceptable on /display and the hobby/non-commercial license application is approved. If not, fall back to Option C.
+**Recommendation:** Preferred option. tldraw can power /control authoring and potentially future iPad annotation. /display remains a separate engine-agnostic renderer (Display Boundary Decision). The watermark is no longer treated as a student-projector blocker because /display does not load tldraw. License terms, hobby approval, and teacher/editor watermark acceptability still need confirmation.
 
 ---
 
@@ -219,10 +219,10 @@ For /display (projected student view): This is the critical decision point. The 
 
 ### Will the tldraw watermark be acceptable?
 
-**To be decided.** This is not a technical question — it is a product decision. The watermark would appear on every projected classroom display. The teacher-facing /control view is not student-facing, so a watermark there is less concerning. The recommendation is:
+**Yes, under the Display Boundary Decision.** Because /display does not load tldraw (it renders a student-safe lightweight projection), the watermark does not appear on the student-facing projector route. The watermark would only appear on /control (teacher editing surface). This substantially lowers the projector watermark risk. The recommendation is:
 
-1. If the watermark is acceptable on /display: choose **tldraw** (Option B).
-2. If the watermark is unacceptable on /display: choose **React-Konva** (Option C).
+1. If the watermark is acceptable on /control: choose **tldraw** (Option B).
+2. If the watermark is unacceptable on /control: choose **React-Konva** (Option C).
 3. If both tldraw and Konva are ruled out: continue **hand-rolled** (Option A) with explicit acceptance of the long-term maintenance burden.
 
 ### Can tldraw handle live classroom widgets?
@@ -282,6 +282,41 @@ The shared protocol is:
 3. The canvas engine renders the filtered shape tree on /display
 4. Teacher-only fields include: internal IDs, point values, student PII, coaching hints, storage internals, raw settings
 5. This replaces the current ad-hoc per-widget manual projection in `WidgetDisplayOverlay.tsx`
+
+---
+
+## Display Boundary Decision
+
+The /control and /display routes serve different audiences and have different engine requirements. This boundary was clarified after the original Phase 15L.1 decision package based on external review feedback.
+
+### /control (teacher authoring)
+
+/control may use the selected canvas/editor engine (tldraw, React-Konva, or hand-rolled DOM). This is the teacher's authoring surface — it needs selection, drag, resize, zoom, camera, inspector panels, and full widget editing.
+
+### /display (student projection)
+
+/display must remain engine-agnostic and student-safe. It renders DisplaySafeScene / DisplaySafeWidget through a lightweight renderer. It should not load tldraw Editor, Konva Stage, or the editing engine unless a later explicit decision reverses this.
+
+### Rationale
+
+1. The target model (Board > Scene > Widget) already defines engine-agnostic DisplaySafeScene and DisplaySafeWidget style projection.
+2. Keeping /display engine-agnostic means /display can be a simple React/DOM renderer regardless of what powers /control.
+3. This boundary is how we keep /display watermark-free if tldraw is used only in /control.
+
+### Watermark implication for tldraw
+
+If tldraw is chosen, its "Made with tldraw" watermark is expected to affect the teacher/editor surface only, not the student-facing /display route, because /display does not load tldraw. This substantially lowers the projector watermark risk. The tldraw decision should still consider:
+- License terms and hobby/non-commercial approval
+- Whether the teacher/editor watermark is acceptable on /control
+- tldraw sync remains explicitly deferred; no tldraw sync adoption in this amendment
+
+### Scope caveat
+
+This conclusion applies to /display as currently scoped. It does not automatically extend to every future surface. If tldraw is ever used to power a student-facing surface directly (for example, a shared iPad used by students for annotation), that is a new watermark question to evaluate on its own, not one this amendment has already answered.
+
+### Engine independence
+
+The Display Boundary Decision is engine-independent. It applies equally to tldraw, React-Konva, or hand-rolled DOM. Regardless of which engine powers /control, /display renders the student-safe projection without loading the editor engine.
 
 ---
 
