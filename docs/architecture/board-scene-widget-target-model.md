@@ -680,6 +680,8 @@ The migration is staged across six phases (plus this amendment). Each phase is s
 
 **Validation:** All existing tests pass. Visual QA on /control and /display.
 
+**Status:** Merged — [`12c0c81`](https://github.com/owen-/classroom-command-center/commit/12c0c81) — Add Display Studio overlap warnings and collapse duplicate chrome
+
 ### Phase 15L.3 — Status Widget Slot System
 
 **Goal:** Shared docked-corner placement for always-on status widgets (clock, voice-level, mode badge, materials icon), replacing free positioning.
@@ -692,6 +694,8 @@ The migration is staged across six phases (plus this amendment). Each phase is s
 
 **Validation:** All existing tests pass. Visual QA on /control and /display.
 
+**Status:** Merged — [`67f3b67`](https://github.com/owen-/classroom-command-center/commit/67f3b67) — Add Display Studio status widget slots
+
 ### Phase 15L.4 — Template Completeness Audit
 
 **Goal:** Audit and fix hollow templates and background images with text baked into the asset.
@@ -703,6 +707,10 @@ The migration is staged across six phases (plus this amendment). Each phase is s
 - No engine changes, no new dependencies
 
 **Validation:** All existing tests pass. Visual QA on all templates.
+
+**Status:** Merged — [`a32f5dd`](https://github.com/owen-/classroom-command-center/commit/a32f5dd) — Complete Display Studio template cleanup
+
+**Correction (15L.4A):** Merged — [`b607ac5`](https://github.com/owen-/classroom-command-center/commit/b607ac5) — Correct Display Studio template cleanup status
 
 ### Phase 15M — Canvas Engine Prototype/Spike
 

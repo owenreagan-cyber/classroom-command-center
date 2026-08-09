@@ -11,5 +11,7 @@ export function AppShell({ route }: AppShellProps) {
     return <StudentDisplayShell />
   }
 
+  // Phase 15M: tldraw spike route — dev-only, not reachable from production navigation.
+  // Handled by CanvasSpikePage directly in App.tsx for isolation.
   return <TeacherControlShell />
 }
