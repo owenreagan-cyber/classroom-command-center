@@ -155,6 +155,7 @@ export const DEFAULT_DISPLAY_SCREENS: DisplayScreen[] = [
         checklistItem('🤫', 'Voices off'),
       ],
     },
+    studentMessage: 'Return to your seat and get ready for spelling and reading.',
     studentSafe: true,
     updatedAt: SEED_TIMESTAMP,
     version: 1,
@@ -195,6 +196,7 @@ export const DEFAULT_DISPLAY_SCREENS: DisplayScreen[] = [
         checklistItem('🚶', 'Walk quietly in line'),
       ],
     },
+    studentMessage: 'Time for specials! Walk quietly in line and follow directions.',
     studentSafe: true,
     updatedAt: SEED_TIMESTAMP,
     version: 1,
@@ -333,8 +335,8 @@ export const DEFAULT_DISPLAY_SCREENS: DisplayScreen[] = [
     timerWidget: { kind: 'general', timerId: 'dc-game-review-general' },
     studentMessage: 'Let\'s review what we learned! Be ready to participate.',
     widgets: [
-      { id: 'gr-picker', type: 'random-picker', label: 'Random Pick', x: 2, y: 5, w: 28, h: 28, visible: true, locked: false, settings: {}, zIndex: 1 },
-      { id: 'gr-board', type: '100-board', label: 'Number Board', x: 70, y: 5, w: 28, h: 28, visible: true, locked: false, settings: {}, zIndex: 2 },
+      { id: 'gr-picker', type: 'random-picker', label: 'Random Pick', x: 2, y: 14, w: 28, h: 28, visible: true, locked: false, settings: {}, zIndex: 1 },
+      { id: 'gr-board', type: '100-board', label: 'Number Board', x: 70, y: 14, w: 28, h: 28, visible: true, locked: false, settings: {}, zIndex: 2 },
     ],
     checklistCard: {
       heading: 'Review Rules',
@@ -385,8 +387,8 @@ export const DEFAULT_DISPLAY_SCREENS: DisplayScreen[] = [
       ],
     },
     widgets: [
-      { id: 'ml-timer', type: 'countdown-timer', label: 'Math Timer', x: 2, y: 5, w: 30, h: 30, visible: true, locked: false, settings: { timerKind: 'general' }, zIndex: 1 },
-      { id: 'ml-materials', type: 'materials', label: 'Materials', x: 68, y: 5, w: 30, h: 30, visible: true, locked: false, settings: {}, zIndex: 2 },
+      { id: 'ml-timer', type: 'countdown-timer', label: 'Math Timer', x: 2, y: 14, w: 30, h: 30, visible: true, locked: false, settings: { timerKind: 'general' }, zIndex: 1 },
+      { id: 'ml-materials', type: 'materials', label: 'Materials', x: 68, y: 14, w: 30, h: 30, visible: true, locked: false, settings: {}, zIndex: 2 },
     ],
     studentSafe: true,
     updatedAt: SEED_TIMESTAMP,
@@ -401,7 +403,7 @@ export const DEFAULT_DISPLAY_SCREENS: DisplayScreen[] = [
     timerWidget: { kind: 'none' },
     studentMessage: 'Silent work time. Focus on your task and do your best.',
     widgets: [
-      { id: 'wt-timer', type: 'countdown-timer', label: 'Work Timer', x: 2, y: 5, w: 30, h: 30, visible: true, locked: false, settings: { timerKind: 'general' }, zIndex: 1 },
+      { id: 'wt-timer', type: 'countdown-timer', label: 'Work Timer', x: 2, y: 14, w: 30, h: 30, visible: true, locked: false, settings: { timerKind: 'general' }, zIndex: 1 },
       { id: 'wt-symbols', type: 'work-symbols', label: 'Work Mode', x: 2, y: 60, w: 20, h: 20, visible: true, locked: false, settings: { symbol: 'silent' }, zIndex: 2 },
       { id: 'wt-noise', type: 'noise-meter', label: 'Voice Level', x: 72, y: 14, w: 20, h: 16, visible: true, locked: false, settings: { mode: 'manual', level: 'silent' }, zIndex: 3 },
     ],
@@ -441,9 +443,18 @@ export const DEFAULT_DISPLAY_SCREENS: DisplayScreen[] = [
     timerWidget: { kind: 'none' },
     studentMessage: 'Let\'s review what we learned!',
     widgets: [
-      { id: 'rg-picker', type: 'random-picker', label: 'Random Pick', x: 2, y: 5, w: 30, h: 30, visible: true, locked: false, settings: {}, zIndex: 1 },
-      { id: 'rg-board', type: '100-board', label: 'Number Board', x: 50, y: 5, w: 30, h: 30, visible: true, locked: false, settings: {}, zIndex: 2 },
+      { id: 'rg-picker', type: 'random-picker', label: 'Random Pick', x: 2, y: 14, w: 30, h: 30, visible: true, locked: false, settings: {}, zIndex: 1 },
+      { id: 'rg-board', type: '100-board', label: 'Number Board', x: 50, y: 14, w: 30, h: 30, visible: true, locked: false, settings: {}, zIndex: 2 },
+      { id: 'rg-dir', type: 'directions-text', label: 'How to Play', x: 2, y: 55, w: 45, h: 20, visible: true, locked: false, settings: { text: '1. A random student is picked\n2. Answer the review question\n3. The class gives a thumbs up or helps\n4. Next player is picked!' }, zIndex: 3 },
     ],
+    checklistCard: {
+      heading: 'Review Rules',
+      items: [
+        checklistItem('🙋', 'Raise your hand'),
+        checklistItem('👂', 'Listen to others'),
+        checklistItem('🎉', 'Celebrate everyone\'s answers'),
+      ],
+    },
     studentSafe: true,
     updatedAt: SEED_TIMESTAMP,
     version: 1,
@@ -457,7 +468,7 @@ export const DEFAULT_DISPLAY_SCREENS: DisplayScreen[] = [
     timerWidget: { kind: 'none' },
     studentMessage: 'Time for lunch! Follow the routine.',
     widgets: [
-      { id: 'lr-timer', type: 'routine-timer', label: 'Lunch Routine', x: 2, y: 5, w: 45, h: 45, visible: true, locked: false, settings: { routineId: 'lunch-routine' }, zIndex: 1 },
+      { id: 'lr-timer', type: 'routine-timer', label: 'Lunch Routine', x: 2, y: 14, w: 45, h: 45, visible: true, locked: false, settings: { routineId: 'lunch-routine' }, zIndex: 1 },
       { id: 'lr-noise', type: 'noise-meter', label: 'Voice Level', x: 72, y: 14, w: 20, h: 16, visible: true, locked: false, settings: { mode: 'manual', level: 'normal' }, zIndex: 2 },
     ],
     checklistCard: {
@@ -482,8 +493,8 @@ export const DEFAULT_DISPLAY_SCREENS: DisplayScreen[] = [
     timerWidget: { kind: 'general', timerId: 'dc-reading-launch-general' },
     studentMessage: 'Grab your book and get ready to read!',
     widgets: [
-      { id: 'rl-dir', type: 'directions-text', label: 'Directions', x: 2, y: 5, w: 45, h: 20, visible: true, locked: false, settings: { text: '1. Open your book to the right page\n2. Follow along as we read\n3. Be ready to discuss' }, zIndex: 1 },
-      { id: 'rl-timer', type: 'countdown-timer', label: 'Reading Timer', x: 68, y: 5, w: 30, h: 30, visible: true, locked: false, settings: { timerKind: 'general' }, zIndex: 2 },
+      { id: 'rl-dir', type: 'directions-text', label: 'Directions', x: 2, y: 14, w: 45, h: 20, visible: true, locked: false, settings: { text: '1. Open your book to the right page\n2. Follow along as we read\n3. Be ready to discuss' }, zIndex: 1 },
+      { id: 'rl-timer', type: 'countdown-timer', label: 'Reading Timer', x: 68, y: 14, w: 30, h: 30, visible: true, locked: false, settings: { timerKind: 'general' }, zIndex: 2 },
     ],
     checklistCard: {
       heading: 'Reading Ready',
@@ -506,7 +517,7 @@ export const DEFAULT_DISPLAY_SCREENS: DisplayScreen[] = [
     timerWidget: { kind: 'general', timerId: 'dc-writing-workshop-general' },
     studentMessage: 'Let your ideas flow onto the page. Write with purpose!',
     widgets: [
-      { id: 'ww-dir', type: 'directions-text', label: 'Writing Prompt', x: 2, y: 5, w: 45, h: 25, visible: true, locked: false, settings: { text: 'Today\'s Writing:\n\nWrite about...\n\nRemember to use complete sentences and check your spelling.' }, zIndex: 1 },
+      { id: 'ww-dir', type: 'directions-text', label: 'Writing Prompt', x: 2, y: 14, w: 45, h: 25, visible: true, locked: false, settings: { text: 'Today\'s Writing:\n\nWrite about...\n\nRemember to use complete sentences and check your spelling.' }, zIndex: 1 },
     ],
     checklistCard: {
       heading: 'Writer\'s Checklist',
@@ -529,7 +540,7 @@ export const DEFAULT_DISPLAY_SCREENS: DisplayScreen[] = [
     timerWidget: { kind: 'general', timerId: 'dc-shurley-grammar-general' },
     studentMessage: 'Get your Shurley book ready. Let\'s classify those sentences!',
     widgets: [
-      { id: 'sg-dir', type: 'directions-text', label: 'Sentence', x: 2, y: 5, w: 55, h: 25, visible: true, locked: false, settings: { text: 'Sentence:\n\nThe large brown dog quickly ran across the busy street.' }, zIndex: 1 },
+      { id: 'sg-dir', type: 'directions-text', label: 'Sentence', x: 2, y: 14, w: 55, h: 25, visible: true, locked: false, settings: { text: 'Sentence:\n\nThe large brown dog quickly ran across the busy street.' }, zIndex: 1 },
     ],
     materialsCard: {
       heading: 'Shurley Materials',
@@ -556,7 +567,7 @@ export const DEFAULT_DISPLAY_SCREENS: DisplayScreen[] = [
     timerWidget: { kind: 'general', timerId: 'dc-science-launch-general' },
     studentMessage: 'Put on your scientist hat! Let\'s explore and discover.',
     widgets: [
-      { id: 'sl-dir', type: 'directions-text', label: 'Experiment', x: 2, y: 5, w: 45, h: 25, visible: true, locked: false, settings: { text: 'Today\'s Investigation:\n\n1. Observe carefully\n2. Record your findings\n3. Share your thinking' }, zIndex: 1 },
+      { id: 'sl-dir', type: 'directions-text', label: 'Experiment', x: 2, y: 14, w: 45, h: 25, visible: true, locked: false, settings: { text: 'Today\'s Investigation:\n\n1. Observe carefully\n2. Record your findings\n3. Share your thinking' }, zIndex: 1 },
     ],
     materialsCard: {
       heading: 'Science Materials',
@@ -575,7 +586,7 @@ export const DEFAULT_DISPLAY_SCREENS: DisplayScreen[] = [
     timerWidget: { kind: 'general', timerId: 'dc-history-launch-general' },
     studentMessage: 'Travel back in time! Let\'s learn about our history.',
     widgets: [
-      { id: 'hl-dir', type: 'directions-text', label: 'Focus Question', x: 2, y: 5, w: 45, h: 20, visible: true, locked: false, settings: { text: 'Essential Question:\nWhat can we learn from the past to make better choices today?' }, zIndex: 1 },
+      { id: 'hl-dir', type: 'directions-text', label: 'Focus Question', x: 2, y: 14, w: 45, h: 20, visible: true, locked: false, settings: { text: 'Essential Question:\nWhat can we learn from the past to make better choices today?' }, zIndex: 1 },
     ],
     studentSafe: true,
     updatedAt: SEED_TIMESTAMP,
@@ -590,7 +601,7 @@ export const DEFAULT_DISPLAY_SCREENS: DisplayScreen[] = [
     timerWidget: { kind: 'general', timerId: 'dc-spelling-word-work-general' },
     studentMessage: 'Time for word work! Practice your spelling words carefully.',
     widgets: [
-      { id: 'sw-dir', type: 'directions-text', label: 'Word List', x: 2, y: 5, w: 40, h: 25, visible: true, locked: false, settings: { text: 'Practice your words:\n\n1. Say the word\n2. Spell it out loud\n3. Write it three times\n4. Use it in a sentence' }, zIndex: 1 },
+      { id: 'sw-dir', type: 'directions-text', label: 'Word List', x: 2, y: 14, w: 40, h: 25, visible: true, locked: false, settings: { text: 'Practice your words:\n\n1. Say the word\n2. Spell it out loud\n3. Write it three times\n4. Use it in a sentence' }, zIndex: 1 },
     ],
     checklistCard: {
       heading: 'Word Work Steps',
@@ -613,8 +624,8 @@ export const DEFAULT_DISPLAY_SCREENS: DisplayScreen[] = [
     timerWidget: { kind: 'general', timerId: 'dc-independent-practice-general' },
     studentMessage: 'Work on your own. Take your time and do your best.',
     widgets: [
-      { id: 'ip-symbol', type: 'work-symbols', label: 'Work Mode', x: 2, y: 14, w: 20, h: 16, visible: true, locked: false, settings: { symbol: 'independent' }, zIndex: 1 },
-      { id: 'ip-timer', type: 'countdown-timer', label: 'Practice Timer', x: 2, y: 5, w: 30, h: 30, visible: true, locked: false, settings: { timerKind: 'general' }, zIndex: 2 },
+      { id: 'ip-symbol', type: 'work-symbols', label: 'Work Mode', x: 2, y: 70, w: 20, h: 16, visible: true, locked: false, settings: { symbol: 'independent' }, zIndex: 1 },
+      { id: 'ip-timer', type: 'countdown-timer', label: 'Practice Timer', x: 2, y: 14, w: 30, h: 30, visible: true, locked: false, settings: { timerKind: 'general' }, zIndex: 2 },
     ],
     materialsCard: {
       heading: 'Materials',
@@ -662,7 +673,7 @@ export const DEFAULT_DISPLAY_SCREENS: DisplayScreen[] = [
     studentMessage: 'Testing in progress. Stay focused and do your best.',
     widgets: [
       { id: 'tm-symbol', type: 'work-symbols', label: 'Test Mode', x: 72, y: 70, w: 20, h: 16, visible: true, locked: false, settings: { symbol: 'silent' }, zIndex: 1 },
-      { id: 'tm-dir', type: 'directions-text', label: 'Instructions', x: 2, y: 5, w: 45, h: 25, visible: true, locked: false, settings: { text: 'Test Instructions:\n\n1. Read each question carefully\n2. Show all your work\n3. Check your answers\n4. Turn in when finished' }, zIndex: 2 },
+      { id: 'tm-dir', type: 'directions-text', label: 'Instructions', x: 2, y: 14, w: 45, h: 25, visible: true, locked: false, settings: { text: 'Test Instructions:\n\n1. Read each question carefully\n2. Show all your work\n3. Check your answers\n4. Turn in when finished' }, zIndex: 2 },
     ],
     checklistCard: {
       heading: 'Test Rules',
