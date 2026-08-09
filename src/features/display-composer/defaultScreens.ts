@@ -28,7 +28,7 @@ export const DEFAULT_DISPLAY_SCREENS: DisplayScreen[] = [
     showClock: true,
     timerWidget: { kind: 'general', timerId: 'dc-arrival-general' },
     widgets: [
-      { id: 'ar-symbol', type: 'work-symbols', label: 'Arrival Mode', x: 75, y: 5, w: 22, h: 18, visible: true, locked: false, settings: { symbol: 'independent' }, zIndex: 1 },
+      { id: 'ar-symbol', type: 'work-symbols', label: 'Arrival Mode', x: 2, y: 14, w: 20, h: 16, visible: true, locked: false, settings: { symbol: 'independent' }, zIndex: 1 },
       { id: 'ar-dir', type: 'directions-text', label: 'Morning Directions', x: 2, y: 60, w: 45, h: 25, visible: true, locked: false, settings: { text: '1. Unpack your backpack\n2. Turn in homework\n3. Begin morning work' }, zIndex: 2 },
     ],
     materialsCard: {
@@ -69,7 +69,7 @@ export const DEFAULT_DISPLAY_SCREENS: DisplayScreen[] = [
     // Reuses the existing seeded transition timer (label "Homeroom → Math", 3 min).
     timerWidget: { kind: 'transition', timerId: 'homeroom-clean-up-math' },
     widgets: [
-      { id: 'mw-nm', type: 'noise-meter', label: 'Voice Level', x: 78, y: 5, w: 20, h: 20, visible: true, locked: false, settings: { mode: 'manual', level: 'whisper' }, zIndex: 1 },
+      { id: 'mw-nm', type: 'noise-meter', label: 'Voice Level', x: 72, y: 14, w: 20, h: 16, visible: true, locked: false, settings: { mode: 'manual', level: 'whisper' }, zIndex: 1 },
     ],
     materialsCard: {
       heading: 'Math Materials',
@@ -231,8 +231,8 @@ export const DEFAULT_DISPLAY_SCREENS: DisplayScreen[] = [
     timerWidget: { kind: 'general', timerId: 'dc-work-time-general' },
     studentMessage: 'Work quietly at your seat. Raise your hand if you need help.',
     widgets: [
-      { id: 'wt-symbol', type: 'work-symbols', label: 'Work Mode', x: 2, y: 5, w: 20, h: 20, visible: true, locked: false, settings: { symbol: 'independent' }, zIndex: 1 },
-      { id: 'wt-noise', type: 'noise-meter', label: 'Voice Level', x: 78, y: 5, w: 20, h: 20, visible: true, locked: false, settings: { mode: 'manual', level: 'whisper' }, zIndex: 2 },
+      { id: 'wt-symbol', type: 'work-symbols', label: 'Work Mode', x: 2, y: 14, w: 20, h: 16, visible: true, locked: false, settings: { symbol: 'independent' }, zIndex: 1 },
+      { id: 'wt-noise', type: 'noise-meter', label: 'Voice Level', x: 72, y: 14, w: 20, h: 16, visible: true, locked: false, settings: { mode: 'manual', level: 'whisper' }, zIndex: 2 },
     ],
     checklistCard: {
       heading: 'Work Time Checklist',
@@ -403,7 +403,7 @@ export const DEFAULT_DISPLAY_SCREENS: DisplayScreen[] = [
     widgets: [
       { id: 'wt-timer', type: 'countdown-timer', label: 'Work Timer', x: 2, y: 5, w: 30, h: 30, visible: true, locked: false, settings: { timerKind: 'general' }, zIndex: 1 },
       { id: 'wt-symbols', type: 'work-symbols', label: 'Work Mode', x: 2, y: 60, w: 20, h: 20, visible: true, locked: false, settings: { symbol: 'silent' }, zIndex: 2 },
-      { id: 'wt-noise', type: 'noise-meter', label: 'Voice Level', x: 68, y: 5, w: 20, h: 20, visible: true, locked: false, settings: { mode: 'manual', level: 'silent' }, zIndex: 3 },
+      { id: 'wt-noise', type: 'noise-meter', label: 'Voice Level', x: 72, y: 14, w: 20, h: 16, visible: true, locked: false, settings: { mode: 'manual', level: 'silent' }, zIndex: 3 },
     ],
     studentSafe: true,
     updatedAt: SEED_TIMESTAMP,
@@ -458,7 +458,7 @@ export const DEFAULT_DISPLAY_SCREENS: DisplayScreen[] = [
     studentMessage: 'Time for lunch! Follow the routine.',
     widgets: [
       { id: 'lr-timer', type: 'routine-timer', label: 'Lunch Routine', x: 2, y: 5, w: 45, h: 45, visible: true, locked: false, settings: { routineId: 'lunch-routine' }, zIndex: 1 },
-      { id: 'lr-noise', type: 'noise-meter', label: 'Voice Level', x: 68, y: 5, w: 20, h: 20, visible: true, locked: false, settings: { mode: 'manual', level: 'normal' }, zIndex: 2 },
+      { id: 'lr-noise', type: 'noise-meter', label: 'Voice Level', x: 72, y: 14, w: 20, h: 16, visible: true, locked: false, settings: { mode: 'manual', level: 'normal' }, zIndex: 2 },
     ],
     checklistCard: {
       heading: 'Lunch Checklist',
@@ -613,7 +613,7 @@ export const DEFAULT_DISPLAY_SCREENS: DisplayScreen[] = [
     timerWidget: { kind: 'general', timerId: 'dc-independent-practice-general' },
     studentMessage: 'Work on your own. Take your time and do your best.',
     widgets: [
-      { id: 'ip-symbol', type: 'work-symbols', label: 'Work Mode', x: 78, y: 5, w: 20, h: 20, visible: true, locked: false, settings: { symbol: 'independent' }, zIndex: 1 },
+      { id: 'ip-symbol', type: 'work-symbols', label: 'Work Mode', x: 2, y: 14, w: 20, h: 16, visible: true, locked: false, settings: { symbol: 'independent' }, zIndex: 1 },
       { id: 'ip-timer', type: 'countdown-timer', label: 'Practice Timer', x: 2, y: 5, w: 30, h: 30, visible: true, locked: false, settings: { timerKind: 'general' }, zIndex: 2 },
     ],
     materialsCard: {
@@ -641,7 +641,7 @@ export const DEFAULT_DISPLAY_SCREENS: DisplayScreen[] = [
     timerWidget: { kind: 'general', timerId: 'dc-small-groups-general' },
     studentMessage: 'Work with your group. Listen to each other and share ideas.',
     widgets: [
-      { id: 'sgr-symbol', type: 'work-symbols', label: 'Group Mode', x: 78, y: 5, w: 20, h: 20, visible: true, locked: false, settings: { symbol: 'group' }, zIndex: 1 },
+      { id: 'sgr-symbol', type: 'work-symbols', label: 'Group Mode', x: 2, y: 14, w: 20, h: 16, visible: true, locked: false, settings: { symbol: 'group' }, zIndex: 1 },
       { id: 'sgr-noise', type: 'noise-meter', label: 'Voice Level', x: 78, y: 30, w: 20, h: 20, visible: true, locked: false, settings: { mode: 'manual', level: 'whisper' }, zIndex: 2 },
     ],
     materialsCard: {
@@ -661,7 +661,7 @@ export const DEFAULT_DISPLAY_SCREENS: DisplayScreen[] = [
     timerWidget: { kind: 'general', timerId: 'dc-test-mode-general' },
     studentMessage: 'Testing in progress. Stay focused and do your best.',
     widgets: [
-      { id: 'tm-symbol', type: 'work-symbols', label: 'Test Mode', x: 78, y: 5, w: 20, h: 20, visible: true, locked: false, settings: { symbol: 'silent' }, zIndex: 1 },
+      { id: 'tm-symbol', type: 'work-symbols', label: 'Test Mode', x: 72, y: 70, w: 20, h: 16, visible: true, locked: false, settings: { symbol: 'silent' }, zIndex: 1 },
       { id: 'tm-dir', type: 'directions-text', label: 'Instructions', x: 2, y: 5, w: 45, h: 25, visible: true, locked: false, settings: { text: 'Test Instructions:\n\n1. Read each question carefully\n2. Show all your work\n3. Check your answers\n4. Turn in when finished' }, zIndex: 2 },
     ],
     checklistCard: {

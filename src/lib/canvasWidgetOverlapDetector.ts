@@ -10,11 +10,11 @@
  * covered here. See status doc for the risk assessment.
  *
  * Known limitations (deferred):
- * - Title/chrome/status-zone collisions with the top bar, clock, and mode
- *   badges are NOT detected by widget-vs-widget overlap. They are checked
- *   separately via the reserved-zone detector below. However, baked-in
- *   background text collisions, Math Launch title-vs-timer, Mystery Student
- *   title/status, and Lunch crowding remain open for 15L.3 / 15L.4.
+ * - Baked-in background text collisions and hollow templates remain open
+ *   for 15L.4 (template completeness audit).
+ * - Math Launch title-vs-timer, Mystery Student title/status, and Lunch
+ *   crowding are partially addressed by reserved zones + slot system (15L.3),
+ *   but full resolution depends on rendered font metrics and template layout.
  * - PageWidget (pixel-grid) overlap detection is deferred to Phase 15N.
  */
 
@@ -72,13 +72,13 @@ export const DISPLAY_STUDIO_RESERVED_ZONES: ReservedZone[] = [
     description: 'Top title/clip region where screen title and mode badge appear',
   },
   {
-    id: 'zone-top-right-status',
-    label: 'Top-Right Status',
-    x: 70,
+    id: 'zone-clock-chrome',
+    label: 'Clock Chrome',
+    x: 65,
     y: 0,
-    w: 30,
+    w: 35,
     h: 12,
-    description: 'Clock, voice-level badge, and other always-on status indicators',
+    description: 'Clock display rendered in the screen header (fixed chrome, not a widget)',
   },
 ]
 

@@ -32,6 +32,7 @@ trap cleanup EXIT
   "$ROOT/src/features/display-studio/displayStudioTypes.ts" \
   "$ROOT/src/lib/displayStudioTestHelpers.ts" \
   "$ROOT/src/lib/canvasWidgetOverlapDetector.ts" \
+  "$ROOT/src/lib/statusWidgetSlots.ts" \
   "$ROOT/src/lib/display-studio-tests.ts"
 
 printf '{"type":"commonjs"}\n' > "$OUT/package.json"
@@ -56,7 +57,7 @@ if grep -RIn \
 fi
 
 echo ""
-echo "Phase 15L.2: Checking duplicate chrome collapse..."
+echo "Phase 15L.2-15L.3: Checking duplicate chrome collapse + slot system..."
 FAILED=0
 
 # Send to Display must NOT have active controls in Presenter or Inspector

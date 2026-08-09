@@ -773,13 +773,13 @@ test('reserved zone detection flags widgets overlapping title bar', () => {
   assert(zoneIds.some((id) => id.includes('zone-top-title')), 'should flag title bar overlap')
 })
 
-test('reserved zone detection flags widgets in top-right status area', () => {
+test('reserved zone detection flags widgets in top-right clock area', () => {
   const widgets = [
     { id: 'a', type: 'clock', label: 'Clock Badge', x: 80, y: 4, w: 15, h: 12, visible: true, locked: false, settings: {}, zIndex: 1 },
   ] as CanvasWidget[]
   const warnings = detectReservedZoneOverlaps(widgets, DISPLAY_STUDIO_RESERVED_ZONES)
   const zoneIds = warnings.map((w) => w.id)
-  assert(zoneIds.some((id) => id.includes('zone-top-right-status')), 'should flag top-right overlap')
+  assert(zoneIds.some((id) => id.includes('zone-clock-chrome')), 'should flag clock chrome overlap')
 })
 
 test('reserved zone detection passes for well-placed widgets', () => {
@@ -814,7 +814,91 @@ test('DISPLAY_STUDIO_RESERVED_ZONES has expected entries', () => {
   assert(DISPLAY_STUDIO_RESERVED_ZONES.length === 2, 'should have 2 reserved zones')
   const labels = DISPLAY_STUDIO_RESERVED_ZONES.map((z) => z.label)
   assert(labels.includes('Title Bar'), 'should have Title Bar zone')
-  assert(labels.includes('Top-Right Status'), 'should have Top-Right Status zone')
+  assert(labels.includes('Clock Chrome'), 'should have Clock Chrome zone')
+})
+
+// ── Phase 15L.3: Status Widget Slot System Tests ──
+
+import {
+  STATUS_SLOTS, getSlotById, getDefaultSlotForType, slotPositionFor,
+  validateSlotsAgainstZones, DEFAULT_SLOT_MAP,
+} from './statusWidgetSlots'
+
+test('STATUS_SLOTS has 4 slots', () => {
+  assert(STATUS_SLOTS.length === 4, 'should have 4 status slots')
+})
+
+test('all slots are outside reserved zones', () => {
+  const violations = validateSlotsAgainstZones(DISPLAY_STUDIO_RESERVED_ZONES)
+  assert(violations.length === 0, `slots must not overlap reserved zones: ${violations.join(', ')}`)
+})
+
+test('getSlotById returns undefined for unknown id', () => {
+  assert(getSlotById('nonexistent') === undefined, 'unknown id returns undefined')
+})
+
+test('getSlotById returns correct slot', () => {
+  const slot = getSlotById('slot-top-right-status')
+  assert(slot !== undefined, 'top-right slot exists')
+  assert(slot!.id === 'slot-top-right-status')
+})
+
+test('DEFAULT_SLOT_MAP maps noise-meter to top-right', () => {
+  assert(DEFAULT_SLOT_MAP['noise-meter'] === 'slot-top-right-status')
+})
+
+test('DEFAULT_SLOT_MAP maps work-symbols to top-left', () => {
+  assert(DEFAULT_SLOT_MAP['work-symbols'] === 'slot-top-left-status')
+})
+
+test('getDefaultSlotForType returns correct slot for noise-meter', () => {
+  const slot = getDefaultSlotForType('noise-meter')
+  assert(slot !== undefined, 'noise-meter has a default slot')
+  assert(slot!.id === 'slot-top-right-status')
+})
+
+test('getDefaultSlotForType returns correct slot for work-symbols', () => {
+  const slot = getDefaultSlotForType('work-symbols')
+  assert(slot !== undefined, 'work-symbols has a default slot')
+  assert(slot!.id === 'slot-top-left-status')
+})
+
+test('getDefaultSlotForType returns undefined for unmanaged types', () => {
+  assert(getDefaultSlotForType('countdown-timer') === undefined)
+  assert(getDefaultSlotForType('clock') === undefined)
+})
+
+test('slotPositionFor returns slot coords for managed types', () => {
+  const pos = slotPositionFor('noise-meter', 10, 10, 20, 20)
+  const slot = getSlotById('slot-top-right-status')!
+  assert(pos.x === slot.x, 'x matches slot')
+  assert(pos.y === slot.y, 'y matches slot')
+  assert(pos.w === slot.w, 'w matches slot')
+  assert(pos.h === slot.h, 'h matches slot')
+})
+
+test('slotPositionFor returns original coords for unmanaged types', () => {
+  const pos = slotPositionFor('countdown-timer', 10, 20, 30, 40)
+  assert(pos.x === 10 && pos.y === 20 && pos.w === 30 && pos.h === 40, 'original coords preserved')
+})
+
+test('default templates with slot-managed widgets are zone-clean', () => {
+  // Verify all default templates that have noise-meter or work-symbols widgets
+  // no longer trigger reserved-zone overlap warnings after 15L.3 slot migration.
+  const byId: Record<string, typeof DEFAULT_DISPLAY_SCREENS[number]> = {}
+  for (const s of DEFAULT_DISPLAY_SCREENS) byId[s.id] = s
+
+  const managedTypes = ['noise-meter', 'work-symbols']
+  for (const id of Object.keys(byId)) {
+    const screen = byId[id]
+    if (!screen?.widgets) continue
+    const statusWidgets = screen.widgets.filter((w) => managedTypes.includes(w.type) && w.visible)
+    if (statusWidgets.length === 0) continue
+
+    const warnings = detectReservedZoneOverlaps(statusWidgets, DISPLAY_STUDIO_RESERVED_ZONES)
+    assert(warnings.length === 0,
+      `${id}: slot-managed widgets should not overlap reserved zones (found ${warnings.length}: ${warnings.map((w: { message: string }) => w.message).join('; ')})`)
+  }
 })
 
 // ── Summary ──
