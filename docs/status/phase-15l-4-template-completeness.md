@@ -12,7 +12,7 @@
 
 Phase 15L.4 completes the Display Studio template cleanup deferred from Phases 15L.2 and 15L.3. Four categories of fixes were applied:
 
-1. **16 content widgets moved below the Title Bar zone** (y=5 → y=14) across 12 templates.
+1. **17 content widgets moved below the Title Bar zone** (y=5 → y=14) across 13 templates.
 2. **Hollow `review-game-15c` template filled** with directions-text, checklist, and repositioned widgets.
 3. **Sparse transition screens filled** (`movement-to-spelling-reading`, `specials`) with student messages.
 4. **Baked-in-text background risks documented** as deferred (asset-level fix — PNG files not modifiable in code).
@@ -60,7 +60,7 @@ Phase 15L.4 completes the Display Studio template cleanup deferred from Phases 1
 
 ### Pre-Fix Zone Overlap Summary
 
-Before this phase, **16 visible CanvasWidgets across 12 templates** sat at y=5, overlapping the Title Bar reserved zone (0,0,100,10):
+Before this phase, **17 visible CanvasWidgets across 13 templates** sat at y=5, overlapping the Title Bar reserved zone (0,0,100,10):
 
 | Template | Widgets at y=5 |
 |----------|---------------|
@@ -75,10 +75,10 @@ Before this phase, **16 visible CanvasWidgets across 12 templates** sat at y=5, 
 | science-launch | 1 (directions) |
 | history-launch | 1 (directions) |
 | spelling-word-work | 1 (directions) |
-| independent-practice | 1 (countdown-timer) + slot conflict handl |
+| independent-practice | 1 (countdown-timer) |
 | test-mode | 1 (directions) |
 
-All 16 widgets moved to y=14. One positional conflict (independent-practice work-symbols at y=14 overlapping the timer) resolved by moving the symbol to bottom-left (y=70).
+All 17 widgets moved to y=14. One additional layout adjustment (independent-practice work-symbols relocated from y=14 to y=70) was needed to avoid crowding after the countdown-timer moved into the y=14 row — this is a separate slot reposition, not part of the 17 y:5→14 moves.
 
 ### Post-Fix Zone Verification
 
@@ -127,12 +127,12 @@ The 14 `BACKGROUND_ASSETS` in `src/data/backgroundAssets.ts` reference 5 unique 
 | `homeroom-morning-briefing.png` | arrival-720, end-of-day, recess-play, homework-station, pack-up-station (5) | None noted |
 | `math-training-lab.png` | morning-work-to-math, science-lab (2) | None noted |
 | `reading-sky-book-world.png` | writing-workshop, social-studies-map (2) | None noted |
-| `snack-lunch-flow-control.png` | math-to-snack-shurley, spelling-reading-to-lunch, lunch-15c, centers-rotations (4) | Note: "Keep times editable in React only" |
+| `snack-lunch-flow-control.png` | math-to-snack-shurley, spelling-reading-to-lunch, lunch-15c, centers-rotations (4) | **Confirmed** baked-in title text ("Snack Lunch Flow") |
 | `ready-position-expectations.png` | shurley-to-movement-spelling-reading, assessment-mode (2) | None noted |
 
-The `snack-lunch-flow-control.png` asset has the note "Phase 4D replacement. Keep times editable in React only." This implies the original had times baked into the image. The note says "Phase 4D replacement" suggesting this was supposed to be a text-free version, but the actual PNG content cannot be verified from code.
+The `snack-lunch-flow-control.png` asset was visually inspected and confirmed to contain baked-in title text: **"Snack Lunch Flow"** rendered directly in the PNG. This is not resolved by Phase 15L.4. All instructional and timing text should be kept editable in React/widgets going forward.
 
-**Decision: Deferred.** Replacing PNG assets requires design work and new image files, which is out of scope for this code-only phase. The risk is noted but not actionable without asset changes. No templates currently have text-only backgrounds with baked instructional content — all instructional text in templates uses editable `directions-text`/`studentMessage`/`checklistCard`/`materialsCard` fields.
+**Decision: Deferred.** Replacing the PNG requires a new text-free background asset, which is out of scope for code-only phases. When a replacement is available, the baked-in title text will be moved into an editable `studentMessage` or screen `title` field.
 
 ### Background Texture Audit
 
@@ -200,7 +200,7 @@ No hollow templates           → PASS
 
 | File | Change |
 |------|--------|
-| `src/features/display-composer/defaultScreens.ts` | 16 widget y:5→14 repositionings; review-game-15c filled (directions + checklist); independent-practice symbol moved to y=70; movement-to-spelling-reading and specials added studentMessage; game-review widgets repositioned |
+| `src/features/display-composer/defaultScreens.ts` | 17 widget y:5→14 repositionings; review-game-15c filled (directions + checklist); independent-practice symbol moved to y=70; movement-to-spelling-reading and specials added studentMessage; game-review widgets repositioned |
 | `src/lib/display-studio-tests.ts` | Updated widget count expectation for review-game-15c (2→3). Added 7 Phase 15L.4 template audit tests |
 | `docs/status/phase-15l-4-template-completeness.md` | This document |
 
@@ -221,7 +221,7 @@ No hollow templates           → PASS
 
 ### Asset-Level (Not Code-Fixable)
 
-- `snack-lunch-flow-control.png` background note: "Keep times editable in React only" — may contain baked-in times. Requires new PNG asset.
+- `snack-lunch-flow-control.png` background: confirmed baked-in title text ("Snack Lunch Flow") rendered directly in the PNG. Requires new text-free background asset.
 - Several background assets are "Phase 4A lightweight alias" reuses (e.g., reading-sky-book-world.png used for writing and social-studies). Custom backgrounds deferred to design.
 - All 5 unique PNG files are served as-is from `/assets/backgrounds/`. Not modifiable in code.
 
