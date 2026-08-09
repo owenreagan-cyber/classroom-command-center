@@ -349,7 +349,7 @@ test('new seeded templates have widgets', () => {
   assert(byId['math-launch-15c']?.widgets?.length === 2, 'math launch has 2 widgets')
   assert(byId['work-time-15c']?.widgets?.length === 3, 'work time has 3 widgets')
   assert(byId['mystery-student-15c']?.widgets?.length === 1, 'mystery student has 1 widget')
-  assert(byId['review-game-15c']?.widgets?.length === 2, 'review game has 2 widgets')
+  assert(byId['review-game-15c']?.widgets?.length === 3, 'review game has 3 widgets (picker, board, directions)')
   assert(byId['lunch-15c']?.widgets?.length === 2, 'lunch routine has 2 widgets')
 })
 
@@ -898,6 +898,140 @@ test('default templates with slot-managed widgets are zone-clean', () => {
     const warnings = detectReservedZoneOverlaps(statusWidgets, DISPLAY_STUDIO_RESERVED_ZONES)
     assert(warnings.length === 0,
       `${id}: slot-managed widgets should not overlap reserved zones (found ${warnings.length}: ${warnings.map((w: { message: string }) => w.message).join('; ')})`)
+  }
+})
+
+// ── Phase 15L.4: Template Completeness Audit Tests ──
+
+test('no default template widgets intrude into reserved zones (all types)', () => {
+  // Verify ALL widgets across ALL templates are outside reserved zones after 15L.4 fix.
+  // The only allowed overlap is the showClock chrome (fixed React, not a CanvasWidget).
+  const byId: Record<string, typeof DEFAULT_DISPLAY_SCREENS[number]> = {}
+  for (const s of DEFAULT_DISPLAY_SCREENS) byId[s.id] = s
+
+  for (const id of Object.keys(byId)) {
+    const screen = byId[id]
+    if (!screen?.widgets || screen.widgets.length === 0) continue
+
+    const visible = screen.widgets.filter((w) => w.visible)
+    if (visible.length === 0) continue
+
+    const warnings = detectReservedZoneOverlaps(visible, DISPLAY_STUDIO_RESERVED_ZONES)
+    assert(warnings.length === 0,
+      `${id}: all visible default-template widgets must be outside reserved zones (found ${warnings.length}: ${warnings.map((w: { message: string }) => w.message).join('; ')})`)
+  }
+})
+
+test('review-game-15c is not hollow after 15L.4', () => {
+  const byId: Record<string, typeof DEFAULT_DISPLAY_SCREENS[number]> = {}
+  for (const s of DEFAULT_DISPLAY_SCREENS) byId[s.id] = s
+
+  const rg = byId['review-game-15c']
+  assert(rg !== undefined, 'review-game-15c exists')
+  assert(rg!.widgets && rg!.widgets.length >= 3, 'review-game-15c has at least 3 widgets (picker, board, directions)')
+  assert(rg!.checklistCard !== undefined, 'review-game-15c has a checklist')
+  assert(rg!.studentMessage !== undefined, 'review-game-15c has a student message')
+  // All widgets must be visible
+  const visible = rg!.widgets.filter((w) => w.visible)
+  assert(visible.length >= 3, `all review-game-15c widgets should be visible (found ${visible.length})`)
+})
+
+test('Math Launch countdown-timer is outside reserved zones after 15L.4', () => {
+  const byId: Record<string, typeof DEFAULT_DISPLAY_SCREENS[number]> = {}
+  for (const s of DEFAULT_DISPLAY_SCREENS) byId[s.id] = s
+
+  const ml = byId['math-launch-15c']
+  assert(ml !== undefined, 'math-launch-15c exists')
+
+  const zoneWarnings = detectReservedZoneOverlaps(ml!.widgets ?? [], DISPLAY_STUDIO_RESERVED_ZONES)
+  assert(zoneWarnings.length === 0,
+    `math-launch-15c widgets should not overlap reserved zones (found ${zoneWarnings.length}: ${zoneWarnings.map((w) => w.message).join('; ')})`)
+})
+
+test('Mystery Student is clean after 15L.4 audit', () => {
+  const byId: Record<string, typeof DEFAULT_DISPLAY_SCREENS[number]> = {}
+  for (const s of DEFAULT_DISPLAY_SCREENS) byId[s.id] = s
+
+  const ms = byId['mystery-student-15c']
+  assert(ms !== undefined, 'mystery-student-15c exists')
+  assert(ms!.widgets && ms!.widgets.length >= 1, 'has at least 1 widget')
+  assert(ms!.studentMessage !== undefined, 'has a student message')
+  assert(ms!.checklistCard !== undefined, 'has a checklist')
+
+  // Mystery Student is already clean (widget at y=20, well below title bar)
+  const zoneWarnings = detectReservedZoneOverlaps(ms!.widgets.filter((w) => w.visible), DISPLAY_STUDIO_RESERVED_ZONES)
+  assert(zoneWarnings.length === 0, 'mystery-student-15c is reserved-zone clean')
+})
+
+test('Lunch routine-timer is outside reserved zones after 15L.4', () => {
+  const byId: Record<string, typeof DEFAULT_DISPLAY_SCREENS[number]> = {}
+  for (const s of DEFAULT_DISPLAY_SCREENS) byId[s.id] = s
+
+  const lr = byId['lunch-15c']
+  assert(lr !== undefined, 'lunch-15c exists')
+
+  const zoneWarnings = detectReservedZoneOverlaps(lr!.widgets ?? [], DISPLAY_STUDIO_RESERVED_ZONES)
+  assert(zoneWarnings.length === 0,
+    `lunch-15c widgets should not overlap reserved zones (found ${zoneWarnings.length}: ${zoneWarnings.map((w) => w.message).join('; ')})`)
+})
+
+test('review-game-15c widgets are outside reserved zones after 15L.4', () => {
+  const byId: Record<string, typeof DEFAULT_DISPLAY_SCREENS[number]> = {}
+  for (const s of DEFAULT_DISPLAY_SCREENS) byId[s.id] = s
+
+  const rg = byId['review-game-15c']
+  assert(rg !== undefined, 'review-game-15c exists')
+  const zoneWarnings = detectReservedZoneOverlaps((rg!.widgets ?? []).filter((w) => w.visible), DISPLAY_STUDIO_RESERVED_ZONES)
+  assert(zoneWarnings.length === 0,
+    `review-game-15c widgets should not overlap reserved zones (found ${zoneWarnings.length}: ${zoneWarnings.map((w) => w.message).join('; ')})`)
+})
+
+test('movement-to-spelling-reading and specials have student messages after 15L.4', () => {
+  const byId: Record<string, typeof DEFAULT_DISPLAY_SCREENS[number]> = {}
+  for (const s of DEFAULT_DISPLAY_SCREENS) byId[s.id] = s
+
+  const mtsr = byId['movement-to-spelling-reading']
+  assert(mtsr !== undefined, 'movement-to-spelling-reading exists')
+  assert(mtsr!.studentMessage !== undefined && mtsr!.studentMessage.length > 0,
+    'movement-to-spelling-reading has a student message')
+
+  const spec = byId['specials']
+  assert(spec !== undefined, 'specials exists')
+  assert(spec!.studentMessage !== undefined && spec!.studentMessage.length > 0,
+    'specials has a student message')
+})
+
+test('no default template looks hollow (all have widgets, student message, checklist, or materials)', () => {
+  const byId: Record<string, typeof DEFAULT_DISPLAY_SCREENS[number]> = {}
+  for (const s of DEFAULT_DISPLAY_SCREENS) byId[s.id] = s
+
+  for (const id of Object.keys(byId)) {
+    const screen = byId[id]
+    assert(screen !== undefined, `${id} exists`)
+    const hasWidgets = screen!.widgets && screen!.widgets.length > 0
+    const hasStudentMsg = screen!.studentMessage && screen!.studentMessage.length > 0
+    const hasChecklist = screen!.checklistCard !== undefined
+    const hasMaterials = screen!.materialsCard !== undefined
+    const hasTimer = screen!.timerWidget && screen!.timerWidget.kind !== 'none'
+
+    assert(hasWidgets || hasStudentMsg || hasChecklist || hasMaterials || hasTimer,
+      `${id}: template must not be hollow — needs at least one of: widgets, student message, checklist, materials, or timer kind`)
+  }
+})
+
+test('all templates with directions-text have non-empty text content', () => {
+  const byId: Record<string, typeof DEFAULT_DISPLAY_SCREENS[number]> = {}
+  for (const s of DEFAULT_DISPLAY_SCREENS) byId[s.id] = s
+
+  for (const id of Object.keys(byId)) {
+    const screen = byId[id]
+    if (!screen?.widgets) continue
+    for (const w of screen.widgets) {
+      if (w.type === 'directions-text' && w.visible) {
+        const text = w.settings.text as string | undefined
+        assert(text && text.length > 0, `${id}: directions-text "${w.label}" must have non-empty text`)
+      }
+    }
   }
 })
 
