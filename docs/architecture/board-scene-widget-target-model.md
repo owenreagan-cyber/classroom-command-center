@@ -516,6 +516,34 @@ function toDisplaySafeScene(scene: Scene, engineState: EngineState): DisplaySafe
 
 ---
 
+## Student Display Projection Boundary
+
+The Board > Scene > Widget model defines an explicit boundary between the authoring model and the student projection model. This boundary is engine-independent and is the mechanism that keeps /display safe, clean, and watermark-free.
+
+### Authoring model (on /control)
+
+- Board, Scene, Widget are the authoring model
+- /control can render authoring widgets using the chosen engine (tldraw, React-Konva, or hand-rolled DOM)
+- Teacher sees full widget state: settings, teacherOnly fields, inspector panels, selection handles, cameras, private notes
+
+### Projection model (on /display)
+
+- DisplaySafeScene / DisplaySafeWidget is the projection model
+- /display renders only the student-safe projection through a lightweight renderer
+- /display should not load the editor engine (tldraw Editor, Konva Stage, etc.)
+
+### What never crosses the boundary
+
+Teacher-only fields, editor-only state, selection handles, cameras, inspector state, private notes, and implementation artifacts never cross the projection boundary. The `toDisplaySafeScene()` and `toDisplaySafeWidget()` functions are the single source of truth for projection. Every widget type's display-safe rendering is defined in one place, not scattered across parallel switch statements.
+
+### Engine independence
+
+This boundary applies regardless of which engine powers /control. If tldraw is chosen, the projection boundary is also how we keep /display watermark-free — /display renders DisplaySafeWidget through a lightweight React/DOM renderer that never loads the tldraw Editor.
+
+If a future decision explicitly chooses to power /display with the same engine (for example, to share a canvas renderer), that would be a new decision crossing this boundary. As of this amendment, the boundary stands.
+
+---
+
 ## What Remains Outside the Canvas
 
 These components stay in React/DOM and are never rendered on the canvas:
@@ -623,49 +651,76 @@ interface PageWidget {
 
 ## Migration Plan
 
-The migration is staged across six phases. Each phase is small, merges independently, and does not break existing functionality.
+The migration is staged across six phases (plus this amendment). Each phase is small, merges independently, and does not break existing functionality.
 
-### Phase 15L.2 — Urgent Visual/Layout Safety Fixes
+### Phase 15L.1A — Canvas Engine Display Boundary Amendment (this phase)
 
-**Goal:** Fix the widget overlap/collision issues, background images with baked-in text, hollow templates, and duplicate chrome found in the current-state review and screenshot analysis. These are correctness fixes that apply before any model changes.
+**Goal:** Documentation-only amendment clarifying that /display must remain engine-agnostic, correcting ratings, and reconciling the phase sequence.
 
 **Deliverables:**
-- Fix widget collision/layout overlap issues on existing canvas
-- Replace or flag background images with baked-in text
-- Fill hollow templates with placeholder content
-- Collapse duplicate chrome: consolidate Send to Display (3→1), Blank/Restore (2→1), Presenter (2→1) controls
+- Updated `canvas-engine-decision.md` with Display Boundary Decision section
+- Updated `board-scene-widget-target-model.md` with Student Display Projection Boundary section and reconciled Migration Plan
+- New `phase-15l-1a-display-boundary-amendment.md` status document
+
+**No code changes.** Documentation only.
+
+### Phase 15L.2 — Widget Overlap/Collision Safety + Duplicate Chrome Collapse
+
+**Goal:** Fix widget overlap and collision issues found in the current-state review, and collapse duplicate chrome controls.
+
+**Deliverables:**
+- Widget overlap/collision safety audit and warnings on existing canvas
+- Collapse duplicate chrome:
+  - Send to Display: 3 instances → 1
+  - Blank/Restore: 2 instances → 1
+  - Presenter: 2 instances → 1
+  - Clear Display: 2 instances → 1
+  - Browse Templates: 2 instances → 1
 - No model changes, no engine changes, no new dependencies
 
 **Validation:** All existing tests pass. Visual QA on /control and /display.
 
-### Phase 15L.3 — Widget Contract/Type Planning
+### Phase 15L.3 — Status Widget Slot System
 
-**Goal:** Define the typed widget settings discriminated union without implementing it.
+**Goal:** Shared docked-corner placement for always-on status widgets (clock, voice-level, mode badge, materials icon), replacing free positioning.
 
 **Deliverables:**
-- `docs/architecture/widget-settings-contract.md` — per-widget typed settings schema
-- `docs/architecture/display-safe-protocol-spec.md` — shared `toDisplaySafeWidget` protocol specification
-- Type-only `.d.ts` proposal file (no runtime code)
-- Audit each widget's current settings shape and document gaps
+- Define slot positions (corners, edges) for status widgets
+- Migrate clock, voice-level, mode badge, materials icon to slot-based positioning
+- Status widgets share consistent, predictable placement across all scenes
+- No model changes beyond slot positioning
 
-**No code changes.** Documentation only.
+**Validation:** All existing tests pass. Visual QA on /control and /display.
+
+### Phase 15L.4 — Template Completeness Audit
+
+**Goal:** Audit and fix hollow templates and background images with text baked into the asset.
+
+**Deliverables:**
+- Identify and fill hollow templates (e.g., the empty "Review Game" entry)
+- Replace background images with baked-in text with text-free backgrounds — text should be rendered as a directions-text widget, not embedded in the image asset
+- Ensure every template has a complete, usable widget layout
+- No engine changes, no new dependencies
+
+**Validation:** All existing tests pass. Visual QA on all templates.
 
 ### Phase 15M — Canvas Engine Prototype/Spike
 
-**Goal:** Build a small, isolated prototype of the chosen canvas engine with real classroom widgets.
+**Goal:** Build a small, isolated prototype of tldraw on /control only (dev-only route).
 
 **Deliverables:**
-- A separate route or dev-only overlay (`/canvas-spike`) with the chosen engine
+- A separate dev-only route (`/canvas-spike`) with tldraw
 - One Board with 2 Scenes ("Morning Arrival", "Silent Work")
 - 3 widgets: clock, directions-text, countdown-timer
 - Working: selection, drag, resize, pan, zoom, camera navigation between scenes
-- Working: display-safe projection to a simulated /display view
+- Working: display-safe projection to /display (engine-agnostic, per Display Boundary Decision)
 - Working: pin a widget to both scenes
 
 **Constraints:**
+- /control only — /display remains the engine-agnostic lightweight renderer
 - Runs on sample data — no production state migration
 - Does not modify existing routes, stores, or widget renderers
-- Does not add the engine to the main dependency tree (dev-only import or separate workspace)
+- Does not add tldraw to the main dependency tree (dev-only import or separate workspace)
 - iPad and Mac Safari testing must pass
 
 **Validation:** Manual testing on iPad + Mac. The spike does not add to the production test suite.
@@ -674,9 +729,11 @@ The migration is staged across six phases. Each phase is small, merges independe
 
 **Goal:** Migrate production state and renderers to the chosen engine. This phase is only executed after:
 1. Canvas engine decision is finalized (Phase 15L.1)
-2. Visual safety fixes are applied (Phase 15L.2)
-3. Widget contract is typed (Phase 15L.3)
-4. Spike validates the engine on iPad/Mac (Phase 15M)
+2. Display boundary amendment applied (Phase 15L.1A)
+3. Overlap/collision fixes and duplicate chrome collapse (Phase 15L.2)
+4. Status widget slot system (Phase 15L.3)
+5. Template completeness audit (Phase 15L.4)
+6. Spike validates the engine on iPad/Mac (Phase 15M)
 
 **Deliverables (in order):**
 1. Add the engine dependency (tldraw or react-konva)
@@ -696,7 +753,7 @@ The migration is staged across six phases. Each phase is small, merges independe
 
 ## Test Preservation
 
-**During all phases 15L.1 through 15L.3:** No test is modified. All 11 test suites continue to pass. These are documentation-only and visual-fix phases.
+**During all phases 15L.1 through 15L.4:** No test is modified. All 11 test suites continue to pass. These are documentation-only and safety-fix phases.
 
 **During Phase 15M:** The spike has its own tests. Existing tests are unaffected.
 
