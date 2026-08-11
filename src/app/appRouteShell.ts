@@ -11,9 +11,11 @@ export function shouldShowTeacherBoardChrome(route: AppShellRoute): boolean {
   return route === 'control'
 }
 
-/** Display route forces read-only presentation without mutating persisted mode. */
+/** Display route forces read-only presentation without mutating persisted mode.
+ *  Teach mode keeps its own identity — it is not display. */
 export function getEffectiveBoardMode(route: AppShellRoute, persistedMode: AppMode): AppMode {
   if (route === 'display') return 'display'
+  if (persistedMode === 'teach') return 'teach'
   return persistedMode
 }
 

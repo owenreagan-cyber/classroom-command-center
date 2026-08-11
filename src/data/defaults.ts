@@ -391,5 +391,5 @@ export const DEFAULT_TEACHER_NOTES: TeacherNote[] = [
 ]
 
 export const DEFAULT_SCREEN_ID = SCREEN_META[0].id
-export const DEFAULT_MODE = 'edit' as const
+export const DEFAULT_MODE = 'teach' as const
 export { DEFAULT_BACKGROUND_ID }

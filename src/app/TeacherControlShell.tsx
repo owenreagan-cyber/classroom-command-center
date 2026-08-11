@@ -6,13 +6,25 @@ import { TeacherCommandDock } from '../features/teacher-dock/TeacherCommandDock'
 import { BoardWorkspace } from './BoardWorkspace'
 import { DisplayStudio } from '../features/display-studio/DisplayStudio'
 import { DisplayStudioUIProvider } from '../features/display-studio/displayStudioContext'
+import { TeachModeShell } from './TeachModeShell'
 import {
   getEffectiveBoardMode,
   shouldAllowStudioEditActions,
 } from './appRouteShell'
 
-/** Teacher control route — full workspace with command dock and editing tools. */
+/** Teacher control route — delegates to Teach Mode or Editor/Dashboard Mode. */
 export function TeacherControlShell() {
+  const mode = useBoardStore((state) => state.mode)
+
+  if (mode === 'teach') {
+    return <TeachModeShell />
+  }
+
+  return <EditorModeShell />
+}
+
+/** Full editor/dashboard workspace — dock sidebar, board, and display studio. */
+function EditorModeShell() {
   const mode = useBoardStore((state) => state.mode)
   const effectiveMode = getEffectiveBoardMode('control', mode)
   const activeScreen = useBoardStore((state) => state.activeScreen)
