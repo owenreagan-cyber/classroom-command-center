@@ -1,4 +1,4 @@
-export type AppMode = 'edit' | 'display'
+export type AppMode = 'edit' | 'display' | 'teach'
 
 import type { MorningMessageState } from './morningMessage'
 

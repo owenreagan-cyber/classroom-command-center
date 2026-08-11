@@ -969,11 +969,16 @@ export const useBoardStore = create<BoardStore>()(
     }),
     {
       name: 'classroom-command-center-lite',
-      version: 11,
+      version: 14,
       migrate: (persisted, version) => {
         const state = (persisted ?? {}) as Partial<BoardState> & {
           themeId?: string
         }
+
+        /* version < 14: force Teach Mode as default — stale edit/display
+         * mode from pre-16A.1 persisted state must not survive migration. */
+        const mode =
+          version < 14 ? DEFAULT_MODE : (state.mode ?? DEFAULT_MODE)
         const contents =
           version < 3
             ? structuredClone(DEFAULT_CONTENTS)
@@ -1014,7 +1019,7 @@ export const useBoardStore = create<BoardStore>()(
         const ws = workspaces[normalizedScreen]
 
         return {
-          mode: state.mode ?? DEFAULT_MODE,
+          mode,
           activeScreen: normalizedScreen,
           activePageId: ws?.activePageId ?? ws?.pages[0]?.id ?? null,
           classWorkspaces: workspaces,

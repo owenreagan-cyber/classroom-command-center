@@ -29,6 +29,7 @@ assert('control mounts TeacherDock', shouldMountTeacherDock('control'))
 assert('control shows teacher board chrome', shouldShowTeacherBoardChrome('control'))
 assert('control preserves persisted edit mode', getEffectiveBoardMode('control', 'edit') === 'edit')
 assert('control preserves persisted display mode', getEffectiveBoardMode('control', 'display') === 'display')
+assert('control preserves persisted teach mode', getEffectiveBoardMode('control', 'teach') === 'teach')
 assert('control allows studio edit when in edit mode', shouldAllowStudioEditActions('control', 'edit'))
 assert('control disallows studio edit when in display mode', !shouldAllowStudioEditActions('control', 'display'))
 
