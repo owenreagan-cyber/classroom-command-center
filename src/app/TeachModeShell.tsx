@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useBoardStore } from '../store/boardStore'
 import { CleanClassroomScreenPreview } from './CleanClassroomScreenPreview'
 import { QuickToolsPopover } from './QuickToolsPopover'
+import { ResourcesPopover } from './ResourcesPopover'
 import { openStudentDisplay } from './displayLaunch'
 import type { AppMode } from '../data/types'
 
@@ -149,12 +150,7 @@ export function TeachModeShell() {
 
           {/* Compact Secondary Controls */}
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              className="rounded-xl border border-slate-700/60 bg-slate-900/60 px-3.5 py-2.5 text-sm font-medium text-slate-400 transition-all duration-150 hover:border-slate-500/80 hover:bg-slate-800/80 hover:text-slate-200 active:scale-[0.97]"
-            >
-              Resources
-            </button>
+            <ResourcesPopover onOpenDashboard={handleOpenDashboard} />
 
             <QuickToolsPopover onActivateDashboard={handleOpenDashboard} />
 
