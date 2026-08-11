@@ -33,9 +33,9 @@ function useLiveClock() {
 
 function ContentCard({ title, children }: { title?: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-2xl border border-slate-700/40 bg-slate-800/40 p-5">
+    <div className="rounded-3xl border border-white/[0.07] bg-white/[0.03] p-6">
       {title && (
-        <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.15em] text-slate-400">
+        <h3 className="mb-4 text-xs font-semibold uppercase tracking-[0.12em] text-slate-400/80">
           {title}
         </h3>
       )}
@@ -47,10 +47,10 @@ function ContentCard({ title, children }: { title?: string; children: React.Reac
 function BulletList({ items }: { items: string[] }) {
   if (!items || items.length === 0) return null
   return (
-    <ol className="space-y-2">
+    <ol className="space-y-2.5">
       {items.map((item, i) => (
-        <li key={i} className="flex items-start gap-2 text-sm leading-relaxed text-slate-200">
-          <span className="mt-0.5 shrink-0 text-xs font-medium text-slate-500">{i + 1}.</span>
+        <li key={i} className="flex items-start gap-3 text-[15px] leading-relaxed text-slate-200">
+          <span className="mt-[3px] shrink-0 text-xs font-medium text-slate-500">{i + 1}.</span>
           <span>{item}</span>
         </li>
       ))}
@@ -60,8 +60,8 @@ function BulletList({ items }: { items: string[] }) {
 
 function MaterialPill({ label }: { label: string }) {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-600/70 bg-slate-700/50 px-3 py-1.5 text-sm text-slate-200">
-      <span className="text-xs text-slate-400">□</span>
+    <span className="inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.04] px-3.5 py-2 text-sm text-slate-200">
+      <span className="text-xs text-slate-500">•</span>
       {label}
     </span>
   )
@@ -69,12 +69,12 @@ function MaterialPill({ label }: { label: string }) {
 
 function VoiceBadge({ level }: { level: string }) {
   const colors: Record<string, string> = {
-    Silent: 'border-slate-600 text-slate-400',
-    Whisper: 'border-cyan-700/50 text-cyan-300/80',
-    Normal: 'border-emerald-700/50 text-emerald-300/80',
+    Silent: 'border-slate-500/40 text-slate-400',
+    Whisper: 'border-cyan-600/40 text-cyan-300/70',
+    Normal: 'border-emerald-600/40 text-emerald-300/70',
   }
   return (
-    <span className={`inline-flex shrink-0 items-center rounded-md border px-2.5 py-1 text-xs font-medium ${colors[level] ?? 'border-slate-600 text-slate-400'}`}>
+    <span className={`inline-flex shrink-0 items-center rounded-lg border px-2.5 py-1 text-[11px] font-medium ${colors[level] ?? 'border-slate-500/40 text-slate-400'}`}>
       {level}
     </span>
   )
@@ -82,12 +82,12 @@ function VoiceBadge({ level }: { level: string }) {
 
 function HomeroomPreview({ content }: { content: HomeroomContent }) {
   return (
-    <div className="grid gap-5 md:grid-cols-[1.3fr_0.7fr]">
+    <div className="grid gap-6 md:grid-cols-[1.3fr_0.7fr]">
       <ContentCard title={content.doNowTitle || 'Morning Work'}>
-        <p className="text-sm leading-relaxed text-slate-200">{content.doNow}</p>
+        <p className="text-[15px] leading-relaxed text-slate-200">{content.doNow}</p>
         {content.reminders && content.reminders.length > 0 && (
-          <div className="mt-4 border-t border-slate-700/40 pt-4">
-            <h4 className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+          <div className="mt-5 border-t border-white/[0.06] pt-5">
+            <h4 className="mb-3 text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">
               {content.remindersTitle || 'Reminders'}
             </h4>
             <BulletList items={content.reminders} />
@@ -95,10 +95,10 @@ function HomeroomPreview({ content }: { content: HomeroomContent }) {
         )}
       </ContentCard>
       <ContentCard title={content.materialsTitle || 'Materials'}>
-        <div className="flex flex-col gap-2.5">
+        <div className="flex flex-col gap-3">
           {content.materials?.haveOut && content.materials.haveOut.length > 0 && (
             <div>
-              <p className="mb-2 text-[11px] font-medium text-slate-500">Have Out</p>
+              <p className="mb-2.5 text-[11px] font-medium uppercase tracking-[0.08em] text-slate-500">Have Out</p>
               <div className="flex flex-wrap gap-2">
                 {content.materials.haveOut.map((m, i) => (
                   <MaterialPill key={i} label={m} />
@@ -114,12 +114,12 @@ function HomeroomPreview({ content }: { content: HomeroomContent }) {
 
 function SubjectPreview({ content }: { content: SubjectContent }) {
   return (
-    <div className="grid gap-5 md:grid-cols-[1.3fr_0.7fr]">
+    <div className="grid gap-6 md:grid-cols-[1.3fr_0.7fr]">
       <ContentCard title={content.focusTitle || 'Focus'}>
-        <p className="text-sm leading-relaxed text-slate-200">{content.focusTask}</p>
+        <p className="text-[15px] leading-relaxed text-slate-200">{content.focusTask}</p>
         {content.agenda && content.agenda.length > 0 && (
-          <div className="mt-4 border-t border-slate-700/40 pt-4">
-            <h4 className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+          <div className="mt-5 border-t border-white/[0.06] pt-5">
+            <h4 className="mb-3 text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">
               {content.agendaTitle || 'Agenda'}
             </h4>
             <BulletList items={content.agenda} />
@@ -127,10 +127,10 @@ function SubjectPreview({ content }: { content: SubjectContent }) {
         )}
       </ContentCard>
       <ContentCard title={content.materialsTitle || 'Materials'}>
-        <div className="flex flex-col gap-2.5">
+        <div className="flex flex-col gap-3">
           {content.materials?.haveOut && content.materials.haveOut.length > 0 && (
             <div>
-              <p className="mb-2 text-[11px] font-medium text-slate-500">Have Out</p>
+              <p className="mb-2.5 text-[11px] font-medium uppercase tracking-[0.08em] text-slate-500">Have Out</p>
               <div className="flex flex-wrap gap-2">
                 {content.materials.haveOut.map((m, i) => (
                   <MaterialPill key={i} label={m} />
@@ -150,21 +150,21 @@ function MathReadingPreview({ content }: { content: MathContent | ReadingContent
   const ready = 'readyPosition' in content ? content.readyPosition : undefined
 
   return (
-    <div className="grid gap-5 md:grid-cols-[1.3fr_0.7fr]">
-      <div className="flex flex-col gap-4">
+    <div className="grid gap-6 md:grid-cols-[1.3fr_0.7fr]">
+      <div className="flex flex-col gap-5">
         <ContentCard title="Lesson">
-          <p className="text-sm leading-relaxed text-slate-200">{content.lessonTitle}</p>
+          <p className="text-[15px] leading-relaxed text-slate-200">{content.lessonTitle}</p>
           {lesson && (
-            <div className="mt-3 space-y-2 border-t border-slate-700/40 pt-3">
+            <div className="mt-4 space-y-3 border-t border-white/[0.06] pt-4">
               {lesson.objective && (
-                <p className="text-xs text-slate-400">
+                <p className="text-sm text-slate-400">
                   <span className="font-medium text-slate-300">Objective: </span>
                   {lesson.objective}
                 </p>
               )}
               {lesson.successCriteria && lesson.successCriteria.length > 0 && (
                 <div>
-                  <p className="mb-1 text-[11px] font-medium text-slate-500">Success Criteria</p>
+                  <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.08em] text-slate-500">Success Criteria</p>
                   <BulletList items={lesson.successCriteria} />
                 </div>
               )}
@@ -177,7 +177,7 @@ function MathReadingPreview({ content }: { content: MathContent | ReadingContent
               {vocabulary.entries.map((entry, i) => (
                 <span
                   key={i}
-                  className="rounded-lg border border-slate-600/60 bg-slate-700/50 px-3 py-1.5 text-sm text-slate-200"
+                  className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3.5 py-2 text-sm text-slate-200"
                 >
                   {entry.term}
                 </span>
@@ -186,12 +186,12 @@ function MathReadingPreview({ content }: { content: MathContent | ReadingContent
           </ContentCard>
         )}
       </div>
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-5">
         <ContentCard title={content.materialsTitle || 'Materials'}>
-          <div className="flex flex-col gap-2.5">
+          <div className="flex flex-col gap-3">
             {content.materials?.haveOut && content.materials.haveOut.length > 0 && (
               <div>
-                <p className="mb-2 text-[11px] font-medium text-slate-500">Have Out</p>
+                <p className="mb-2.5 text-[11px] font-medium uppercase tracking-[0.08em] text-slate-500">Have Out</p>
                 <div className="flex flex-wrap gap-2">
                   {content.materials.haveOut.map((m, i) => (
                     <MaterialPill key={i} label={m} />
@@ -204,7 +204,7 @@ function MathReadingPreview({ content }: { content: MathContent | ReadingContent
         {ready && (
           <ContentCard title={ready.title || 'Ready Position'}>
             {ready.useCompact && ready.compactLine ? (
-              <p className="text-sm text-slate-200">{ready.compactLine}</p>
+              <p className="text-[15px] text-slate-200">{ready.compactLine}</p>
             ) : (
               <BulletList items={ready.steps} />
             )}
@@ -217,7 +217,7 @@ function MathReadingPreview({ content }: { content: MathContent | ReadingContent
 
 function SnackLunchPreview({ content }: { content: SnackContent | LunchContent }) {
   return (
-    <div className="grid gap-5 md:grid-cols-[1.3fr_0.7fr]">
+    <div className="grid gap-6 md:grid-cols-[1.3fr_0.7fr]">
       <ContentCard title={content.routineTitle || 'Routine'}>
         {content.routine && <BulletList items={content.routine} />}
       </ContentCard>
@@ -230,15 +230,13 @@ function SnackLunchPreview({ content }: { content: SnackContent | LunchContent }
 
 function ReadyPositionPreview({ content }: { content: ReadyPositionContent }) {
   return (
-    <div className="grid gap-4">
-      <ContentCard title={content.title || 'Expectations'}>
-        {content.useCompact && content.compactLine ? (
-          <p className="text-lg font-medium text-slate-200">{content.compactLine}</p>
-        ) : content.steps && content.steps.length > 0 ? (
-          <BulletList items={content.steps} />
-        ) : null}
-      </ContentCard>
-    </div>
+    <ContentCard title={content.title || 'Expectations'}>
+      {content.useCompact && content.compactLine ? (
+        <p className="text-xl font-medium text-slate-200">{content.compactLine}</p>
+      ) : content.steps && content.steps.length > 0 ? (
+        <BulletList items={content.steps} />
+      ) : null}
+    </ContentCard>
   )
 }
 
@@ -341,22 +339,22 @@ export function CleanClassroomScreenPreview() {
   }
 
   return (
-    <div className="flex h-full w-full items-center justify-center p-4 md:p-8">
-      <div className="flex w-full max-w-3xl flex-col">
-        {/* Slide card — 16:9 inspired, rounded, single card */}
-        <div className="overflow-hidden rounded-3xl border border-slate-700/60 bg-slate-900/80 shadow-2xl">
-          {/* Header bar with reserved-zone clock + voice */}
-          <div className="border-b border-slate-700/50 bg-slate-850/50 px-6 py-5">
+    <div className="flex h-full w-full items-center justify-center p-4 sm:p-6 md:p-8 lg:p-10">
+      <div className="flex w-full max-w-4xl flex-col">
+        {/* Slide card — presentation-first, 16:9 feel */}
+        <div className="overflow-hidden rounded-[1.75rem] border border-white/[0.08] bg-slate-900/70 shadow-[0_0_0_1px_rgba(255,255,255,0.03),0_8px_32px_-8px_rgba(0,0,0,0.4),0_2px_8px_-2px_rgba(0,0,0,0.3)]">
+          {/* Header bar with greeting + date + voice + clock */}
+          <div className="border-b border-white/[0.06] bg-white/[0.02] px-7 py-6">
             <div className="flex items-start justify-between gap-6">
               <div className="min-w-0">
-                <h2 className="text-xl font-semibold tracking-tight text-white">
+                <h2 className="text-2xl font-semibold tracking-tight text-white">
                   {greeting}, 4th Grade!
                 </h2>
-                <p className="mt-0.5 text-sm text-slate-400">{formatDate(now)}</p>
+                <p className="mt-1 text-sm text-slate-400">{formatDate(now)}</p>
               </div>
-              <div className="flex shrink-0 items-center gap-4">
+              <div className="flex shrink-0 items-center gap-3">
                 {voiceLevel && <VoiceBadge level={voiceLevel} />}
-                <span className="rounded-md bg-slate-800 px-2.5 py-1 text-sm font-medium tabular-nums text-slate-300">
+                <span className="rounded-lg bg-white/[0.04] px-3 py-1.5 text-sm font-medium tabular-nums text-slate-300">
                   {formatTime(now)}
                 </span>
               </div>
@@ -364,20 +362,20 @@ export function CleanClassroomScreenPreview() {
           </div>
 
           {/* Main content */}
-          <div className="p-6">
+          <div className="p-7">
             {renderContent()}
           </div>
 
           {/* Status footer — music, timer */}
           {(musicLabel || timerRemaining) && (
-            <div className="flex flex-wrap items-center gap-4 border-t border-slate-700/50 px-6 py-3">
+            <div className="flex flex-wrap items-center gap-4 border-t border-white/[0.06] px-7 py-3.5">
               {musicLabel && (
-                <span className="text-xs font-medium text-slate-400">
+                <span className="text-xs font-medium text-slate-500">
                   Music: {musicLabel}{isPlaying ? ' ▶' : ''}
                 </span>
               )}
               {timerRemaining && (
-                <span className="ml-auto text-xs font-medium tabular-nums text-slate-400">
+                <span className="ml-auto text-xs font-medium tabular-nums text-slate-500">
                   Time left: {timerRemaining}
                 </span>
               )}

@@ -81,23 +81,30 @@ export function TeachModeShell() {
   }, [setMode])
 
   return (
-    <div className="flex h-dvh w-dvw flex-col overflow-hidden bg-slate-950">
+    <div
+      className="flex h-dvh w-dvw flex-col overflow-hidden"
+      style={{
+        background:
+          'radial-gradient(ellipse 80% 60% at 50% -10%, rgba(30,41,59,0.35) 0%, transparent 55%), ' +
+          'linear-gradient(180deg, #0a0f1a 0%, #020617 100%)',
+      }}
+    >
       {/* ── Teaching Block Header ── */}
-      <header className="relative z-30 shrink-0 border-b border-slate-800/80 bg-slate-950/90 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-6 px-6 py-4">
-          <div className="flex min-w-0 flex-col gap-1">
-            <div className="flex items-baseline gap-4">
-              <h1 className="truncate text-2xl font-semibold tracking-tight text-white">
+      <header className="relative z-30 shrink-0 border-b border-slate-800/60 bg-slate-950/80 backdrop-blur-md">
+        <div className="mx-auto flex max-w-5xl items-center justify-between gap-6 px-8 py-5">
+          <div className="flex min-w-0 flex-col gap-1.5">
+            <div className="flex items-baseline gap-3">
+              <h1 className="truncate text-3xl font-semibold tracking-tight text-white">
                 {screenLabel}
               </h1>
-              <span className="shrink-0 rounded-full bg-emerald-950/70 px-3 py-0.5 text-xs font-medium text-emerald-300/90 ring-1 ring-emerald-800/40">
+              <span className="shrink-0 rounded-full bg-emerald-950/60 px-3 py-0.5 text-[11px] font-medium text-emerald-300/80 ring-1 ring-inset ring-emerald-700/30">
                 Ready
               </span>
             </div>
-            <p className="truncate text-sm text-slate-400">{routineBanner}</p>
+            <p className="truncate text-sm text-slate-400/90">{routineBanner}</p>
           </div>
           <div className="shrink-0 text-right">
-            <p className="text-2xl font-mono tabular-nums tracking-tight text-white">
+            <p className="text-[1.65rem] font-mono font-medium tabular-nums tracking-tight text-white/90">
               {timeStr}
             </p>
           </div>
@@ -110,22 +117,22 @@ export function TeachModeShell() {
       </div>
 
       {/* ── Bottom Bar: Navigation + Compact Controls ── */}
-      <footer className="relative z-30 shrink-0 border-t border-slate-800/80 bg-slate-950/90 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-6 py-3">
+      <footer className="relative z-30 shrink-0 border-t border-slate-800/60 bg-slate-950/80 backdrop-blur-md">
+        <div className="mx-auto flex max-w-5xl items-center justify-between gap-6 px-8 py-3.5">
           {/* Navigation */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             <button
               type="button"
               onClick={navigateToPreviousPage}
-              className="rounded-lg border border-slate-700/60 bg-slate-900/60 px-5 py-2.5 text-sm font-medium text-slate-200 transition hover:border-slate-500 hover:bg-slate-800 active:scale-[0.98]"
+              className="rounded-xl border border-slate-700/70 bg-slate-900/70 px-4 py-2.5 text-sm font-medium text-slate-300 transition-all duration-150 hover:border-slate-500 hover:bg-slate-800 hover:text-white active:scale-[0.97]"
               aria-label="Previous slide"
             >
-              Previous
+              ← Previous
             </button>
             <button
               type="button"
               onClick={handlePresent}
-              className="rounded-lg border border-emerald-700/50 bg-emerald-950/50 px-6 py-2.5 text-sm font-semibold text-emerald-200 transition hover:border-emerald-500 hover:bg-emerald-900/50 active:scale-[0.98]"
+              className="rounded-xl border border-emerald-600/40 bg-emerald-950/40 px-5 py-2.5 text-sm font-semibold text-emerald-200 transition-all duration-150 hover:border-emerald-400/60 hover:bg-emerald-900/50 hover:text-emerald-50 active:scale-[0.97]"
               aria-label="Send to student display"
             >
               Send to Display / Present
@@ -133,10 +140,10 @@ export function TeachModeShell() {
             <button
               type="button"
               onClick={navigateToNextPage}
-              className="rounded-lg border border-slate-700/60 bg-slate-900/60 px-5 py-2.5 text-sm font-medium text-slate-200 transition hover:border-slate-500 hover:bg-slate-800 active:scale-[0.98]"
+              className="rounded-xl border border-slate-700/70 bg-slate-900/70 px-4 py-2.5 text-sm font-medium text-slate-300 transition-all duration-150 hover:border-slate-500 hover:bg-slate-800 hover:text-white active:scale-[0.97]"
               aria-label="Next slide"
             >
-              Next
+              Next →
             </button>
           </div>
 
@@ -144,7 +151,7 @@ export function TeachModeShell() {
           <div className="flex items-center gap-2">
             <button
               type="button"
-              className="rounded-lg border border-slate-700/50 bg-slate-900/50 px-4 py-2 text-sm font-medium text-slate-400 transition hover:border-slate-500 hover:text-slate-200 active:scale-[0.98]"
+              className="rounded-xl border border-slate-700/60 bg-slate-900/60 px-3.5 py-2.5 text-sm font-medium text-slate-400 transition-all duration-150 hover:border-slate-500/80 hover:bg-slate-800/80 hover:text-slate-200 active:scale-[0.97]"
             >
               Resources
             </button>
@@ -154,7 +161,7 @@ export function TeachModeShell() {
             <button
               type="button"
               onClick={handleOpenDashboard}
-              className="rounded-lg border border-slate-700/50 bg-slate-900/50 px-4 py-2 text-sm font-medium text-slate-400 transition hover:border-slate-500 hover:text-slate-200 active:scale-[0.98]"
+              className="rounded-xl border border-slate-700/60 bg-slate-900/60 px-3.5 py-2.5 text-sm font-medium text-slate-400 transition-all duration-150 hover:border-slate-500/80 hover:bg-slate-800/80 hover:text-slate-200 active:scale-[0.97]"
             >
               Dashboard
             </button>
@@ -162,7 +169,7 @@ export function TeachModeShell() {
             <button
               type="button"
               onClick={handleOpenEdit}
-              className="rounded-lg border border-cyan-700/40 bg-cyan-950/30 px-4 py-2 text-sm font-medium text-cyan-300/80 transition hover:border-cyan-500 hover:bg-cyan-900/40 active:scale-[0.98]"
+              className="rounded-xl border border-cyan-700/40 bg-cyan-950/25 px-3.5 py-2.5 text-sm font-medium text-cyan-300/70 transition-all duration-150 hover:border-cyan-500/60 hover:bg-cyan-900/35 hover:text-cyan-200 active:scale-[0.97]"
             >
               Edit
             </button>
