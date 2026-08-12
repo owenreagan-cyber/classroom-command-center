@@ -134,7 +134,8 @@ export function TeachModeShell() {
               quiet visual treatment, no accent color competing with Present. */}
           <div className="flex items-center gap-2">
             <ResourcesPopover
-              onOpenDashboard={handleOpenDashboard}
+              onOpenStudio={handleOpenDashboard}
+              screenLabel={screenLabel}
               isOpen={openPopover === 'resources'}
               onOpenChange={(next) => setOpenPopover(next ? 'resources' : null)}
             />
