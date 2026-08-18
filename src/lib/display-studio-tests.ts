@@ -15,6 +15,8 @@ import { BUILT_IN_WALLPAPERS, getWallpaper, getDefaultWallpaper as getDefaultWP,
 
 import { detectCanvasWidgetOverlaps, detectScreenOverlaps, detectReservedZoneOverlaps, detectScreenOverlapsWithZones, DISPLAY_STUDIO_RESERVED_ZONES } from './canvasWidgetOverlapDetector'
 import type { CanvasWidget, CanvasWidgetType } from '../features/display-composer/types'
+import { DISPLAY_FORBIDDEN_KEYS, DISPLAY_FORBIDDEN_PHRASES, scanForForbiddenPhrases, hasForbiddenDisplayKeys } from '../features/display-composer/displaySafetyRules'
+import { auditAllTemplates } from './displayTemplateAudit'
 
 /** Phase 15L.2: test helper — create a CanvasWidget with explicit type for overlap tests. */
 function tw(overrides: Partial<CanvasWidget> & { id: string; label: string }): CanvasWidget {
@@ -821,7 +823,7 @@ test('DISPLAY_STUDIO_RESERVED_ZONES has expected entries', () => {
 
 import {
   STATUS_SLOTS, getSlotById, getDefaultSlotForType, slotPositionFor,
-  validateSlotsAgainstZones, DEFAULT_SLOT_MAP,
+  validateSlotsAgainstZones, DEFAULT_SLOT_MAP, stackInSlot, DISPLAY_SLOT_TO_STATUS_SLOT,
 } from './statusWidgetSlots'
 
 test('STATUS_SLOTS has 4 slots', () => {
@@ -1033,6 +1035,156 @@ test('all templates with directions-text have non-empty text content', () => {
       }
     }
   }
+})
+
+// ── Phase 15L.1: Student Display Safety Tests ──
+
+test('forbidden phrases list includes the leaked implementation note', () => {
+  const phrases = DISPLAY_FORBIDDEN_PHRASES.map((p) => p.toLowerCase())
+  assert(phrases.includes("i'll actually do this differently"))
+  assert(phrases.includes('update key layout areas'))
+  assert(phrases.includes('teachernotes'))
+})
+
+test('scanForForbiddenPhrases catches the leaked implementation note', () => {
+  const leaked = "-- I'll actually do this differently, just update key layout areas."
+  const matches = scanForForbiddenPhrases(leaked)
+  assert(matches.length > 0, 'leaked note must be caught')
+  assert(matches.some((m) => m.toLowerCase() === "i'll actually do this differently"))
+  assert(matches.some((m) => m.toLowerCase() === 'update key layout areas'))
+})
+
+test('scanForForbiddenPhrases is case-insensitive', () => {
+  assert(scanForForbiddenPhrases("I'LL ACTUALLY DO THIS DIFFERENTLY").length > 0)
+})
+
+test('scanForForbiddenPhrases returns empty for clean student text', () => {
+  assert(scanForForbiddenPhrases('Good morning, 4th grade!').length === 0)
+})
+
+test('scanForForbiddenPhrases catches teacherNotes and debug-log references', () => {
+  assert(scanForForbiddenPhrases('render screen.teacherNotes').length > 0)
+  assert(scanForForbiddenPhrases('console.log(screen)').length > 0)
+})
+
+test('hasForbiddenDisplayKeys flags forbidden keys and passes clean objects', () => {
+  assert(hasForbiddenDisplayKeys({ teacherNotes: 'x' }))
+  assert(hasForbiddenDisplayKeys({ updatedAt: 1 }))
+  assert(hasForbiddenDisplayKeys({ version: 1 }))
+  assert(!hasForbiddenDisplayKeys({ id: 'a', title: 'T' }))
+})
+
+test('DISPLAY_FORBIDDEN_KEYS matches displaySafe forbidden keys', () => {
+  for (const key of DISPLAY_FORBIDDEN_KEYS) {
+    assert(key === 'updatedAt' || key === 'version' || key === 'teacherNotes', `unexpected forbidden key: ${key}`)
+  }
+})
+
+test('every default screen projects to a display-safe payload without forbidden keys', () => {
+  for (const screen of DEFAULT_DISPLAY_SCREENS) {
+    const safe = toDisplaySafeScreen(screen)
+    assert(safe !== null, `${screen.id} should be display-safe`)
+    assert(!hasForbiddenDisplayKeys(safe!), `${screen.id} leaks a forbidden key`)
+    assert(displaySafeScreenHasNoForbiddenKeys(safe!), `${screen.id} has forbidden keys`)
+  }
+})
+
+test('no default screen studentMessage contains forbidden phrases', () => {
+  for (const screen of DEFAULT_DISPLAY_SCREENS) {
+    if (!screen.studentMessage) continue
+    const matches = scanForForbiddenPhrases(screen.studentMessage)
+    assert(matches.length === 0, `${screen.id} studentMessage contains forbidden phrase: ${matches.join(', ')}`)
+  }
+})
+
+// ── Phase 15L.1: Status Slot Stacking Tests ──
+
+test('DISPLAY_SLOT_TO_STATUS_SLOT maps all 6 corners to valid slots', () => {
+  const corners = ['top-left', 'top-center', 'top-right', 'bottom-left', 'bottom-center', 'bottom-right']
+  for (const c of corners) {
+    const slotId = DISPLAY_SLOT_TO_STATUS_SLOT[c as keyof typeof DISPLAY_SLOT_TO_STATUS_SLOT]
+    assert(typeof slotId === 'string', `${c} must map to a slot id`)
+    assert(getSlotById(slotId) !== undefined, `${c} maps to a valid slot`)
+  }
+})
+
+test('stackInSlot returns empty for unknown slot or zero count', () => {
+  assert(stackInSlot('nope', 3).length === 0)
+  assert(stackInSlot('slot-top-right-status', 0).length === 0)
+})
+
+test('stackInSlot stacks multiple items without overlapping', () => {
+  const positions = stackInSlot('slot-top-right-status', 3, 6, 1)
+  assert(positions.length === 3, '3 items stacked')
+  for (let i = 1; i < positions.length; i++) {
+    const prev = positions[i - 1]
+    const cur = positions[i]
+    if (cur.x === prev.x) {
+      assert(cur.y >= prev.y + prev.h, `item ${i} overlaps item ${i - 1} in the same column`)
+    }
+  }
+})
+
+test('stackInSlot positions stay within the slot bounds', () => {
+  const slot = getSlotById('slot-top-right-status')!
+  const positions = stackInSlot(slot.id, 2, 6, 1)
+  for (const p of positions) {
+    assert(p.x >= slot.x - 0.01, 'x >= slot.x')
+    assert(p.x + p.w <= slot.x + slot.w + 0.01, 'x+w <= slot right')
+    assert(p.y >= slot.y - 0.01, 'y >= slot.y')
+    assert(p.y + p.h <= slot.y + slot.h + 0.01, 'y+h <= slot bottom')
+  }
+})
+
+// ── Phase 15L.1: Template Audit Tests ──
+
+test('template audit covers all default screens and quick-start templates', () => {
+  const report = auditAllTemplates()
+  assert(
+    report.entries.length === DEFAULT_DISPLAY_SCREENS.length + 5,
+    `expected ${DEFAULT_DISPLAY_SCREENS.length + 5} entries, got ${report.entries.length}`,
+  )
+  assert(
+    report.entries.filter((e) => e.source === 'default').length === DEFAULT_DISPLAY_SCREENS.length,
+    'all default screens audited',
+  )
+})
+
+test('template audit flags the known baked-in-text backgrounds', () => {
+  const report = auditAllTemplates()
+  const ids = report.entries.filter((e) => e.hasBackgroundTextRisk).map((e) => e.id)
+  assert(ids.includes('math-to-snack-shurley'), 'snack flow control background risk')
+  assert(ids.includes('spelling-reading-to-lunch'), 'lunch flow control background risk')
+  assert(ids.includes('lunch-15c'), 'lunch-15c background risk')
+  assert(report.backgroundTextRiskCount === 3, `expected 3 background-text-risk templates, got ${report.backgroundTextRiskCount}`)
+})
+
+test('template audit flags the placeholder messages', () => {
+  const report = auditAllTemplates()
+  const ids = report.entries.filter((e) => e.hasPlaceholderMessage).map((e) => e.id)
+  assert(ids.includes('lesson-launch'), 'lesson-launch has generic message')
+  assert(ids.includes('message-only'), 'quick-start message-only has placeholder')
+})
+
+test('template audit flags no-cards placeholder screens', () => {
+  const report = auditAllTemplates()
+  const ids = report.entries.filter((e) => e.hasNoCardsPlaceholder).map((e) => e.id)
+  assert(ids.includes('work-time-15c'), 'work-time-15c would render "No cards added" text')
+  assert(ids.includes('message-only'), 'message-only quick-start has no cards/timer')
+})
+
+test('no default template is unsafe or hollow', () => {
+  const report = auditAllTemplates()
+  for (const e of report.entries.filter((x) => x.source === 'default')) {
+    assert(e.status !== 'unsafe', `${e.id} must be student-safe`)
+    assert(e.status !== 'hollow', `${e.id} must not be hollow`)
+  }
+})
+
+test('no default template has overlap warnings', () => {
+  const report = auditAllTemplates()
+  const overlaps = report.entries.filter((e) => e.source === 'default' && e.hasOverlapWarning)
+  assert(overlaps.length === 0, `default templates should be overlap-free, found: ${overlaps.map((o) => o.id).join(', ')}`)
 })
 
 // ── Summary ──
