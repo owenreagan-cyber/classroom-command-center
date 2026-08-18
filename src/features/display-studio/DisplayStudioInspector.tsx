@@ -6,6 +6,10 @@ import { DISPLAY_BACKGROUND_GRADIENTS, DISPLAY_BACKGROUND_SOLIDS } from '../disp
 import { BACKGROUND_ASSETS } from '../../data/backgroundAssets'
 import { computeReadabilityWarnings } from '../display-composer/readabilityChecks'
 import { isDefaultScreenId } from '../display-composer/defaultScreens'
+import {
+  detectScreenOverlapsWithZones,
+  DISPLAY_STUDIO_RESERVED_ZONES,
+} from '../../lib/canvasWidgetOverlapDetector'
 import { DisplayStudioThemePicker } from './DisplayStudioThemePicker'
 import type {
   DisplayScreen,
@@ -615,6 +619,7 @@ function DisplaySection({ screen }: { screen: DisplayScreen }) {
   const isLive = screen.id === activeScreenId
 
   const readabilityWarnings = computeReadabilityWarnings(screen)
+  const overlapReport = detectScreenOverlapsWithZones(screen.widgets, DISPLAY_STUDIO_RESERVED_ZONES)
 
   const [status, setStatus] = useState<string | null>(null)
   const showStatus = useCallback((msg: string) => {
@@ -636,6 +641,27 @@ function DisplaySection({ screen }: { screen: DisplayScreen }) {
             {readabilityWarnings.map((w) => (
               <li key={w.id} className="flex items-start gap-1">
                 <span aria-hidden="true">{w.icon}</span>
+                <span>{w.message}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {overlapReport.hasWarnings && (
+        <div
+          className="rounded-lg border border-amber-400/40 bg-amber-950/30 px-2 py-1.5 text-[10px] text-amber-100"
+          data-overlap-warnings
+        >
+          <p className="font-semibold uppercase tracking-wide text-amber-300/90">
+            Widget Overlap (teacher-only)
+          </p>
+          <ul className="mt-0.5 flex flex-col gap-0.5">
+            {overlapReport.warnings.map((w) => (
+              <li key={w.id} className="flex items-start gap-1">
+                <span aria-hidden="true">
+                  {w.severity === 'overlap' ? '⚠' : w.severity === 'touching' ? '━' : '◇'}
+                </span>
                 <span>{w.message}</span>
               </li>
             ))}

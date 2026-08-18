@@ -26,6 +26,74 @@ export interface StatusSlot {
 export const MANAGED_STATUS_TYPES = ['noise-meter', 'work-symbols'] as const
 
 /**
+ * Phase 15L.1 — simple corner vocabulary for always-present status elements,
+ * so multiple badges (clock, voice level, mode, materials, music, mystery star)
+ * do not independently default to the same corner.
+ */
+export type DisplaySlot =
+  | 'top-left'
+  | 'top-center'
+  | 'top-right'
+  | 'bottom-left'
+  | 'bottom-center'
+  | 'bottom-right'
+
+/** Maps a DisplaySlot corner name to the nearest existing StatusSlot id. */
+export const DISPLAY_SLOT_TO_STATUS_SLOT: Record<DisplaySlot, string> = {
+  'top-left': 'slot-top-left-status',
+  'top-center': 'slot-top-left-status',
+  'top-right': 'slot-top-right-status',
+  'bottom-left': 'slot-bottom-left-status',
+  'bottom-center': 'slot-bottom-left-status',
+  'bottom-right': 'slot-bottom-right-status',
+}
+
+/** Absolute percentage position for a stacked status item. */
+export interface StackedItemPosition {
+  x: number
+  y: number
+  w: number
+  h: number
+}
+
+/**
+ * Stack multiple always-present status items within a slot with safe vertical
+ * spacing instead of letting them all land on the same coordinates. Items are
+ * laid out top-to-bottom inside the slot's column; if the slot is too short,
+ * they wrap into additional columns. Pure and deterministic.
+ */
+export function stackInSlot(
+  slotId: string,
+  count: number,
+  itemH = 8,
+  gap = 2,
+): StackedItemPosition[] {
+  const slot = getSlotById(slotId)
+  if (!slot || count <= 0) return []
+
+  const positions: StackedItemPosition[] = []
+  const columns = Math.max(1, Math.floor((slot.h + gap) / (itemH + gap)))
+  const perColumn = Math.ceil(count / columns)
+
+  for (let i = 0; i < count; i++) {
+    const col = Math.floor(i / perColumn)
+    const row = i % perColumn
+    const colWidth = slot.w / columns
+    positions.push({
+      x: round2(slot.x + col * colWidth),
+      y: round2(slot.y + row * (itemH + gap)),
+      w: round2(colWidth),
+      h: itemH,
+    })
+  }
+  return positions
+}
+
+function round2(n: number): number {
+  return Math.round(n * 100) / 100
+}
+
+/**
  * Predefined status slots.
  *
  * ┌────────────────────────────────────────┐
