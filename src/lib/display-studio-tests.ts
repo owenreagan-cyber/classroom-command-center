@@ -17,6 +17,7 @@ import { detectCanvasWidgetOverlaps, detectScreenOverlaps, detectReservedZoneOve
 import type { CanvasWidget, CanvasWidgetType } from '../features/display-composer/types'
 import { DISPLAY_FORBIDDEN_KEYS, DISPLAY_FORBIDDEN_PHRASES, scanForForbiddenPhrases, hasForbiddenDisplayKeys } from '../features/display-composer/displaySafetyRules'
 import { auditAllTemplates } from './displayTemplateAudit'
+import { resolvePresentationStatus, isScreenLive, getNextScreenId, getPreviousScreenId, getAdjacentScreenId, resolveFallbackScreenId } from '../features/presentation-hub/presentationHubLogic'
 
 /** Phase 15L.2: test helper — create a CanvasWidget with explicit type for overlap tests. */
 function tw(overrides: Partial<CanvasWidget> & { id: string; label: string }): CanvasWidget {
@@ -1185,6 +1186,47 @@ test('no default template has overlap warnings', () => {
   const report = auditAllTemplates()
   const overlaps = report.entries.filter((e) => e.source === 'default' && e.hasOverlapWarning)
   assert(overlaps.length === 0, `default templates should be overlap-free, found: ${overlaps.map((o) => o.id).join(', ')}`)
+})
+
+// ── Phase 15L.2: Presentation Hub Logic Tests ──
+
+test('resolvePresentationStatus reports blanked first, then live, then idle', () => {
+  assert(resolvePresentationStatus({ activeScreenId: 'a', displayBlanked: true }) === 'blanked', 'blanked wins over active screen')
+  assert(resolvePresentationStatus({ activeScreenId: 'a', displayBlanked: false }) === 'live', 'active screen without blank is live')
+  assert(resolvePresentationStatus({ activeScreenId: null, displayBlanked: false }) === 'idle', 'no active screen and no blank is idle')
+  assert(resolvePresentationStatus({ activeScreenId: null, displayBlanked: true }) === 'blanked', 'blanked without a screen is still blanked')
+})
+
+test('isScreenLive requires a non-blanked matching active screen', () => {
+  assert(isScreenLive('a', 'a', false) === true, 'matching active screen is live')
+  assert(isScreenLive('a', 'b', false) === false, 'different active screen is not live')
+  assert(isScreenLive('a', 'a', true) === false, 'blanked display is never live')
+  assert(isScreenLive('a', null, false) === false, 'no active screen is never live')
+})
+
+test('getAdjacentScreenId clamps at both ends without wrapping', () => {
+  const order = ['a', 'b', 'c']
+  assert(getNextScreenId(order, 'a') === 'b', 'next after first')
+  assert(getNextScreenId(order, 'c') === null, 'no next after last')
+  assert(getPreviousScreenId(order, 'c') === 'b', 'prev before last')
+  assert(getPreviousScreenId(order, 'a') === null, 'no prev before first')
+  assert(getAdjacentScreenId([], null, 'next') === null, 'empty order has no adjacent')
+})
+
+test('getAdjacentScreenId falls back to an edge for an unknown current id', () => {
+  const order = ['a', 'b', 'c']
+  assert(getNextScreenId(order, 'zzz') === 'a', 'unknown current resolves next to first')
+  assert(getPreviousScreenId(order, 'zzz') === 'c', 'unknown current resolves prev to last')
+  assert(getNextScreenId(order, null) === 'a', 'null current resolves next to first')
+})
+
+test('resolveFallbackScreenId prefers selected, then live, then first', () => {
+  const order = ['a', 'b', 'c']
+  assert(resolveFallbackScreenId(order, 'b', 'a') === 'b', 'selected wins over live')
+  assert(resolveFallbackScreenId(order, null, 'c') === 'c', 'live wins when nothing selected')
+  assert(resolveFallbackScreenId(order, null, null) === 'a', 'first screen when idle')
+  assert(resolveFallbackScreenId(order, 'zzz', 'b') === 'b', 'unknown selected falls back to live')
+  assert(resolveFallbackScreenId([], null, null) === null, 'empty order resolves null')
 })
 
 // ── Summary ──
