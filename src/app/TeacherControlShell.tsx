@@ -4,6 +4,7 @@ import { useTimerStore } from '../store/timerStore'
 import { usePickerStore } from '../features/student-picker/pickerStore'
 import { TeacherCommandDock } from '../features/teacher-dock/TeacherCommandDock'
 import { BoardWorkspace } from './BoardWorkspace'
+import { PresentationHub } from '../features/presentation-hub/PresentationHub'
 import { DisplayStudio } from '../features/display-studio/DisplayStudio'
 import { DisplayStudioUIProvider } from '../features/display-studio/displayStudioContext'
 import { TeachModeShell } from './TeachModeShell'
@@ -168,12 +169,16 @@ function EditorModeShell() {
       <div className="flex h-dvh w-dvw overflow-hidden bg-slate-950">
         <TeacherCommandDock mode={mode} dockContext={dockContext} />
         <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-          <BoardWorkspace
-            effectiveMode={effectiveMode}
-            studentDisplay={false}
-            onEnterEdit={() => setMode('edit')}
-            onBeautify={allowEditActions ? beautifyActiveScreen : undefined}
-            onPreviewClassroom={allowEditActions ? () => setMode('display') : undefined}
+          <PresentationHub
+            boardWorkspace={
+              <BoardWorkspace
+                effectiveMode={effectiveMode}
+                studentDisplay={false}
+                onEnterEdit={() => setMode('edit')}
+                onBeautify={allowEditActions ? beautifyActiveScreen : undefined}
+                onPreviewClassroom={allowEditActions ? () => setMode('display') : undefined}
+              />
+            }
           />
         </div>
         <DisplayStudio />

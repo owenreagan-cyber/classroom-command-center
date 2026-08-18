@@ -36,6 +36,7 @@ trap cleanup EXIT
   "$ROOT/src/lib/canvasWidgetOverlapDetector.ts" \
   "$ROOT/src/lib/statusWidgetSlots.ts" \
   "$ROOT/src/lib/displayTemplateAudit.ts" \
+  "$ROOT/src/features/presentation-hub/presentationHubLogic.ts" \
   "$ROOT/src/lib/display-studio-tests.ts"
 
 printf '{"type":"commonjs"}\n' > "$OUT/package.json"
