@@ -27,6 +27,7 @@ import {
   onCommandSuccess,
   onDevicesError,
   onDevicesLoaded,
+  onPlaybackRefreshed,
   onPremiumRequired,
   onSdkReady,
   onSdkUnavailable,
@@ -333,6 +334,56 @@ async function main(): Promise<void> {
         'Premium required',
     )
     assert(describeStatus({ authStatus: 'tokenExpired', opStatus: 'idle' }) === 'Session expired')
+  })
+
+  await test('device refresh success clears a stale playback apiError', () => {
+    const stale: SpotifyCore = { authStatus: 'connected', opStatus: 'apiError' }
+    const next = onDevicesLoaded(stale, 1)
+    assert(next.authStatus === 'connected')
+    assert(next.opStatus === 'idle', 'device found clears stale error')
+    assert(describeStatus(next) === 'Connected', 'no longer shows Error')
+  })
+
+  await test('connected with devices found does not render Error', () => {
+    const next = onDevicesLoaded(
+      { authStatus: 'connected', opStatus: 'apiError' },
+      2,
+    )
+    assert(describeStatus(next) === 'Connected')
+    assert(next.opStatus !== 'apiError')
+  })
+
+  await test('successful playback refresh clears a stale apiError', () => {
+    const stale: SpotifyCore = { authStatus: 'connected', opStatus: 'apiError' }
+    const next = onPlaybackRefreshed(stale)
+    assert(next.authStatus === 'connected')
+    assert(next.opStatus === 'idle', 'playback read clears stale command error')
+    assert(describeStatus(next) === 'Connected')
+  })
+
+  await test('successful playback refresh with empty item stays neutral, not error', () => {
+    const stale: SpotifyCore = { authStatus: 'connected', opStatus: 'apiError' }
+    // An empty current track is a healthy read, not a failure.
+    const next = onPlaybackRefreshed(stale)
+    assert(next.opStatus === 'idle')
+    assert(next.authStatus === 'connected')
+    assert(describeStatus(next) !== 'Error')
+  })
+
+  await test('now-playing projection updates when current playback has item data', () => {
+    const np: NowPlaying = {
+      trackName: 'A Song',
+      artistName: 'An Artist',
+      albumName: 'An Album',
+      artworkUrl: 'https://example.com/art.png',
+      isPlaying: true,
+    }
+    const safe = toSafeNowPlaying(np)
+    assert(safe !== null)
+    assert(safe.trackName === 'A Song')
+    assert(safe.artistName === 'An Artist')
+    assert(safe.artworkUrl === 'https://example.com/art.png')
+    assert(safeNowPlayingHasNoForbiddenKeys(safe as NonNullable<ReturnType<typeof toSafeNowPlaying>>))
   })
 
   console.log(`\nClean Board Spotify Tests: ${passed} passed, ${failed} failed`)

@@ -17,6 +17,12 @@ export function isAuthConnected(authStatus: SpotifyAuthStatus): boolean {
   return authStatus === 'connected'
 }
 
+/** Clear a transient op error back to idle, preserving a hard premium state. */
+function clearToIdle(core: SpotifyCore): SpotifyCore {
+  if (core.opStatus === 'premiumRequired') return core
+  return core.opStatus === 'idle' ? core : { ...core, opStatus: 'idle' }
+}
+
 /** Human-readable label for the teacher status line. */
 export function describeStatus(core: SpotifyCore): string {
   switch (core.authStatus) {
@@ -61,15 +67,24 @@ export function onCommandFailure(core: SpotifyCore): SpotifyCore {
 /** A command succeeded: clear any stale op error back to idle. */
 export function onCommandSuccess(core: SpotifyCore): SpotifyCore {
   if (!isAuthConnected(core.authStatus)) return core
-  return core.opStatus === 'idle' ? core : { ...core, opStatus: 'idle' }
+  return clearToIdle(core)
 }
 
 /** Devices loaded: empty → deviceUnavailable warning; otherwise idle. */
 export function onDevicesLoaded(core: SpotifyCore, deviceCount: number): SpotifyCore {
   if (!isAuthConnected(core.authStatus)) return core
   if (deviceCount === 0) return { ...core, opStatus: 'deviceUnavailable' }
-  if (core.opStatus === 'premiumRequired') return core
-  return { ...core, opStatus: 'idle' }
+  return clearToIdle(core)
+}
+
+/**
+ * Playback state was fetched successfully (track present or confirmed empty).
+ * This clears a stale command error because a valid playback read is proof the
+ * session is healthy — a "Nothing playing" read is NOT an error.
+ */
+export function onPlaybackRefreshed(core: SpotifyCore): SpotifyCore {
+  if (!isAuthConnected(core.authStatus)) return core
+  return clearToIdle(core)
 }
 
 /** Device fetch failed: keep auth connected, surface an op error. */
@@ -90,5 +105,5 @@ export function onPremiumRequired(core: SpotifyCore): SpotifyCore {
 
 export function onSdkReady(core: SpotifyCore): SpotifyCore {
   if (!isAuthConnected(core.authStatus)) return core
-  return { ...core, opStatus: 'idle' }
+  return clearToIdle(core)
 }

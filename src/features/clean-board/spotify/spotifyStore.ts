@@ -30,6 +30,7 @@ import {
   onCommandSuccess,
   onDevicesError,
   onDevicesLoaded,
+  onPlaybackRefreshed,
   onPremiumRequired,
   onSdkReady,
   onSdkUnavailable,
@@ -68,7 +69,7 @@ interface SpotifyStoreState {
   setupSdk: () => Promise<void>
   disconnect: () => void
   refreshDevices: () => Promise<void>
-  refreshPlayback: () => Promise<boolean>
+  refreshPlayback: () => Promise<'ok' | 'empty' | 'error'>
   transferToDevice: (id: string) => Promise<void>
   transferToSdk: () => Promise<void>
   play: () => Promise<void>
@@ -142,13 +143,18 @@ export const useSpotifyStore = create<SpotifyStoreState>()((set, get) => ({
           clientId: cfg.clientId as string,
         })
         storage.saveTokens(refreshed)
-        set({ authStatus: 'connected', tokens: refreshed })
+        set({
+          authStatus: 'connected',
+          tokens: refreshed,
+          errorMessage: null,
+          noticeMessage: null,
+        })
       } catch {
         set({ authStatus: 'tokenExpired' })
         return
       }
     } else {
-      set({ authStatus: 'connected', tokens })
+      set({ authStatus: 'connected', tokens, errorMessage: null, noticeMessage: null })
     }
 
     const savedDevice = storage.loadDeviceId()
@@ -313,14 +319,17 @@ export const useSpotifyStore = create<SpotifyStoreState>()((set, get) => ({
 
   refreshPlayback: async () => {
     const token = currentToken(get())
-    if (!token) return false
+    if (!token) return 'error'
+    // A fresh playback read is health-check proof — clear any stale command
+    // error banner while the read is in flight.
+    set({ errorMessage: null })
     try {
       const np = await fetchCurrentlyPlaying(token)
-      set({ nowPlaying: np })
-      return true
+      set((s) => ({ nowPlaying: np, ...onPlaybackRefreshed(coreOf(s)) }))
+      return np ? 'ok' : 'empty'
     } catch {
       // Leave last-known now-playing; never surface tokens or demote auth.
-      return false
+      return 'error'
     }
   },
 
@@ -368,9 +377,12 @@ export const useSpotifyStore = create<SpotifyStoreState>()((set, get) => ({
       const cur = get().nowPlaying
       if (cur) set({ nowPlaying: { ...cur, isPlaying: true } })
       set((s) => onCommandSuccess(coreOf(s)))
-      set({ noticeMessage: 'Play command sent.' })
-      const ok = await get().refreshPlayback()
-      if (!ok) set({ noticeMessage: 'Play command sent; could not refresh playback.' })
+      const result = await get().refreshPlayback()
+      if (result === 'error') {
+        set({ noticeMessage: 'Play command sent; could not refresh playback.' })
+      } else if (result === 'empty') {
+        set({ noticeMessage: 'Command sent. Waiting for Spotify playback state.' })
+      }
     } catch {
       set((s) => ({
         ...onCommandFailure(coreOf(s)),
@@ -389,8 +401,12 @@ export const useSpotifyStore = create<SpotifyStoreState>()((set, get) => ({
       const cur = get().nowPlaying
       if (cur) set({ nowPlaying: { ...cur, isPlaying: false } })
       set((s) => onCommandSuccess(coreOf(s)))
-      const ok = await get().refreshPlayback()
-      if (!ok) set({ noticeMessage: 'Pause command sent; could not refresh playback.' })
+      const result = await get().refreshPlayback()
+      if (result === 'error') {
+        set({ noticeMessage: 'Pause command sent; could not refresh playback.' })
+      } else if (result === 'empty') {
+        set({ noticeMessage: 'Command sent. Waiting for Spotify playback state.' })
+      }
     } catch {
       set((s) => ({
         ...onCommandFailure(coreOf(s)),
@@ -407,8 +423,12 @@ export const useSpotifyStore = create<SpotifyStoreState>()((set, get) => ({
     try {
       await next(token)
       set((s) => onCommandSuccess(coreOf(s)))
-      const ok = await get().refreshPlayback()
-      if (!ok) set({ noticeMessage: 'Next command sent; could not refresh playback.' })
+      const result = await get().refreshPlayback()
+      if (result === 'error') {
+        set({ noticeMessage: 'Next command sent; could not refresh playback.' })
+      } else if (result === 'empty') {
+        set({ noticeMessage: 'Command sent. Waiting for Spotify playback state.' })
+      }
     } catch {
       set((s) => ({
         ...onCommandFailure(coreOf(s)),
@@ -425,8 +445,12 @@ export const useSpotifyStore = create<SpotifyStoreState>()((set, get) => ({
     try {
       await previous(token)
       set((s) => onCommandSuccess(coreOf(s)))
-      const ok = await get().refreshPlayback()
-      if (!ok) set({ noticeMessage: 'Previous command sent; could not refresh playback.' })
+      const result = await get().refreshPlayback()
+      if (result === 'error') {
+        set({ noticeMessage: 'Previous command sent; could not refresh playback.' })
+      } else if (result === 'empty') {
+        set({ noticeMessage: 'Command sent. Waiting for Spotify playback state.' })
+      }
     } catch {
       set((s) => ({
         ...onCommandFailure(coreOf(s)),
@@ -443,8 +467,12 @@ export const useSpotifyStore = create<SpotifyStoreState>()((set, get) => ({
     try {
       await play(token, { deviceId: get().activeDeviceId ?? undefined, contextUri: uri })
       set((s) => onCommandSuccess(coreOf(s)))
-      const ok = await get().refreshPlayback()
-      if (!ok) set({ noticeMessage: 'Playlist launched; could not refresh playback.' })
+      const result = await get().refreshPlayback()
+      if (result === 'error') {
+        set({ noticeMessage: 'Playlist launched; could not refresh playback.' })
+      } else if (result === 'empty') {
+        set({ noticeMessage: 'Command sent. Waiting for Spotify playback state.' })
+      }
     } catch {
       set((s) => ({
         ...onCommandFailure(coreOf(s)),
