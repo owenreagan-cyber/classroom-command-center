@@ -124,6 +124,9 @@ export function BoardLabPage() {
   })
 
   const init = useSpotifyStore((s) => s.init)
+  const authStatus = useSpotifyStore((s) => s.authStatus)
+  const startPlaybackPolling = useSpotifyStore((s) => s.startPlaybackPolling)
+  const stopPlaybackPolling = useSpotifyStore((s) => s.stopPlaybackPolling)
 
   // Run the Spotify handshake/restore once at the shell level so the OAuth
   // callback is consumed even when present mode is the initial route (the
@@ -131,6 +134,18 @@ export function BoardLabPage() {
   useEffect(() => {
     void init()
   }, [init])
+
+  // Single owner for now-playing polling: the board shell runs in both edit
+  // and present modes, and this effect stops the loop on unmount or when the
+  // session is no longer connected.
+  useEffect(() => {
+    if (authStatus === 'connected') {
+      startPlaybackPolling()
+    } else {
+      stopPlaybackPolling()
+    }
+    return () => stopPlaybackPolling()
+  }, [authStatus, startPlaybackPolling, stopPlaybackPolling])
 
   const activePage = deck.pages.find((p) => p.id === deck.activePageId) ?? deck.pages[0]
 

@@ -28,9 +28,11 @@ import {
   onDevicesError,
   onDevicesLoaded,
   onPlaybackRefreshed,
+  onPollingError,
   onPremiumRequired,
   onSdkReady,
   onSdkUnavailable,
+  shouldPollPlayback,
 } from './spotifyState'
 import { computeExpiresAt, isTokenExpired } from './spotifyStorage'
 import type { SpotifyCore } from './spotifyState'
@@ -384,6 +386,38 @@ async function main(): Promise<void> {
     assert(safe.artistName === 'An Artist')
     assert(safe.artworkUrl === 'https://example.com/art.png')
     assert(safeNowPlayingHasNoForbiddenKeys(safe as NonNullable<ReturnType<typeof toSafeNowPlaying>>))
+  })
+
+  // ── Polling ──
+
+  await test('shouldPollPlayback is true only while connected', () => {
+    assert(shouldPollPlayback('connected') === true)
+    assert(shouldPollPlayback('loggedOut') === false)
+    assert(shouldPollPlayback('tokenExpired') === false)
+    assert(shouldPollPlayback('configMissing') === false)
+    assert(shouldPollPlayback('authorizing') === false)
+  })
+
+  await test('a polling transient error keeps auth connected and does not render Error', () => {
+    const next = onPollingError(connectedIdle)
+    assert(next.authStatus === 'connected', 'auth never demoted on poll error')
+    assert(next.opStatus === 'idle', 'op state unchanged — no hard Error')
+    assert(describeStatus(next) !== 'Error')
+  })
+
+  await test('successful polling after a stale error clears it back to idle', () => {
+    const stale: SpotifyCore = { authStatus: 'connected', opStatus: 'apiError' }
+    const afterPoll = onPollingError(stale) // transient poll failure keeps prior state
+    assert(afterPoll.authStatus === 'connected')
+    const recovered = onPlaybackRefreshed(afterPoll)
+    assert(recovered.opStatus === 'idle', 'successful refresh clears stale error')
+    assert(describeStatus(recovered) === 'Connected')
+  })
+
+  await test('empty playback read stays neutral "Nothing playing", not an error', () => {
+    const next = onPlaybackRefreshed({ authStatus: 'connected', opStatus: 'apiError' })
+    assert(next.opStatus === 'idle')
+    assert(describeStatus(next) !== 'Error')
   })
 
   console.log(`\nClean Board Spotify Tests: ${passed} passed, ${failed} failed`)

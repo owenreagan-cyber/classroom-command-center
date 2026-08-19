@@ -31,9 +31,11 @@ import {
   onDevicesError,
   onDevicesLoaded,
   onPlaybackRefreshed,
+  onPollingError,
   onPremiumRequired,
   onSdkReady,
   onSdkUnavailable,
+  shouldPollPlayback,
 } from './spotifyState'
 import type { SpotifyCore } from './spotifyState'
 import type { SpotifyAuthStatus, SpotifyOpStatus } from './spotifyTypes'
@@ -70,6 +72,9 @@ interface SpotifyStoreState {
   disconnect: () => void
   refreshDevices: () => Promise<void>
   refreshPlayback: () => Promise<'ok' | 'empty' | 'error'>
+  startPlaybackPolling: (intervalMs?: number) => void
+  stopPlaybackPolling: () => void
+  pollPlaybackOnce: () => Promise<void>
   transferToDevice: (id: string) => Promise<void>
   transferToSdk: () => Promise<void>
   play: () => Promise<void>
@@ -97,6 +102,13 @@ function coreOf(state: SpotifyStoreState): SpotifyCore {
 // Prevents double-invocation of the callback exchange (React StrictMode runs
 // effects twice in dev, and init() runs on every mount).
 let callbackInFlight = false
+
+// Polling loop — module-level so there is exactly one owner regardless of how
+// many components subscribe to the store.
+let playbackPollTimer: ReturnType<typeof setInterval> | null = null
+let playbackRefreshInFlight = false
+
+const PLAYBACK_POLL_INTERVAL_MS = 7000
 
 export const useSpotifyStore = create<SpotifyStoreState>()((set, get) => ({
   authStatus: 'loggedOut',
@@ -246,6 +258,7 @@ export const useSpotifyStore = create<SpotifyStoreState>()((set, get) => ({
 
   disconnect: () => {
     disconnectSdkPlayer()
+    get().stopPlaybackPolling()
     storage.clearAll()
     set({
       authStatus: 'loggedOut',
@@ -330,6 +343,41 @@ export const useSpotifyStore = create<SpotifyStoreState>()((set, get) => ({
     } catch {
       // Leave last-known now-playing; never surface tokens or demote auth.
       return 'error'
+    }
+  },
+
+  startPlaybackPolling: (intervalMs = PLAYBACK_POLL_INTERVAL_MS) => {
+    // Idempotent: always tear down any prior loop before starting a new one.
+    get().stopPlaybackPolling()
+    playbackPollTimer = setInterval(() => {
+      void get().pollPlaybackOnce()
+    }, intervalMs)
+  },
+
+  stopPlaybackPolling: () => {
+    if (playbackPollTimer !== null) {
+      clearInterval(playbackPollTimer)
+      playbackPollTimer = null
+    }
+  },
+
+  pollPlaybackOnce: async () => {
+    if (playbackRefreshInFlight) return
+    if (!shouldPollPlayback(get().authStatus)) return
+    playbackRefreshInFlight = true
+    try {
+      const result = await get().refreshPlayback()
+      if (result === 'error') {
+        set((s) => ({
+          ...onPollingError(coreOf(s)),
+          noticeMessage: 'Could not refresh playback. Will keep trying.',
+        }))
+      } else {
+        // A successful read clears the degraded warning.
+        set({ noticeMessage: null })
+      }
+    } finally {
+      playbackRefreshInFlight = false
     }
   },
 

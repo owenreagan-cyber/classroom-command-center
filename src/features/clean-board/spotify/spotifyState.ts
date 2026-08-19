@@ -17,6 +17,11 @@ export function isAuthConnected(authStatus: SpotifyAuthStatus): boolean {
   return authStatus === 'connected'
 }
 
+/** Whether the now-playing polling loop should be active. */
+export function shouldPollPlayback(authStatus: SpotifyAuthStatus): boolean {
+  return authStatus === 'connected'
+}
+
 /** Clear a transient op error back to idle, preserving a hard premium state. */
 function clearToIdle(core: SpotifyCore): SpotifyCore {
   if (core.opStatus === 'premiumRequired') return core
@@ -85,6 +90,15 @@ export function onDevicesLoaded(core: SpotifyCore, deviceCount: number): Spotify
 export function onPlaybackRefreshed(core: SpotifyCore): SpotifyCore {
   if (!isAuthConnected(core.authStatus)) return core
   return clearToIdle(core)
+}
+
+/**
+ * A polling refresh hit a transient API error. Auth stays connected and the op
+ * status is left unchanged (degradation is surfaced as a non-error notice, not
+ * as "Error"), so a live session with a discovered device is never demoted.
+ */
+export function onPollingError(core: SpotifyCore): SpotifyCore {
+  return core
 }
 
 /** Device fetch failed: keep auth connected, surface an op error. */
