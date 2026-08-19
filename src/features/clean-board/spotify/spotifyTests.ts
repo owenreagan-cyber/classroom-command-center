@@ -15,10 +15,27 @@ import {
   generateCodeChallenge,
   generateCodeVerifier,
   generateState,
+  hasCallbackParams,
   parseCallbackParams,
 } from './spotifyPkce'
 import { safeNowPlayingHasNoForbiddenKeys, toSafeNowPlaying } from './spotifySafety'
+import {
+  describeStatus,
+  isAuthConnected,
+  onCommandFailure,
+  onCommandStart,
+  onCommandSuccess,
+  onDevicesError,
+  onDevicesLoaded,
+  onPlaybackRefreshed,
+  onPollingError,
+  onPremiumRequired,
+  onSdkReady,
+  onSdkUnavailable,
+  shouldPollPlayback,
+} from './spotifyState'
 import { computeExpiresAt, isTokenExpired } from './spotifyStorage'
+import type { SpotifyCore } from './spotifyState'
 import type { FetchLike, NowPlaying } from './spotifyTypes'
 
 let passed = 0
@@ -113,6 +130,14 @@ async function main(): Promise<void> {
   await test('parseCallbackParams handles empty input', () => {
     const p = parseCallbackParams('')
     assert(p.code === null && p.state === null && p.error === null)
+  })
+
+  await test('hasCallbackParams detects code and error, rejects plain URLs', () => {
+    assert(hasCallbackParams('/board-lab?code=c&state=s') === true)
+    assert(hasCallbackParams('?error=access_denied') === true)
+    assert(hasCallbackParams('/board-lab?mode=edit') === false)
+    assert(hasCallbackParams('') === false)
+    assert(hasCallbackParams('/board-lab') === false)
   })
 
   // ── Config ──
@@ -231,6 +256,168 @@ async function main(): Promise<void> {
         contaminated as unknown as NonNullable<ReturnType<typeof toSafeNowPlaying>>,
       ) === false,
     )
+  })
+
+  // ── State reducer: auth vs op separation ──
+
+  const connectedIdle: SpotifyCore = { authStatus: 'connected', opStatus: 'idle' }
+
+  await test('isAuthConnected is true only for the connected auth state', () => {
+    assert(isAuthConnected('connected') === true)
+    assert(isAuthConnected('loggedOut') === false)
+    assert(isAuthConnected('tokenExpired') === false)
+    assert(isAuthConnected('configMissing') === false)
+    assert(isAuthConnected('authorizing') === false)
+  })
+
+  await test('a playback/device command failure never demotes auth to logged-out', () => {
+    const next = onCommandFailure(connectedIdle)
+    assert(next.authStatus === 'connected', 'auth stays connected')
+    assert(next.opStatus === 'apiError', 'op error is recorded')
+  })
+
+  await test('a successful command clears a stale apiError back to idle', () => {
+    const stale: SpotifyCore = { authStatus: 'connected', opStatus: 'apiError' }
+    const next = onCommandSuccess(stale)
+    assert(next.authStatus === 'connected')
+    assert(next.opStatus === 'idle', 'stale op error cleared')
+  })
+
+  await test('onCommandStart clears a stale apiError before a fresh attempt', () => {
+    const stale: SpotifyCore = { authStatus: 'connected', opStatus: 'apiError' }
+    const next = onCommandStart(stale)
+    assert(next.opStatus === 'idle')
+    assert(next.authStatus === 'connected')
+  })
+
+  await test('device refresh failure keeps auth connected', () => {
+    const next = onDevicesError(connectedIdle)
+    assert(next.authStatus === 'connected', 'auth never erased on device error')
+  })
+
+  await test('no-device result becomes a warning, not a disconnected state', () => {
+    const next = onDevicesLoaded(connectedIdle, 0)
+    assert(next.authStatus === 'connected')
+    assert(next.opStatus === 'deviceUnavailable')
+    assert(isAuthConnected(next.authStatus) === true)
+  })
+
+  await test('devices present resolves the no-device warning to idle', () => {
+    const noDevices: SpotifyCore = { authStatus: 'connected', opStatus: 'deviceUnavailable' }
+    const next = onDevicesLoaded(noDevices, 2)
+    assert(next.opStatus === 'idle')
+    assert(next.authStatus === 'connected')
+  })
+
+  await test('SDK unavailable / premium-required keep auth connected', () => {
+    assert(onSdkUnavailable(connectedIdle).authStatus === 'connected')
+    assert(onSdkUnavailable(connectedIdle).opStatus === 'sdkUnavailable')
+    assert(onPremiumRequired(connectedIdle).authStatus === 'connected')
+    assert(onPremiumRequired(connectedIdle).opStatus === 'premiumRequired')
+    assert(onSdkReady({ authStatus: 'connected', opStatus: 'sdkUnavailable' }).opStatus === 'idle')
+  })
+
+  await test('reducers leave non-connected auth states untouched', () => {
+    const loggedOut: SpotifyCore = { authStatus: 'loggedOut', opStatus: 'idle' }
+    assert(onCommandFailure(loggedOut).authStatus === 'loggedOut')
+    assert(onCommandFailure(loggedOut).opStatus === 'idle')
+    assert(onDevicesError(loggedOut).authStatus === 'loggedOut')
+  })
+
+  await test('describeStatus reflects auth and op states', () => {
+    assert(describeStatus({ authStatus: 'loggedOut', opStatus: 'idle' }) === 'Not connected')
+    assert(describeStatus(connectedIdle) === 'Connected')
+    assert(
+      describeStatus({ authStatus: 'connected', opStatus: 'deviceUnavailable' }) ===
+        'No devices found',
+    )
+    assert(
+      describeStatus({ authStatus: 'connected', opStatus: 'premiumRequired' }) ===
+        'Premium required',
+    )
+    assert(describeStatus({ authStatus: 'tokenExpired', opStatus: 'idle' }) === 'Session expired')
+  })
+
+  await test('device refresh success clears a stale playback apiError', () => {
+    const stale: SpotifyCore = { authStatus: 'connected', opStatus: 'apiError' }
+    const next = onDevicesLoaded(stale, 1)
+    assert(next.authStatus === 'connected')
+    assert(next.opStatus === 'idle', 'device found clears stale error')
+    assert(describeStatus(next) === 'Connected', 'no longer shows Error')
+  })
+
+  await test('connected with devices found does not render Error', () => {
+    const next = onDevicesLoaded(
+      { authStatus: 'connected', opStatus: 'apiError' },
+      2,
+    )
+    assert(describeStatus(next) === 'Connected')
+    assert(next.opStatus !== 'apiError')
+  })
+
+  await test('successful playback refresh clears a stale apiError', () => {
+    const stale: SpotifyCore = { authStatus: 'connected', opStatus: 'apiError' }
+    const next = onPlaybackRefreshed(stale)
+    assert(next.authStatus === 'connected')
+    assert(next.opStatus === 'idle', 'playback read clears stale command error')
+    assert(describeStatus(next) === 'Connected')
+  })
+
+  await test('successful playback refresh with empty item stays neutral, not error', () => {
+    const stale: SpotifyCore = { authStatus: 'connected', opStatus: 'apiError' }
+    // An empty current track is a healthy read, not a failure.
+    const next = onPlaybackRefreshed(stale)
+    assert(next.opStatus === 'idle')
+    assert(next.authStatus === 'connected')
+    assert(describeStatus(next) !== 'Error')
+  })
+
+  await test('now-playing projection updates when current playback has item data', () => {
+    const np: NowPlaying = {
+      trackName: 'A Song',
+      artistName: 'An Artist',
+      albumName: 'An Album',
+      artworkUrl: 'https://example.com/art.png',
+      isPlaying: true,
+    }
+    const safe = toSafeNowPlaying(np)
+    assert(safe !== null)
+    assert(safe.trackName === 'A Song')
+    assert(safe.artistName === 'An Artist')
+    assert(safe.artworkUrl === 'https://example.com/art.png')
+    assert(safeNowPlayingHasNoForbiddenKeys(safe as NonNullable<ReturnType<typeof toSafeNowPlaying>>))
+  })
+
+  // ── Polling ──
+
+  await test('shouldPollPlayback is true only while connected', () => {
+    assert(shouldPollPlayback('connected') === true)
+    assert(shouldPollPlayback('loggedOut') === false)
+    assert(shouldPollPlayback('tokenExpired') === false)
+    assert(shouldPollPlayback('configMissing') === false)
+    assert(shouldPollPlayback('authorizing') === false)
+  })
+
+  await test('a polling transient error keeps auth connected and does not render Error', () => {
+    const next = onPollingError(connectedIdle)
+    assert(next.authStatus === 'connected', 'auth never demoted on poll error')
+    assert(next.opStatus === 'idle', 'op state unchanged — no hard Error')
+    assert(describeStatus(next) !== 'Error')
+  })
+
+  await test('successful polling after a stale error clears it back to idle', () => {
+    const stale: SpotifyCore = { authStatus: 'connected', opStatus: 'apiError' }
+    const afterPoll = onPollingError(stale) // transient poll failure keeps prior state
+    assert(afterPoll.authStatus === 'connected')
+    const recovered = onPlaybackRefreshed(afterPoll)
+    assert(recovered.opStatus === 'idle', 'successful refresh clears stale error')
+    assert(describeStatus(recovered) === 'Connected')
+  })
+
+  await test('empty playback read stays neutral "Nothing playing", not an error', () => {
+    const next = onPlaybackRefreshed({ authStatus: 'connected', opStatus: 'apiError' })
+    assert(next.opStatus === 'idle')
+    assert(describeStatus(next) !== 'Error')
   })
 
   console.log(`\nClean Board Spotify Tests: ${passed} passed, ${failed} failed`)

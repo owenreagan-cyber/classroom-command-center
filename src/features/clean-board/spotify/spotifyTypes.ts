@@ -14,20 +14,30 @@ export const SPOTIFY_TOKEN_ENDPOINT = 'https://accounts.spotify.com/api/token'
 export const SPOTIFY_API_BASE = 'https://api.spotify.com/v1'
 
 /**
- * Connection/availability status surfaced to the teacher. `apiError` covers
- * unexpected Web API failures; the human-readable message is always sanitized.
+ * Auth lifecycle — the only axis that decides "Connect Spotify" vs "Disconnect".
  */
-export type SpotifyStatus =
+export type SpotifyAuthStatus =
   | 'configMissing'
   | 'loggedOut'
   | 'authorizing'
   | 'connected'
   | 'tokenExpired'
+
+/**
+ * Operational state within an authenticated session. These never demote the
+ * auth status: a valid token stays "connected" even when the SDK browser
+ * device is unavailable, no devices are found, or a single command fails.
+ */
+export type SpotifyOpStatus =
+  | 'idle'
   | 'premiumRequired'
   | 'sdkUnavailable'
   | 'deviceUnavailable'
   | 'playbackRestricted'
   | 'apiError'
+
+/** @deprecated prefer `SpotifyAuthStatus | SpotifyOpStatus`. */
+export type SpotifyStatus = SpotifyAuthStatus | SpotifyOpStatus
 
 export interface SpotifyDevice {
   id: string

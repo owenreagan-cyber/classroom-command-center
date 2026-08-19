@@ -1,9 +1,10 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { BoardCanvas } from './BoardCanvas'
 import { BoardToolbar } from './BoardToolbar'
-import { toSafeBoardPage } from './boardSafety'
+import { pageHasKind, toSafeBoardPage } from './boardSafety'
 import { createSeedBoard } from './seedBoard'
 import { SpotifyTeacherPanel } from './spotify/SpotifyTeacherPanel'
+import { hasCallbackParams } from './spotify/spotifyPkce'
 import { toSafeNowPlaying } from './spotify/spotifySafety'
 import { useSpotifyStore } from './spotify/spotifyStore'
 import type { BoardDeck, BoardMode, BoardObject, BoardObjectKind } from './types'
@@ -14,9 +15,13 @@ const segIdle = 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'
 
 function readInitialMode(): BoardMode {
   if (typeof window === 'undefined') return 'present'
-  return new URLSearchParams(window.location.search).get('mode') === 'edit'
-    ? 'edit'
-    : 'present'
+  const params = new URLSearchParams(window.location.search)
+  // Returning from Spotify OAuth (code/error in URL) routes back to edit mode
+  // so the teacher lands next to their control panel.
+  if (params.get('mode') === 'edit' || hasCallbackParams(window.location.search)) {
+    return 'edit'
+  }
+  return 'present'
 }
 
 function createDefaultObject(kind: BoardObjectKind, id: string): BoardObject {
@@ -105,7 +110,42 @@ function createDefaultObject(kind: BoardObjectKind, id: string): BoardObject {
 export function BoardLabPage() {
   const [deck, setDeck] = useState<BoardDeck>(() => createSeedBoard())
   const [mode, setModeState] = useState<BoardMode>(() => readInitialMode())
-  const [selectedObjectId, setSelectedObjectId] = useState<string | null>(null)
+  const [selectedObjectId, setSelectedObjectId] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null
+    // Pre-select the Spotify placeholder in edit mode (including on OAuth
+    // callback) so the teacher panel is immediately visible.
+    if (readInitialMode() === 'edit') {
+      const seed = createSeedBoard()
+      return (
+        seed.pages[0].objects.find((o) => o.kind === 'spotifyNowPlayingPlaceholder')?.id ?? null
+      )
+    }
+    return null
+  })
+
+  const init = useSpotifyStore((s) => s.init)
+  const authStatus = useSpotifyStore((s) => s.authStatus)
+  const startPlaybackPolling = useSpotifyStore((s) => s.startPlaybackPolling)
+  const stopPlaybackPolling = useSpotifyStore((s) => s.stopPlaybackPolling)
+
+  // Run the Spotify handshake/restore once at the shell level so the OAuth
+  // callback is consumed even when present mode is the initial route (the
+  // teacher panel is only mounted in edit mode).
+  useEffect(() => {
+    void init()
+  }, [init])
+
+  // Single owner for now-playing polling: the board shell runs in both edit
+  // and present modes, and this effect stops the loop on unmount or when the
+  // session is no longer connected.
+  useEffect(() => {
+    if (authStatus === 'connected') {
+      startPlaybackPolling()
+    } else {
+      stopPlaybackPolling()
+    }
+    return () => stopPlaybackPolling()
+  }, [authStatus, startPlaybackPolling, stopPlaybackPolling])
 
   const activePage = deck.pages.find((p) => p.id === deck.activePageId) ?? deck.pages[0]
 
@@ -135,6 +175,14 @@ export function BoardLabPage() {
 
   const handleAddObject = (kind: BoardObjectKind) => {
     const pageId = activePage.id
+    // A now-playing tile is singular by nature — prevent stacking duplicates
+    // (e.g. from repeated "Add Spotify" clicks across HMR) by re-selecting the
+    // existing object instead of adding another.
+    if (kind === 'spotifyNowPlayingPlaceholder' && pageHasKind(activePage.objects, kind)) {
+      const existing = activePage.objects.find((o) => o.kind === kind)
+      if (existing) setSelectedObjectId(existing.id)
+      return
+    }
     const obj = createDefaultObject(kind, `${kind}-${Date.now()}`)
     setDeck((prev) => ({
       ...prev,

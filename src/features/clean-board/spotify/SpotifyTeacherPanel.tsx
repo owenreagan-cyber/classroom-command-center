@@ -1,13 +1,15 @@
-import { useEffect } from 'react'
 import { DEFAULT_PLAYLIST_PRESETS, useSpotifyStore } from './spotifyStore'
+import { describeStatus, isAuthConnected } from './spotifyState'
 
 /**
- * DB-2A — teacher-only Spotify control panel.
+ * DB-2B — teacher-only Spotify control panel.
  *
  * Lives OUTSIDE the student board (side panel in Edit mode). Shows connect /
  * disconnect, connection status, Spotify Connect devices, transfer-to-board,
  * now-playing, transport controls, and a (currently empty) preset launcher.
- * Never renders inside present mode.
+ * Never renders inside present mode. The Connect/Disconnect decision is driven
+ * by AUTH state only, so a device/playback failure never shows "Connect Spotify"
+ * while a valid token exists.
  */
 
 const btn =
@@ -15,36 +17,10 @@ const btn =
 const primary =
   'rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-40'
 
-function statusLabel(status: string): string {
-  switch (status) {
-    case 'configMissing':
-      return 'Spotify setup needed'
-    case 'loggedOut':
-      return 'Not connected'
-    case 'authorizing':
-      return 'Signing in…'
-    case 'connected':
-      return 'Connected'
-    case 'tokenExpired':
-      return 'Session expired'
-    case 'premiumRequired':
-      return 'Premium required'
-    case 'sdkUnavailable':
-      return 'Board player unavailable'
-    case 'deviceUnavailable':
-      return 'No devices found'
-    case 'playbackRestricted':
-      return 'Playback restricted'
-    case 'apiError':
-      return 'Error'
-    default:
-      return status
-  }
-}
-
 export function SpotifyTeacherPanel() {
   const {
-    status,
+    authStatus,
+    opStatus,
     clientId,
     redirectUri,
     devices,
@@ -53,7 +29,7 @@ export function SpotifyTeacherPanel() {
     sdkReady,
     sdkDeviceId,
     errorMessage,
-    init,
+    noticeMessage,
     connect,
     disconnect,
     refreshDevices,
@@ -67,13 +43,10 @@ export function SpotifyTeacherPanel() {
     launchPreset,
   } = useSpotifyStore()
 
-  useEffect(() => {
-    void init()
-  }, [init])
-
   const configMissing = !clientId || !redirectUri
-  const isConnected = status === 'connected'
-  const controlsDisabled = !isConnected
+  const authenticated = isAuthConnected(authStatus)
+  const controlsDisabled = !authenticated
+  const statusText = describeStatus({ authStatus, opStatus })
 
   return (
     <aside
@@ -84,7 +57,7 @@ export function SpotifyTeacherPanel() {
         <h2 className="m-0 text-sm font-bold uppercase tracking-wider text-slate-200">
           Spotify
         </h2>
-        {isConnected && (
+        {authenticated && (
           <button type="button" className={btn} onClick={disconnect}>
             Disconnect
           </button>
@@ -105,20 +78,24 @@ export function SpotifyTeacherPanel() {
           <div className="flex items-center justify-between gap-2">
             <span
               className={`text-xs font-semibold ${
-                isConnected ? 'text-emerald-400' : 'text-slate-400'
+                authenticated
+                  ? opStatus === 'idle'
+                    ? 'text-emerald-400'
+                    : 'text-amber-400'
+                  : 'text-slate-400'
               }`}
               data-spotify-status
             >
-              {statusLabel(status)}
+              {statusText}
             </span>
-            {!isConnected && (
+            {!authenticated && (
               <button
                 type="button"
                 className={primary}
                 onClick={() => void connect()}
-                disabled={status === 'authorizing'}
+                disabled={authStatus === 'authorizing'}
               >
-                {status === 'authorizing' ? 'Connecting…' : 'Connect Spotify'}
+                {authStatus === 'authorizing' ? 'Connecting…' : 'Connect Spotify'}
               </button>
             )}
           </div>
@@ -126,6 +103,12 @@ export function SpotifyTeacherPanel() {
           {errorMessage && (
             <p className="m-0 rounded-md border border-red-500/30 bg-red-950/40 px-2 py-1.5 text-xs text-red-200">
               {errorMessage}
+            </p>
+          )}
+
+          {noticeMessage && !errorMessage && (
+            <p className="m-0 rounded-md border border-amber-500/30 bg-amber-950/40 px-2 py-1.5 text-xs text-amber-200">
+              {noticeMessage}
             </p>
           )}
 
@@ -178,7 +161,7 @@ export function SpotifyTeacherPanel() {
           <h3 className="m-0 text-xs font-semibold uppercase tracking-wide text-slate-500">
             Devices
           </h3>
-          <button type="button" className={btn} onClick={() => void refreshDevices()} disabled={configMissing || !isConnected}>
+          <button type="button" className={btn} onClick={() => void refreshDevices()} disabled={configMissing || !authenticated}>
             Refresh
           </button>
         </div>
@@ -198,8 +181,8 @@ export function SpotifyTeacherPanel() {
           </p>
         ) : (
           <ul className="m-0 flex list-none flex-col gap-1 p-0">
-            {devices.map((d) => (
-              <li key={d.id}>
+            {devices.map((d, index) => (
+              <li key={`${d.name}-${index}`}>
                 <button
                   type="button"
                   onClick={() => void transferToDevice(d.id)}
@@ -208,7 +191,6 @@ export function SpotifyTeacherPanel() {
                       ? 'border-emerald-500/50 bg-emerald-950/40 text-emerald-200'
                       : 'border-slate-800 bg-slate-900/40 text-slate-300 hover:bg-slate-800'
                   }`}
-                  data-spotify-device={d.id}
                 >
                   <span className="font-semibold">{d.name}</span>
                   {d.isActive && <span className="ml-2 text-emerald-400">● active</span>}

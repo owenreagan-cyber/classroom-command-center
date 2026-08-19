@@ -83,3 +83,13 @@ export function parseCallbackParams(queryOrUrl: string): CallbackParams {
     error: params.get('error'),
   }
 }
+
+/**
+ * Whether a query string represents an in-progress OAuth callback (a `code` or
+ * `error` is present). Used by the board shell to route the redirect back into
+ * edit mode before the callback is consumed.
+ */
+export function hasCallbackParams(queryOrUrl: string): boolean {
+  const cb = parseCallbackParams(queryOrUrl)
+  return Boolean(cb.code || cb.error)
+}

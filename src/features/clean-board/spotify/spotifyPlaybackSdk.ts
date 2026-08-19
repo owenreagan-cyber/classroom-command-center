@@ -14,6 +14,7 @@ interface SdkPlayerEvent {
 interface SdkPlayer {
   addListener(name: string, cb: (event: SdkPlayerEvent) => void): void
   connect(): Promise<boolean>
+  disconnect(): void
 }
 
 interface SdkWindow {
@@ -68,16 +69,45 @@ export interface SdkCallbacks {
   onNotReady: () => void
 }
 
-/** Create and connect a browser Spotify Connect device (Premium required). */
-export function createSdkPlayer(token: string, callbacks: SdkCallbacks): void {
+// Retain the active player so the SDK device stays connected (the SDK keeps an
+// internal reference, but holding it here also lets us disconnect cleanly).
+let activePlayer: SdkPlayer | null = null
+
+export function isPlayerActive(): boolean {
+  return activePlayer !== null
+}
+
+/** Disconnect and release the current browser device, if any. */
+export function disconnectSdkPlayer(): void {
+  if (!activePlayer) return
+  try {
+    activePlayer.disconnect()
+  } catch {
+    // Best-effort; the SDK may already have torn the device down.
+  }
+  activePlayer = null
+}
+
+/**
+ * Create and connect a browser Spotify Connect device (Premium required).
+ * `getToken` is invoked lazily by the SDK whenever it needs a fresh token, so
+ * a mid-session token refresh is picked up automatically.
+ */
+export function createSdkPlayer(getToken: () => string | null, callbacks: SdkCallbacks): void {
   if (typeof window === 'undefined') throw new Error('Spotify SDK requires a browser')
   const Spotify = (window as unknown as SdkWindow).Spotify
   if (!Spotify) throw new Error('Spotify SDK is not loaded')
+  if (activePlayer) return
 
   const player = new Spotify.Player({
     name: 'Clean Board',
-    getOAuthToken: (cb) => cb(token),
+    getOAuthToken: (cb) => {
+      const token = getToken()
+      if (token) cb(token)
+    },
   })
+
+  activePlayer = player
 
   player.addListener('ready', (e) => {
     if (e.device_id) callbacks.onReady(e.device_id)
