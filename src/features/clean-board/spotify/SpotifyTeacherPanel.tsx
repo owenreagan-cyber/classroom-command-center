@@ -1,5 +1,6 @@
-import { DEFAULT_PLAYLIST_PRESETS, useSpotifyStore } from './spotifyStore'
+import { useSpotifyStore } from './spotifyStore'
 import { describeStatus, isAuthConnected } from './spotifyState'
+import { SpotifyPlaylistBuilder } from './SpotifyPlaylistBuilder'
 
 /**
  * DB-2B — teacher-only Spotify control panel.
@@ -40,7 +41,6 @@ export function SpotifyTeacherPanel() {
     pause,
     next,
     previous,
-    launchPreset,
   } = useSpotifyStore()
 
   const configMissing = !clientId || !redirectUri
@@ -203,26 +203,16 @@ export function SpotifyTeacherPanel() {
 
       <div>
         <h3 className="m-0 text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Playlist presets
+          Playlist builder
         </h3>
-        {DEFAULT_PLAYLIST_PRESETS.length === 0 ? (
-          <p className="m-0 mt-1 text-xs text-slate-500" data-spotify-no-presets>
-            No presets configured yet. Add curated classroom playlist URIs to enable quick launch.
-          </p>
-        ) : (
-          <div className="mt-2 flex flex-wrap gap-2">
-            {DEFAULT_PLAYLIST_PRESETS.map((p) => (
-              <button
-                key={p.id}
-                type="button"
-                className={btn}
-                onClick={() => void launchPreset(p.uri)}
-                disabled={controlsDisabled}
-              >
-                {p.label}
-              </button>
-            ))}
+        {authenticated ? (
+          <div className="mt-2">
+            <SpotifyPlaylistBuilder />
           </div>
+        ) : (
+          <p className="m-0 mt-1 text-xs text-slate-500">
+            Connect Spotify to load and build classroom playlists.
+          </p>
         )}
       </div>
     </aside>
