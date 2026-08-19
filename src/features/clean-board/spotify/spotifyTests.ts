@@ -19,7 +19,20 @@ import {
   parseCallbackParams,
 } from './spotifyPkce'
 import { safeNowPlayingHasNoForbiddenKeys, toSafeNowPlaying } from './spotifySafety'
+import {
+  describeStatus,
+  isAuthConnected,
+  onCommandFailure,
+  onCommandStart,
+  onCommandSuccess,
+  onDevicesError,
+  onDevicesLoaded,
+  onPremiumRequired,
+  onSdkReady,
+  onSdkUnavailable,
+} from './spotifyState'
 import { computeExpiresAt, isTokenExpired } from './spotifyStorage'
+import type { SpotifyCore } from './spotifyState'
 import type { FetchLike, NowPlaying } from './spotifyTypes'
 
 let passed = 0
@@ -240,6 +253,86 @@ async function main(): Promise<void> {
         contaminated as unknown as NonNullable<ReturnType<typeof toSafeNowPlaying>>,
       ) === false,
     )
+  })
+
+  // ── State reducer: auth vs op separation ──
+
+  const connectedIdle: SpotifyCore = { authStatus: 'connected', opStatus: 'idle' }
+
+  await test('isAuthConnected is true only for the connected auth state', () => {
+    assert(isAuthConnected('connected') === true)
+    assert(isAuthConnected('loggedOut') === false)
+    assert(isAuthConnected('tokenExpired') === false)
+    assert(isAuthConnected('configMissing') === false)
+    assert(isAuthConnected('authorizing') === false)
+  })
+
+  await test('a playback/device command failure never demotes auth to logged-out', () => {
+    const next = onCommandFailure(connectedIdle)
+    assert(next.authStatus === 'connected', 'auth stays connected')
+    assert(next.opStatus === 'apiError', 'op error is recorded')
+  })
+
+  await test('a successful command clears a stale apiError back to idle', () => {
+    const stale: SpotifyCore = { authStatus: 'connected', opStatus: 'apiError' }
+    const next = onCommandSuccess(stale)
+    assert(next.authStatus === 'connected')
+    assert(next.opStatus === 'idle', 'stale op error cleared')
+  })
+
+  await test('onCommandStart clears a stale apiError before a fresh attempt', () => {
+    const stale: SpotifyCore = { authStatus: 'connected', opStatus: 'apiError' }
+    const next = onCommandStart(stale)
+    assert(next.opStatus === 'idle')
+    assert(next.authStatus === 'connected')
+  })
+
+  await test('device refresh failure keeps auth connected', () => {
+    const next = onDevicesError(connectedIdle)
+    assert(next.authStatus === 'connected', 'auth never erased on device error')
+  })
+
+  await test('no-device result becomes a warning, not a disconnected state', () => {
+    const next = onDevicesLoaded(connectedIdle, 0)
+    assert(next.authStatus === 'connected')
+    assert(next.opStatus === 'deviceUnavailable')
+    assert(isAuthConnected(next.authStatus) === true)
+  })
+
+  await test('devices present resolves the no-device warning to idle', () => {
+    const noDevices: SpotifyCore = { authStatus: 'connected', opStatus: 'deviceUnavailable' }
+    const next = onDevicesLoaded(noDevices, 2)
+    assert(next.opStatus === 'idle')
+    assert(next.authStatus === 'connected')
+  })
+
+  await test('SDK unavailable / premium-required keep auth connected', () => {
+    assert(onSdkUnavailable(connectedIdle).authStatus === 'connected')
+    assert(onSdkUnavailable(connectedIdle).opStatus === 'sdkUnavailable')
+    assert(onPremiumRequired(connectedIdle).authStatus === 'connected')
+    assert(onPremiumRequired(connectedIdle).opStatus === 'premiumRequired')
+    assert(onSdkReady({ authStatus: 'connected', opStatus: 'sdkUnavailable' }).opStatus === 'idle')
+  })
+
+  await test('reducers leave non-connected auth states untouched', () => {
+    const loggedOut: SpotifyCore = { authStatus: 'loggedOut', opStatus: 'idle' }
+    assert(onCommandFailure(loggedOut).authStatus === 'loggedOut')
+    assert(onCommandFailure(loggedOut).opStatus === 'idle')
+    assert(onDevicesError(loggedOut).authStatus === 'loggedOut')
+  })
+
+  await test('describeStatus reflects auth and op states', () => {
+    assert(describeStatus({ authStatus: 'loggedOut', opStatus: 'idle' }) === 'Not connected')
+    assert(describeStatus(connectedIdle) === 'Connected')
+    assert(
+      describeStatus({ authStatus: 'connected', opStatus: 'deviceUnavailable' }) ===
+        'No devices found',
+    )
+    assert(
+      describeStatus({ authStatus: 'connected', opStatus: 'premiumRequired' }) ===
+        'Premium required',
+    )
+    assert(describeStatus({ authStatus: 'tokenExpired', opStatus: 'idle' }) === 'Session expired')
   })
 
   console.log(`\nClean Board Spotify Tests: ${passed} passed, ${failed} failed`)

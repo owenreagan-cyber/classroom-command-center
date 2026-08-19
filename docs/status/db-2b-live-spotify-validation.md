@@ -1,49 +1,70 @@
 # DB-2B — Live Spotify OAuth + Premium Device Validation
 
-Status: **Bugfix complete + non-live validation PASS — live OAuth pending a real
-Client ID / Premium login.**
+Status: **Live bugfix complete; live OAuth/playback validated to PARTIAL PASS.
+State-handling bug fixed and unit-tested. Awaiting Owen's retest of the fixed UI.**
 
 Branch: `db-2b-live-spotify-validation`
 
 ## Summary
 
 DB-2B is the live-integration validation phase for the DB-2A Spotify Level 2
-vertical slice. Before any live OAuth could succeed, code review surfaced three
-real bugs that would have broken the flow. These are fixed here and covered by
-the existing + new tests.
+vertical slice. Two rounds of work landed here:
 
-## Bugs fixed
+1. **Round 1 (commit `49974ce`)** fixed the OAuth callback routing, SDK player
+   lifecycle, and raw-device-ID leakage.
+2. **Round 2 (this commit)** fixed the state-handling bug observed during live
+   testing: the panel showed "Error" + "Connect Spotify" even though a valid
+   token existed and playback commands reached Spotify.
 
-1. **OAuth callback never processed on return (critical).**
-   `init()` was only called from inside `SpotifyTeacherPanel`, which mounts only
-   in Edit mode *and* when the Spotify object is selected. The redirect URI is
-   `http://localhost:5173/board-lab` (Spotify rejects query-string redirect
-   URIs), so the callback lands in Present mode with no panel mounted → the
-   authorization code was never exchanged.
-   - Fix: `init()` now runs once at the `BoardLabPage` shell level (all modes).
-   - `readInitialMode()` routes `code`/`error` params back to Edit mode.
-   - `handleCallback` restores `?mode=edit` after a successful exchange.
-   - `handleCallback` is guarded against double-invocation (React StrictMode
-     runs effects twice in dev).
+## Observed initial bug (live)
 
-2. **Web Playback SDK player reference dropped.**
-   The SDK `Player` was a local variable, so the browser device could not be
-   disconnected and risked being torn down.
-   - Fix: player is retained at module scope; added `disconnectSdkPlayer()`,
-     called from the store's `disconnect`. `createSdkPlayer` is deduped.
-   - `getOAuthToken` now uses a live token getter so a mid-session refresh is
-     picked up instead of a stale token.
+During live testing with a real Client ID and Spotify Premium:
 
-3. **Raw device IDs rendered into the DOM.**
-   The teacher panel rendered the Spotify Connect device ID as a
-   `data-spotify-device` attribute and as the React key.
-   - Fix: device IDs are no longer written to the DOM; keys use a non-secret
-     name/index. Transfer still closes over the real device object.
+- App reached the Spotify panel and completed OAuth.
+- Pressing Play could start music in the regular Spotify app.
+- But the board panel still showed **Status: Error**, **Connect Spotify**, and
+  the stale message **"Could not start playback."**, plus **"No Spotify Connect
+  devices found."**
 
-4. **Transfer success shown as an error.**
-   "Playback transferred — press Play to start" was rendered with error styling.
-   - Fix: added a distinct `noticeMessage` (emerald) separate from `errorMessage`
-     (red).
+## Root cause
+
+`spotifyStore.ts` used a single `status` field that conflated **auth** with
+**operational** state. Every transient failure (`apiError` on a failed `play`,
+`deviceUnavailable` on an empty device list) overwrote the `connected` status.
+The panel then computed `isConnected = status === 'connected'`, which became
+false, so it re-rendered "Connect Spotify" and disabled controls — even though
+the token was valid and playback commands were actually working. Errors were
+also never cleared on success, and playback state was not refreshed after
+commands.
+
+## Bugfix summary
+
+Split the single status into two independent axes:
+
+- `SpotifyAuthStatus` — `configMissing | loggedOut | authorizing | connected |
+  tokenExpired` (the ONLY axis that decides "Connect" vs "Disconnect").
+- `SpotifyOpStatus` — `idle | premiumRequired | sdkUnavailable |
+  deviceUnavailable | playbackRestricted | apiError` (degraded states within an
+  authenticated session).
+
+Behavior changes:
+
+1. A valid token keeps `authStatus === 'connected'` regardless of SDK/device/
+   playback outcomes, so the panel never flips to "Connect Spotify" while
+   authenticated.
+2. `errorMessage` is cleared at the start of every command and on success;
+   stale `apiError` is reset to `idle` (`onCommandStart` / `onCommandSuccess`).
+3. Play/pause/next/previous/transfer/launchPreset now refresh playback state
+   after success; if the refresh fails, a WARN notice ("command sent; could not
+   refresh playback") is shown instead of a false disconnected state.
+4. Device refresh updates `devices` or sets a no-device warning
+   (`deviceUnavailable`) or an op error (`apiError`) — none of which erase auth.
+5. SDK browser device unavailable (`sdkUnavailable`) or Premium required
+   (`premiumRequired`) keep the API controls usable against an existing Spotify
+   Connect device.
+
+The transitions are encoded in a pure, unit-tested reducer
+(`spotifyState.ts`).
 
 ## Setup steps used
 
@@ -61,31 +82,29 @@ the existing + new tests.
 
 | Item | Result |
 | --- | --- |
-| Live OAuth login | **PENDING** — no Client ID / `.env.local` present during this pass |
-| Return to `/board-lab` | **PENDING** (logic verified by tests; not exercised live) |
-| Token stored under `clean-board.spotify.*` | **PENDING** (storage module unit-tested) |
-| No tokens printed/logged | **PASS** (wrapper log-guard test + manual grep) |
-| Spotify Connect devices loaded | **PENDING** |
-| Web Playback SDK browser device | **PENDING** (Premium-dependent) |
-| Transfer playback | **PENDING** |
-| Play / pause / next / previous | **PENDING** |
-| Current-track metadata in teacher panel | **PENDING** |
-| Present mode student-safe only | **PASS** (config-missing state renders safe placeholder) |
+| Live OAuth login | **PARTIAL/PASS** — token issued; playback commands reach Spotify |
+| Return to `/board-lab` | **PASS** (callback routing fixed in round 1) |
+| Token stored under `clean-board.spotify.*` | **PASS** (storage module) |
+| No tokens printed/logged | **PASS** (log-guard test + grep) |
+| Spotify Connect devices loaded | **WARN** — devices not reflected before fix |
+| Web Playback SDK browser device | **WARN** — not yet proven (Premium-dependent) |
+| Transfer playback | **NOT PROVEN** — blocked on device state before fix |
+| Play / pause / next / previous | **PARTIAL PASS** — Play started Spotify; UI stale |
+| Current-track metadata in teacher panel | **WARN** — not yet confirmed after fix |
+| Present mode student-safe only | **PENDING** — needs final check after retest |
 | iPad present-mode safety | **NOT TESTED** |
 
-The live rows above require (a) a Spotify Developer app Client ID placed in
-`.env.local` and (b) a manual Spotify Premium sign-in approving the scopes —
-both outside this agent's credentials. The validation harness (dev server,
-screenshots, env-check) is ready to run once those are provided.
+## Screenshots
 
-## Screenshots captured (safe, no tokens/private data)
+Safe screenshots (no tokens/codes/email/account IDs/raw device IDs):
 
 ![Present mode — student-safe now-playing placeholder](db-2b-screenshots/spotify-present-safe-now-playing.png)
 
 ![Edit mode — Spotify setup-needed teacher panel](db-2b-screenshots/spotify-edit-setup-needed.png)
 
-Connected/device-list screenshots will be added after live OAuth, with device
-IDs, email, and account data not rendered/captured.
+Connected/device-list screenshots are intentionally not captured in this pass —
+a live session would risk exposing device IDs, account email, or private data.
+They will be added only if a clean, redacted capture is possible.
 
 ## Validation commands / results
 
@@ -93,7 +112,7 @@ IDs, email, and account data not rendered/captured.
 | --- | --- |
 | `npm run build` | PASS |
 | `npm run test:clean-board` | PASS (14/14) |
-| `npm run test:clean-board-spotify` | PASS (20/20) |
+| `npm run test:clean-board-spotify` | PASS (30/30) |
 | `npm run test:display-import-guard` | PASS |
 | `npm run test:display-bundle-guard` | PASS |
 | `npm run test:teacher-dock` | PASS |
@@ -105,21 +124,21 @@ IDs, email, and account data not rendered/captured.
 
 **PASS**
 
-- Critical OAuth callback bug fixed and tested.
-- SDK player lifecycle fixed (retain/disconnect/dedupe/live-token getter).
-- No raw device IDs in the DOM.
-- `hasCallbackParams` + callback routing tested.
-- No token/code logging (test + grep).
+- Auth state fully separated from SDK/device/playback op state.
+- Valid token no longer renders as logged-out on a command/device failure.
+- Stale `apiError` cleared on command start/success.
+- Play/pause/next/previous/transfer refresh playback after success.
+- No-device shows a warning, not a false disconnect.
+- Pure reducer unit-tested (10 new assertions).
 - Build + all clean-board/display guards pass.
 - No secrets, `.env`, or tokens committed.
-- Documentation + safe screenshots created.
 
 **WARN**
 
-- Live OAuth / Premium / device / playback not exercised — no Client ID provided
-  in this pass.
-- Web Playback SDK device and transfer unproven against a live Premium account.
-- Transfer may not autoplay (documented UI hint added).
+- Live device discovery and SDK browser device still need retest after this fix.
+- Transfer to board player not yet proven.
+- Current-track metadata not yet confirmed post-fix.
+- Present-mode safety needs final check.
 
 **FAIL**
 
@@ -128,6 +147,7 @@ None.
 ## Confirmations
 
 - No client secret introduced anywhere.
-- No `.env` committed (only `.env.example`; `.env`/`.env.*` gitignored).
+- No `.env` / `.env.local` committed (only `.env.example`; `.env`/`.env.*`
+  gitignored).
 - No token, code, email, account ID, or device ID in screenshots or docs.
 - Student-safe now-playing still whitelists via `toSafeNowPlaying`.

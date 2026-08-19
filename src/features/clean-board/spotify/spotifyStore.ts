@@ -24,18 +24,32 @@ import {
   loadSdk,
 } from './spotifyPlaybackSdk'
 import * as storage from './spotifyStorage'
-import type { NowPlaying, SpotifyDevice, SpotifyStatus, SpotifyTokens } from './spotifyTypes'
+import {
+  onCommandFailure,
+  onCommandStart,
+  onCommandSuccess,
+  onDevicesError,
+  onDevicesLoaded,
+  onPremiumRequired,
+  onSdkReady,
+  onSdkUnavailable,
+} from './spotifyState'
+import type { SpotifyCore } from './spotifyState'
+import type { SpotifyAuthStatus, SpotifyOpStatus } from './spotifyTypes'
+import type { NowPlaying, SpotifyDevice, SpotifyTokens } from './spotifyTypes'
 
 /**
- * DB-2A — Spotify connection store (singleton).
+ * DB-2B — Spotify connection store (singleton).
  *
- * Owns the PKCE handshake, token lifecycle, Web Playback SDK device, Web API
- * device/playback control, and a sanitized now-playing view. Teacher-only;
- * never rendered inside the student board.
+ * Auth (`authStatus`) is fully separated from operational state (`opStatus`).
+ * A valid token keeps the session connected even when the SDK device is
+ * unavailable, no devices are found, or a single command fails — so the panel
+ * never flips back to "Connect Spotify" while authenticated.
  */
 
 interface SpotifyStoreState {
-  status: SpotifyStatus
+  authStatus: SpotifyAuthStatus
+  opStatus: SpotifyOpStatus
   clientId: string | null
   redirectUri: string | null
   tokens: SpotifyTokens | null
@@ -44,9 +58,9 @@ interface SpotifyStoreState {
   nowPlaying: NowPlaying | null
   sdkReady: boolean
   sdkDeviceId: string | null
-  /** Sanitized, human-readable message only — never tokens or secrets. */
+  /** Sanitized, human-readable error only — never tokens or secrets. */
   errorMessage: string | null
-  /** Sanitized, non-error informational message (e.g. transfer succeeded). */
+  /** Sanitized informational/warning message (transfer success, refresh failed). */
   noticeMessage: string | null
   init: () => Promise<void>
   connect: () => Promise<void>
@@ -54,7 +68,7 @@ interface SpotifyStoreState {
   setupSdk: () => Promise<void>
   disconnect: () => void
   refreshDevices: () => Promise<void>
-  refreshPlayback: () => Promise<void>
+  refreshPlayback: () => Promise<boolean>
   transferToDevice: (id: string) => Promise<void>
   transferToSdk: () => Promise<void>
   play: () => Promise<void>
@@ -75,12 +89,17 @@ function currentToken(state: SpotifyStoreState): string | null {
   return state.tokens?.accessToken ?? null
 }
 
+function coreOf(state: SpotifyStoreState): SpotifyCore {
+  return { authStatus: state.authStatus, opStatus: state.opStatus }
+}
+
 // Prevents double-invocation of the callback exchange (React StrictMode runs
 // effects twice in dev, and init() runs on every mount).
 let callbackInFlight = false
 
 export const useSpotifyStore = create<SpotifyStoreState>()((set, get) => ({
-  status: 'loggedOut',
+  authStatus: 'loggedOut',
+  opStatus: 'idle',
   clientId: null,
   redirectUri: null,
   tokens: null,
@@ -96,7 +115,7 @@ export const useSpotifyStore = create<SpotifyStoreState>()((set, get) => ({
     const cfg = readEnvConfig()
     set({ clientId: cfg.clientId, redirectUri: cfg.redirectUri })
     if (cfg.missing) {
-      set({ status: 'configMissing', errorMessage: 'Spotify setup needed.' })
+      set({ authStatus: 'configMissing', errorMessage: 'Spotify setup needed.' })
       return
     }
 
@@ -109,12 +128,12 @@ export const useSpotifyStore = create<SpotifyStoreState>()((set, get) => ({
 
     const tokens = storage.loadTokens()
     if (!tokens) {
-      set({ status: 'loggedOut' })
+      set({ authStatus: 'loggedOut' })
       return
     }
     if (storage.isTokenExpired(tokens)) {
       if (!tokens.refreshToken) {
-        set({ status: 'tokenExpired' })
+        set({ authStatus: 'tokenExpired' })
         return
       }
       try {
@@ -123,13 +142,13 @@ export const useSpotifyStore = create<SpotifyStoreState>()((set, get) => ({
           clientId: cfg.clientId as string,
         })
         storage.saveTokens(refreshed)
-        set({ status: 'connected', tokens: refreshed })
+        set({ authStatus: 'connected', tokens: refreshed })
       } catch {
-        set({ status: 'tokenExpired' })
+        set({ authStatus: 'tokenExpired' })
         return
       }
     } else {
-      set({ status: 'connected', tokens })
+      set({ authStatus: 'connected', tokens })
     }
 
     const savedDevice = storage.loadDeviceId()
@@ -143,7 +162,7 @@ export const useSpotifyStore = create<SpotifyStoreState>()((set, get) => ({
   connect: async () => {
     const { clientId, redirectUri } = get()
     if (!clientId || !redirectUri) {
-      set({ status: 'configMissing', errorMessage: 'Spotify setup needed.' })
+      set({ authStatus: 'configMissing', errorMessage: 'Spotify setup needed.' })
       return
     }
     const verifier = generateCodeVerifier()
@@ -151,7 +170,7 @@ export const useSpotifyStore = create<SpotifyStoreState>()((set, get) => ({
     const state = generateState()
     storage.saveVerifier(verifier)
     storage.saveState(state)
-    set({ status: 'authorizing' })
+    set({ authStatus: 'authorizing' })
     window.location.assign(
       buildAuthorizationUrl({ clientId, redirectUri, codeChallenge: challenge, state }),
     )
@@ -163,7 +182,7 @@ export const useSpotifyStore = create<SpotifyStoreState>()((set, get) => ({
     try {
       const { clientId, redirectUri } = get()
       if (!clientId || !redirectUri) {
-        set({ status: 'configMissing', errorMessage: 'Spotify setup needed.' })
+        set({ authStatus: 'configMissing', errorMessage: 'Spotify setup needed.' })
         return
       }
       const cb = parseCallbackParams(
@@ -171,7 +190,7 @@ export const useSpotifyStore = create<SpotifyStoreState>()((set, get) => ({
       )
       if (cb.error) {
         storage.clearAll()
-        set({ status: 'apiError', errorMessage: 'Spotify sign-in was cancelled or failed.' })
+        set({ authStatus: 'loggedOut', errorMessage: 'Spotify sign-in was cancelled or failed.' })
         return
       }
       if (!cb.code) return
@@ -180,14 +199,14 @@ export const useSpotifyStore = create<SpotifyStoreState>()((set, get) => ({
       storage.clearState()
       if (expectedState && cb.state !== expectedState) {
         storage.clearVerifier()
-        set({ status: 'apiError', errorMessage: 'Sign-in state mismatch. Please try again.' })
+        set({ authStatus: 'loggedOut', errorMessage: 'Sign-in state mismatch. Please try again.' })
         return
       }
 
       const verifier = storage.getVerifier()
       storage.clearVerifier()
       if (!verifier) {
-        set({ status: 'apiError', errorMessage: 'Sign-in session expired. Please try again.' })
+        set({ authStatus: 'loggedOut', errorMessage: 'Sign-in session expired. Please try again.' })
         return
       }
 
@@ -200,15 +219,19 @@ export const useSpotifyStore = create<SpotifyStoreState>()((set, get) => ({
         })
         storage.saveTokens(tokens)
         if (typeof window !== 'undefined') {
-          // Return the teacher to edit mode after a successful sign-in.
           window.history.replaceState(null, '', `${window.location.pathname}?mode=edit`)
         }
-        set({ status: 'connected', tokens, errorMessage: null })
+        set({
+          authStatus: 'connected',
+          tokens,
+          errorMessage: null,
+          noticeMessage: null,
+        })
         void get().setupSdk()
         void get().refreshDevices()
         void get().refreshPlayback()
       } catch {
-        set({ status: 'apiError', errorMessage: 'Could not complete Spotify sign-in.' })
+        set({ authStatus: 'loggedOut', errorMessage: 'Could not complete Spotify sign-in.' })
       }
     } finally {
       callbackInFlight = false
@@ -219,7 +242,8 @@ export const useSpotifyStore = create<SpotifyStoreState>()((set, get) => ({
     disconnectSdkPlayer()
     storage.clearAll()
     set({
-      status: 'loggedOut',
+      authStatus: 'loggedOut',
+      opStatus: 'idle',
       tokens: null,
       devices: [],
       activeDeviceId: null,
@@ -238,78 +262,97 @@ export const useSpotifyStore = create<SpotifyStoreState>()((set, get) => ({
       try {
         await loadSdk()
       } catch {
-        set({ status: 'sdkUnavailable', errorMessage: 'Playback SDK could not load.' })
+        set((s) => ({
+          ...onSdkUnavailable(coreOf(s)),
+          errorMessage: 'Playback SDK could not load.',
+        }))
         return
       }
     }
     try {
       createSdkPlayer(() => currentToken(get()), {
         onReady: (deviceId) =>
-          set({
+          set((s) => ({
+            ...onSdkReady(coreOf(s)),
             sdkReady: true,
             sdkDeviceId: deviceId,
             activeDeviceId: deviceId,
-            status: 'connected',
-          }),
+          })),
         onAccountError: () =>
-          set({ status: 'premiumRequired', errorMessage: 'Spotify Premium is required.' }),
-        onInitError: () => set({ status: 'sdkUnavailable' }),
-        onNotReady: () => set({ status: 'sdkUnavailable' }),
+          set((s) => ({
+            ...onPremiumRequired(coreOf(s)),
+            errorMessage: 'Spotify Premium is required.',
+          })),
+        onInitError: () => set((s) => onSdkUnavailable(coreOf(s))),
+        onNotReady: () => set((s) => onSdkUnavailable(coreOf(s))),
       })
     } catch {
-      set({ status: 'sdkUnavailable' })
+      set((s) => onSdkUnavailable(coreOf(s)))
     }
   },
 
   refreshDevices: async () => {
     const token = currentToken(get())
     if (!token) return
+    set({ errorMessage: null })
     try {
       const devices = await fetchDevices(token)
-      set({ devices })
-      if (devices.length === 0) {
-        set({ status: 'deviceUnavailable' })
-      } else if (get().status !== 'premiumRequired') {
-        set({ status: 'connected' })
-      }
       const active = devices.find((d) => d.isActive)
-      if (active) set({ activeDeviceId: active.id })
+      set((s) => ({
+        devices,
+        ...onDevicesLoaded(coreOf(s), devices.length),
+        ...(active ? { activeDeviceId: active.id } : {}),
+      }))
     } catch {
-      set({ status: 'apiError', errorMessage: 'Could not load Spotify devices.' })
+      set((s) => ({
+        ...onDevicesError(coreOf(s)),
+        errorMessage: 'Could not load Spotify devices.',
+      }))
     }
   },
 
   refreshPlayback: async () => {
     const token = currentToken(get())
-    if (!token) return
+    if (!token) return false
     try {
       const np = await fetchCurrentlyPlaying(token)
       set({ nowPlaying: np })
+      return true
     } catch {
-      // Leave the last-known now-playing in place; do not surface tokens.
+      // Leave last-known now-playing; never surface tokens or demote auth.
+      return false
     }
   },
 
   transferToDevice: async (id: string) => {
     const token = currentToken(get())
     if (!token) return
+    set((s) => onCommandStart(coreOf(s)))
+    set({ errorMessage: null })
     try {
       await transferPlayback(token, id)
       storage.saveDeviceId(id)
-      set({
+      set((s) => ({
+        ...onCommandSuccess(coreOf(s)),
         activeDeviceId: id,
         noticeMessage: 'Playback transferred — press Play to start.',
         errorMessage: null,
-      })
+      }))
     } catch {
-      set({ status: 'apiError', errorMessage: 'Could not transfer playback.' })
+      set((s) => ({
+        ...onCommandFailure(coreOf(s)),
+        errorMessage: 'Could not transfer playback.',
+      }))
     }
   },
 
   transferToSdk: async () => {
     const id = get().sdkDeviceId
     if (!id) {
-      set({ status: 'sdkUnavailable', errorMessage: 'Board player is not ready yet.' })
+      set((s) => ({
+        ...onSdkUnavailable(coreOf(s)),
+        errorMessage: 'Board player is not ready yet.',
+      }))
       return
     }
     await get().transferToDevice(id)
@@ -318,57 +361,95 @@ export const useSpotifyStore = create<SpotifyStoreState>()((set, get) => ({
   play: async () => {
     const token = currentToken(get())
     if (!token) return
+    set((s) => onCommandStart(coreOf(s)))
+    set({ errorMessage: null })
     try {
       await play(token, { deviceId: get().activeDeviceId ?? undefined })
       const cur = get().nowPlaying
       if (cur) set({ nowPlaying: { ...cur, isPlaying: true } })
+      set((s) => onCommandSuccess(coreOf(s)))
+      set({ noticeMessage: 'Play command sent.' })
+      const ok = await get().refreshPlayback()
+      if (!ok) set({ noticeMessage: 'Play command sent; could not refresh playback.' })
     } catch {
-      set({ status: 'apiError', errorMessage: 'Could not start playback.' })
+      set((s) => ({
+        ...onCommandFailure(coreOf(s)),
+        errorMessage: 'Could not start playback.',
+      }))
     }
   },
 
   pause: async () => {
     const token = currentToken(get())
     if (!token) return
+    set((s) => onCommandStart(coreOf(s)))
+    set({ errorMessage: null })
     try {
       await pause(token)
       const cur = get().nowPlaying
       if (cur) set({ nowPlaying: { ...cur, isPlaying: false } })
+      set((s) => onCommandSuccess(coreOf(s)))
+      const ok = await get().refreshPlayback()
+      if (!ok) set({ noticeMessage: 'Pause command sent; could not refresh playback.' })
     } catch {
-      set({ status: 'apiError', errorMessage: 'Could not pause playback.' })
+      set((s) => ({
+        ...onCommandFailure(coreOf(s)),
+        errorMessage: 'Could not pause playback.',
+      }))
     }
   },
 
   next: async () => {
     const token = currentToken(get())
     if (!token) return
+    set((s) => onCommandStart(coreOf(s)))
+    set({ errorMessage: null })
     try {
       await next(token)
-      void get().refreshPlayback()
+      set((s) => onCommandSuccess(coreOf(s)))
+      const ok = await get().refreshPlayback()
+      if (!ok) set({ noticeMessage: 'Next command sent; could not refresh playback.' })
     } catch {
-      set({ status: 'apiError', errorMessage: 'Could not skip forward.' })
+      set((s) => ({
+        ...onCommandFailure(coreOf(s)),
+        errorMessage: 'Could not skip forward.',
+      }))
     }
   },
 
   previous: async () => {
     const token = currentToken(get())
     if (!token) return
+    set((s) => onCommandStart(coreOf(s)))
+    set({ errorMessage: null })
     try {
       await previous(token)
-      void get().refreshPlayback()
+      set((s) => onCommandSuccess(coreOf(s)))
+      const ok = await get().refreshPlayback()
+      if (!ok) set({ noticeMessage: 'Previous command sent; could not refresh playback.' })
     } catch {
-      set({ status: 'apiError', errorMessage: 'Could not skip back.' })
+      set((s) => ({
+        ...onCommandFailure(coreOf(s)),
+        errorMessage: 'Could not skip back.',
+      }))
     }
   },
 
   launchPreset: async (uri: string) => {
     const token = currentToken(get())
     if (!token) return
+    set((s) => onCommandStart(coreOf(s)))
+    set({ errorMessage: null })
     try {
       await play(token, { deviceId: get().activeDeviceId ?? undefined, contextUri: uri })
-      void get().refreshPlayback()
+      set((s) => onCommandSuccess(coreOf(s)))
+      const ok = await get().refreshPlayback()
+      if (!ok) set({ noticeMessage: 'Playlist launched; could not refresh playback.' })
     } catch {
-      set({ status: 'apiError', errorMessage: 'Could not start the playlist.' })
+      set((s) => ({
+        ...onCommandFailure(coreOf(s)),
+        errorMessage: 'Could not start the playlist.',
+      }))
     }
   },
 }))
