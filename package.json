@@ -48,6 +48,7 @@
     "test:display-import-guard": "bash scripts/test-display-import-guard.sh",
     "test:display-bundle-guard": "bash scripts/test-display-bundle-guard.sh",
     "test:clean-board": "bash scripts/test-clean-board.sh",
+    "test:clean-board-spotify": "bash scripts/test-clean-board-spotify.sh",
     "smoke:classroom": "bash scripts/run-classroom-smoke.sh"
   },
   "dependencies": {

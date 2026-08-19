@@ -6,6 +6,7 @@ import {
   BOARD_LOGICAL_WIDTH,
   fitBoardToContainer,
 } from './boardGeometry'
+import type { SafeNowPlaying } from './spotify/spotifySafety'
 import type { BoardBackground, BoardMode, BoardObject } from './types'
 
 interface BoardCanvasProps {
@@ -15,6 +16,7 @@ interface BoardCanvasProps {
   selectedObjectId: string | null
   onSelect: (id: string | null) => void
   onMoveObject: (id: string, x: number, y: number) => void
+  spotifyNowPlaying?: SafeNowPlaying | null
 }
 
 interface DragState {
@@ -55,6 +57,7 @@ export function BoardCanvas({
   selectedObjectId,
   onSelect,
   onMoveObject,
+  spotifyNowPlaying,
 }: BoardCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const dragRef = useRef<DragState | null>(null)
@@ -133,6 +136,7 @@ export function BoardCanvas({
               return (
                 <div
                   key={o.id}
+                  data-board-object-kind={o.kind}
                   className={`absolute ${mode === 'edit' ? 'cursor-move' : ''}`}
                   style={{
                     left: o.x,
@@ -147,7 +151,7 @@ export function BoardCanvas({
                   onPointerUp={endDrag}
                   onPointerCancel={endDrag}
                 >
-                  <BoardObjectRenderer object={o} />
+                  <BoardObjectRenderer object={o} spotifyNowPlaying={spotifyNowPlaying} />
                   {selected && (
                     <div
                       className="pointer-events-none absolute inset-0 rounded-xl outline outline-2 outline-cyan-400"

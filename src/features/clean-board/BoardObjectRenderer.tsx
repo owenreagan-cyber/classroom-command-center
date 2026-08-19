@@ -1,12 +1,21 @@
 import type { BoardObject } from './types'
+import { SpotifyNowPlayingWidget } from './spotify/SpotifyNowPlayingWidget'
+import type { SafeNowPlaying } from './spotify/spotifySafety'
+
+interface BoardObjectRendererProps {
+  object: BoardObject
+  /** Student-safe now-playing metadata; null while idle or disconnected. */
+  spotifyNowPlaying?: SafeNowPlaying | null
+}
 
 /**
- * DB-1 — renders a single board object's content.
+ * Renders a single board object's content.
  *
- * Presentational only: no selection, drag, or teacher state. All widget kinds
- * (clock, timer, spotify) render static placeholder content — no live logic.
+ * Presentational only: no selection, drag, or teacher state. Clock and timer
+ * remain static placeholders; the Spotify placeholder renders the safe
+ * now-playing widget when metadata is provided.
  */
-export function BoardObjectRenderer({ object }: { object: BoardObject }) {
+export function BoardObjectRenderer({ object, spotifyNowPlaying = null }: BoardObjectRendererProps) {
   const cfg = object.config
   switch (cfg.kind) {
     case 'text':
@@ -74,13 +83,6 @@ export function BoardObjectRenderer({ object }: { object: BoardObject }) {
         </div>
       )
     case 'spotifyNowPlayingPlaceholder':
-      return (
-        <div className="flex h-full w-full items-center gap-4 rounded-2xl border border-emerald-500/30 bg-emerald-950/40 px-6">
-          <div className="min-w-0">
-            <p className="m-0 text-xl font-semibold text-emerald-200">{cfg.label}</p>
-            <p className="m-0 text-lg text-emerald-100/70">Classroom Playlist</p>
-          </div>
-        </div>
-      )
+      return <SpotifyNowPlayingWidget nowPlaying={spotifyNowPlaying} />
   }
 }
