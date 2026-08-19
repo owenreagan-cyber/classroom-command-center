@@ -1,9 +1,10 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { BoardCanvas } from './BoardCanvas'
 import { BoardToolbar } from './BoardToolbar'
 import { toSafeBoardPage } from './boardSafety'
 import { createSeedBoard } from './seedBoard'
 import { SpotifyTeacherPanel } from './spotify/SpotifyTeacherPanel'
+import { hasCallbackParams } from './spotify/spotifyPkce'
 import { toSafeNowPlaying } from './spotify/spotifySafety'
 import { useSpotifyStore } from './spotify/spotifyStore'
 import type { BoardDeck, BoardMode, BoardObject, BoardObjectKind } from './types'
@@ -14,9 +15,13 @@ const segIdle = 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'
 
 function readInitialMode(): BoardMode {
   if (typeof window === 'undefined') return 'present'
-  return new URLSearchParams(window.location.search).get('mode') === 'edit'
-    ? 'edit'
-    : 'present'
+  const params = new URLSearchParams(window.location.search)
+  // Returning from Spotify OAuth (code/error in URL) routes back to edit mode
+  // so the teacher lands next to their control panel.
+  if (params.get('mode') === 'edit' || hasCallbackParams(window.location.search)) {
+    return 'edit'
+  }
+  return 'present'
 }
 
 function createDefaultObject(kind: BoardObjectKind, id: string): BoardObject {
@@ -105,7 +110,27 @@ function createDefaultObject(kind: BoardObjectKind, id: string): BoardObject {
 export function BoardLabPage() {
   const [deck, setDeck] = useState<BoardDeck>(() => createSeedBoard())
   const [mode, setModeState] = useState<BoardMode>(() => readInitialMode())
-  const [selectedObjectId, setSelectedObjectId] = useState<string | null>(null)
+  const [selectedObjectId, setSelectedObjectId] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null
+    // Pre-select the Spotify placeholder in edit mode (including on OAuth
+    // callback) so the teacher panel is immediately visible.
+    if (readInitialMode() === 'edit') {
+      const seed = createSeedBoard()
+      return (
+        seed.pages[0].objects.find((o) => o.kind === 'spotifyNowPlayingPlaceholder')?.id ?? null
+      )
+    }
+    return null
+  })
+
+  const init = useSpotifyStore((s) => s.init)
+
+  // Run the Spotify handshake/restore once at the shell level so the OAuth
+  // callback is consumed even when present mode is the initial route (the
+  // teacher panel is only mounted in edit mode).
+  useEffect(() => {
+    void init()
+  }, [init])
 
   const activePage = deck.pages.find((p) => p.id === deck.activePageId) ?? deck.pages[0]
 

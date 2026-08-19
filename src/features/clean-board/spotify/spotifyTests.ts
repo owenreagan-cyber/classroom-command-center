@@ -15,6 +15,7 @@ import {
   generateCodeChallenge,
   generateCodeVerifier,
   generateState,
+  hasCallbackParams,
   parseCallbackParams,
 } from './spotifyPkce'
 import { safeNowPlayingHasNoForbiddenKeys, toSafeNowPlaying } from './spotifySafety'
@@ -113,6 +114,14 @@ async function main(): Promise<void> {
   await test('parseCallbackParams handles empty input', () => {
     const p = parseCallbackParams('')
     assert(p.code === null && p.state === null && p.error === null)
+  })
+
+  await test('hasCallbackParams detects code and error, rejects plain URLs', () => {
+    assert(hasCallbackParams('/board-lab?code=c&state=s') === true)
+    assert(hasCallbackParams('?error=access_denied') === true)
+    assert(hasCallbackParams('/board-lab?mode=edit') === false)
+    assert(hasCallbackParams('') === false)
+    assert(hasCallbackParams('/board-lab') === false)
   })
 
   // ── Config ──

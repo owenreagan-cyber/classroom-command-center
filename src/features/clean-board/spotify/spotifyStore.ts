@@ -17,7 +17,12 @@ import {
   generateState,
   parseCallbackParams,
 } from './spotifyPkce'
-import { createSdkPlayer, isSdkAvailable, loadSdk } from './spotifyPlaybackSdk'
+import {
+  createSdkPlayer,
+  disconnectSdkPlayer,
+  isSdkAvailable,
+  loadSdk,
+} from './spotifyPlaybackSdk'
 import * as storage from './spotifyStorage'
 import type { NowPlaying, SpotifyDevice, SpotifyStatus, SpotifyTokens } from './spotifyTypes'
 
@@ -41,6 +46,8 @@ interface SpotifyStoreState {
   sdkDeviceId: string | null
   /** Sanitized, human-readable message only — never tokens or secrets. */
   errorMessage: string | null
+  /** Sanitized, non-error informational message (e.g. transfer succeeded). */
+  noticeMessage: string | null
   init: () => Promise<void>
   connect: () => Promise<void>
   handleCallback: () => Promise<void>
@@ -68,6 +75,10 @@ function currentToken(state: SpotifyStoreState): string | null {
   return state.tokens?.accessToken ?? null
 }
 
+// Prevents double-invocation of the callback exchange (React StrictMode runs
+// effects twice in dev, and init() runs on every mount).
+let callbackInFlight = false
+
 export const useSpotifyStore = create<SpotifyStoreState>()((set, get) => ({
   status: 'loggedOut',
   clientId: null,
@@ -79,6 +90,7 @@ export const useSpotifyStore = create<SpotifyStoreState>()((set, get) => ({
   sdkReady: false,
   sdkDeviceId: null,
   errorMessage: null,
+  noticeMessage: null,
 
   init: async () => {
     const cfg = readEnvConfig()
@@ -146,57 +158,65 @@ export const useSpotifyStore = create<SpotifyStoreState>()((set, get) => ({
   },
 
   handleCallback: async () => {
-    const { clientId, redirectUri } = get()
-    if (!clientId || !redirectUri) {
-      set({ status: 'configMissing', errorMessage: 'Spotify setup needed.' })
-      return
-    }
-    const cb = parseCallbackParams(
-      typeof window !== 'undefined' ? window.location.search : '',
-    )
-    if (cb.error) {
-      storage.clearAll()
-      set({ status: 'apiError', errorMessage: 'Spotify sign-in was cancelled or failed.' })
-      return
-    }
-    if (!cb.code) return
-
-    const expectedState = storage.getState()
-    storage.clearState()
-    if (expectedState && cb.state !== expectedState) {
-      storage.clearVerifier()
-      set({ status: 'apiError', errorMessage: 'Sign-in state mismatch. Please try again.' })
-      return
-    }
-
-    const verifier = storage.getVerifier()
-    storage.clearVerifier()
-    if (!verifier) {
-      set({ status: 'apiError', errorMessage: 'Sign-in session expired. Please try again.' })
-      return
-    }
-
+    if (callbackInFlight) return
+    callbackInFlight = true
     try {
-      const tokens = await exchangeCodeForToken({
-        code: cb.code,
-        redirectUri,
-        clientId,
-        codeVerifier: verifier,
-      })
-      storage.saveTokens(tokens)
-      if (typeof window !== 'undefined') {
-        window.history.replaceState(null, '', window.location.pathname)
+      const { clientId, redirectUri } = get()
+      if (!clientId || !redirectUri) {
+        set({ status: 'configMissing', errorMessage: 'Spotify setup needed.' })
+        return
       }
-      set({ status: 'connected', tokens, errorMessage: null })
-      void get().setupSdk()
-      void get().refreshDevices()
-      void get().refreshPlayback()
-    } catch {
-      set({ status: 'apiError', errorMessage: 'Could not complete Spotify sign-in.' })
+      const cb = parseCallbackParams(
+        typeof window !== 'undefined' ? window.location.search : '',
+      )
+      if (cb.error) {
+        storage.clearAll()
+        set({ status: 'apiError', errorMessage: 'Spotify sign-in was cancelled or failed.' })
+        return
+      }
+      if (!cb.code) return
+
+      const expectedState = storage.getState()
+      storage.clearState()
+      if (expectedState && cb.state !== expectedState) {
+        storage.clearVerifier()
+        set({ status: 'apiError', errorMessage: 'Sign-in state mismatch. Please try again.' })
+        return
+      }
+
+      const verifier = storage.getVerifier()
+      storage.clearVerifier()
+      if (!verifier) {
+        set({ status: 'apiError', errorMessage: 'Sign-in session expired. Please try again.' })
+        return
+      }
+
+      try {
+        const tokens = await exchangeCodeForToken({
+          code: cb.code,
+          redirectUri,
+          clientId,
+          codeVerifier: verifier,
+        })
+        storage.saveTokens(tokens)
+        if (typeof window !== 'undefined') {
+          // Return the teacher to edit mode after a successful sign-in.
+          window.history.replaceState(null, '', `${window.location.pathname}?mode=edit`)
+        }
+        set({ status: 'connected', tokens, errorMessage: null })
+        void get().setupSdk()
+        void get().refreshDevices()
+        void get().refreshPlayback()
+      } catch {
+        set({ status: 'apiError', errorMessage: 'Could not complete Spotify sign-in.' })
+      }
+    } finally {
+      callbackInFlight = false
     }
   },
 
   disconnect: () => {
+    disconnectSdkPlayer()
     storage.clearAll()
     set({
       status: 'loggedOut',
@@ -207,6 +227,7 @@ export const useSpotifyStore = create<SpotifyStoreState>()((set, get) => ({
       sdkReady: false,
       sdkDeviceId: null,
       errorMessage: null,
+      noticeMessage: null,
     })
   },
 
@@ -222,7 +243,7 @@ export const useSpotifyStore = create<SpotifyStoreState>()((set, get) => ({
       }
     }
     try {
-      createSdkPlayer(token, {
+      createSdkPlayer(() => currentToken(get()), {
         onReady: (deviceId) =>
           set({
             sdkReady: true,
@@ -277,7 +298,8 @@ export const useSpotifyStore = create<SpotifyStoreState>()((set, get) => ({
       storage.saveDeviceId(id)
       set({
         activeDeviceId: id,
-        errorMessage: 'Playback transferred — press Play to start.',
+        noticeMessage: 'Playback transferred — press Play to start.',
+        errorMessage: null,
       })
     } catch {
       set({ status: 'apiError', errorMessage: 'Could not transfer playback.' })

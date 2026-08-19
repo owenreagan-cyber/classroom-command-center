@@ -1,4 +1,3 @@
-import { useEffect } from 'react'
 import { DEFAULT_PLAYLIST_PRESETS, useSpotifyStore } from './spotifyStore'
 
 /**
@@ -53,7 +52,7 @@ export function SpotifyTeacherPanel() {
     sdkReady,
     sdkDeviceId,
     errorMessage,
-    init,
+    noticeMessage,
     connect,
     disconnect,
     refreshDevices,
@@ -66,10 +65,6 @@ export function SpotifyTeacherPanel() {
     previous,
     launchPreset,
   } = useSpotifyStore()
-
-  useEffect(() => {
-    void init()
-  }, [init])
 
   const configMissing = !clientId || !redirectUri
   const isConnected = status === 'connected'
@@ -126,6 +121,12 @@ export function SpotifyTeacherPanel() {
           {errorMessage && (
             <p className="m-0 rounded-md border border-red-500/30 bg-red-950/40 px-2 py-1.5 text-xs text-red-200">
               {errorMessage}
+            </p>
+          )}
+
+          {noticeMessage && !errorMessage && (
+            <p className="m-0 rounded-md border border-emerald-500/30 bg-emerald-950/40 px-2 py-1.5 text-xs text-emerald-200">
+              {noticeMessage}
             </p>
           )}
 
@@ -198,8 +199,8 @@ export function SpotifyTeacherPanel() {
           </p>
         ) : (
           <ul className="m-0 flex list-none flex-col gap-1 p-0">
-            {devices.map((d) => (
-              <li key={d.id}>
+            {devices.map((d, index) => (
+              <li key={`${d.name}-${index}`}>
                 <button
                   type="button"
                   onClick={() => void transferToDevice(d.id)}
@@ -208,7 +209,6 @@ export function SpotifyTeacherPanel() {
                       ? 'border-emerald-500/50 bg-emerald-950/40 text-emerald-200'
                       : 'border-slate-800 bg-slate-900/40 text-slate-300 hover:bg-slate-800'
                   }`}
-                  data-spotify-device={d.id}
                 >
                   <span className="font-semibold">{d.name}</span>
                   {d.isActive && <span className="ml-2 text-emerald-400">● active</span>}
