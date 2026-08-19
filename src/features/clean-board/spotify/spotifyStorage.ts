@@ -1,4 +1,4 @@
-import type { SpotifyTokens } from './spotifyTypes'
+import type { PlaylistPreset, SpotifyTokens } from './spotifyTypes'
 
 /**
  * DB-2A — token/persistence helpers.
@@ -15,6 +15,7 @@ const KEY_VERIFIER = `${SPOTIFY_STORAGE_PREFIX}code_verifier`
 const KEY_STATE = `${SPOTIFY_STORAGE_PREFIX}state`
 const KEY_TOKENS = `${SPOTIFY_STORAGE_PREFIX}tokens`
 const KEY_DEVICE = `${SPOTIFY_STORAGE_PREFIX}selected_device_id`
+const KEY_PRESETS = `${SPOTIFY_STORAGE_PREFIX}playlist_presets`
 
 export function computeExpiresAt(expiresInSeconds: number, nowMs = Date.now()): number {
   return nowMs + expiresInSeconds * 1000
@@ -96,4 +97,46 @@ export function clearAll(): void {
   clearState()
   clearTokens()
   clearDeviceId()
+}
+
+// ── playlist presets (local, non-secret) ──
+
+/** A playlist URI must be a plain `spotify:playlist:<id>` — nothing else. */
+export function isValidPresetUri(uri: string): boolean {
+  return /^spotify:playlist:[A-Za-z0-9]+$/.test(uri)
+}
+
+/**
+ * Whitelist-validate an arbitrary value into safe presets. Drops any entry
+ * with missing fields, an invalid URI, or unexpected keys — presets carry no
+ * tokens, secrets, or private account data.
+ */
+export function sanitizePresets(raw: unknown): PlaylistPreset[] {
+  if (!Array.isArray(raw)) return []
+  const out: PlaylistPreset[] = []
+  for (const item of raw) {
+    if (!item || typeof item !== 'object') continue
+    const p = item as Record<string, unknown>
+    const id = typeof p.id === 'string' ? p.id : ''
+    const label = typeof p.label === 'string' ? p.label : ''
+    const uri = typeof p.uri === 'string' ? p.uri : ''
+    const category = typeof p.category === 'string' ? p.category : ''
+    if (!id || !label || !isValidPresetUri(uri)) continue
+    out.push({ id, label, uri, category })
+  }
+  return out
+}
+
+export function savePresets(presets: PlaylistPreset[]): void {
+  getStore('local')?.setItem(KEY_PRESETS, JSON.stringify(presets))
+}
+
+export function loadPresets(): PlaylistPreset[] {
+  const raw = getStore('local')?.getItem(KEY_PRESETS)
+  if (!raw) return []
+  try {
+    return sanitizePresets(JSON.parse(raw) as unknown)
+  } catch {
+    return []
+  }
 }

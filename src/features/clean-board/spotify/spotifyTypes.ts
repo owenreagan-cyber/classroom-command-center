@@ -7,6 +7,8 @@ export const SPOTIFY_SCOPES = [
   'user-modify-playback-state',
   'user-read-currently-playing',
   'streaming',
+  'playlist-read-private',
+  'playlist-modify-private',
 ] as const
 
 export const SPOTIFY_AUTH_BASE = 'https://accounts.spotify.com/authorize'
@@ -73,6 +75,45 @@ export interface PlaylistPreset {
   label: string
   uri: string
   category: string
+}
+
+/** Minimal current-user profile — only the id is used for playlist creation. */
+export interface SpotifyUserProfile {
+  id: string
+  displayName?: string
+}
+
+/** A playlist owned/followed by the current user. */
+export interface SpotifyPlaylistSummary {
+  id: string
+  name: string
+  uri: string
+  isPublic: boolean
+  ownerName?: string
+}
+
+/** A search-hit track card. `explicit` is surfaced, never hidden. */
+export interface SpotifyTrack {
+  id: string
+  name: string
+  uri: string
+  artistName: string
+  albumName?: string
+  artworkUrl?: string
+  durationMs?: number
+  explicit: boolean
+}
+
+/** A deterministic classroom playlist recipe (teacher-reviewed, template-based). */
+export interface PlaylistRecipe {
+  id: string
+  title: string
+  classroomUse: string
+  suggestedDurationMinutes: number
+  energy: 'low' | 'medium' | 'high'
+  avoid: string[]
+  searchQueries: string[]
+  teacherNote: string
 }
 
 /** Minimal fetch response shape — decouples the API wrapper from DOM types. */

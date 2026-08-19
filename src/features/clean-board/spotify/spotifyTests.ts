@@ -8,7 +8,18 @@
 
 declare const process: { exit(code?: number): never }
 
-import { fetchCurrentlyPlaying, fetchDevices } from './spotifyApi'
+import {
+  addTracksToPlaylist,
+  buildAddTracksBody,
+  buildCreatePlaylistBody,
+  createPlaylist,
+  fetchCurrentlyPlaying,
+  fetchDevices,
+  fetchUserPlaylists,
+  fetchUserProfile,
+  play,
+  searchTracks,
+} from './spotifyApi'
 import { resolveSpotifyConfig, SPOTIFY_SCOPES } from './spotifyConfig'
 import {
   buildAuthorizationUrl,
@@ -18,6 +29,7 @@ import {
   hasCallbackParams,
   parseCallbackParams,
 } from './spotifyPkce'
+import { CLASSROOM_PLAYLIST_RECIPES, getRecipeById } from './playlistRecipes'
 import { safeNowPlayingHasNoForbiddenKeys, toSafeNowPlaying } from './spotifySafety'
 import {
   describeStatus,
@@ -34,7 +46,12 @@ import {
   onSdkUnavailable,
   shouldPollPlayback,
 } from './spotifyState'
-import { computeExpiresAt, isTokenExpired } from './spotifyStorage'
+import {
+  computeExpiresAt,
+  isTokenExpired,
+  isValidPresetUri,
+  sanitizePresets,
+} from './spotifyStorage'
 import type { SpotifyCore } from './spotifyState'
 import type { FetchLike, NowPlaying } from './spotifyTypes'
 
@@ -418,6 +435,203 @@ async function main(): Promise<void> {
     const next = onPlaybackRefreshed({ authStatus: 'connected', opStatus: 'apiError' })
     assert(next.opStatus === 'idle')
     assert(describeStatus(next) !== 'Error')
+  })
+
+  // ── DB-2C — playlist builder / search / presets ──
+
+  await test('scopes include private playlist read/write, never public write', () => {
+    const scopes: readonly string[] = SPOTIFY_SCOPES
+    assert(scopes.includes('playlist-read-private'))
+    assert(scopes.includes('playlist-modify-private'))
+    assert(!scopes.includes('playlist-modify-public'), 'public write is not requested by default')
+  })
+
+  await test('buildCreatePlaylistBody always defaults to private', () => {
+    const withDesc = buildCreatePlaylistBody('Morning', 'desc')
+    assert(withDesc.public === false)
+    assert(withDesc.name === 'Morning')
+    assert(withDesc.description === 'desc')
+    const bare = buildCreatePlaylistBody('Focus')
+    assert(bare.public === false)
+    assert(!('description' in bare))
+  })
+
+  await test('buildAddTracksBody wraps track URIs', () => {
+    const body = buildAddTracksBody(['spotify:track:1', 'spotify:track:2'])
+    assert(JSON.stringify(body.uris) === JSON.stringify(['spotify:track:1', 'spotify:track:2']))
+  })
+
+  await test('createPlaylist posts a private-only body', async () => {
+    let capturedBody = ''
+    const fake: FetchLike = async (_url, init) => {
+      capturedBody = init?.body ?? ''
+      return {
+        ok: true,
+        status: 201,
+        json: async () => ({ id: 'p1', name: 'Classroom', uri: 'spotify:playlist:abc' }),
+      }
+    }
+    const p = await createPlaylist('tok', 'user1', 'Classroom', undefined, fake)
+    const parsed = JSON.parse(capturedBody) as { public: boolean; name: string }
+    assert(parsed.public === false)
+    assert(parsed.name === 'Classroom')
+    assert(p.uri === 'spotify:playlist:abc')
+    assert(p.isPublic === false)
+  })
+
+  await test('addTracksToPlaylist posts the uris to the playlist tracks endpoint', async () => {
+    let capturedUrl = ''
+    let capturedBody = ''
+    const fake: FetchLike = async (url, init) => {
+      capturedUrl = url
+      capturedBody = init?.body ?? ''
+      return { ok: true, status: 201, json: async () => null }
+    }
+    await addTracksToPlaylist('tok', 'playlistId1', ['spotify:track:1', 'spotify:track:2'], fake)
+    assert(capturedUrl.includes('/playlists/playlistId1/tracks'))
+    const parsed = JSON.parse(capturedBody) as { uris: string[] }
+    assert(parsed.uris.length === 2)
+  })
+
+  await test('searchTracks surfaces the explicit flag and metadata, never hides it', async () => {
+    const fake: FetchLike = async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        tracks: {
+          items: [
+            {
+              id: 't1',
+              name: 'Song',
+              uri: 'spotify:track:t1',
+              explicit: true,
+              duration_ms: 100_000,
+              artists: [{ name: 'Artist A' }],
+              album: { name: 'Album', images: [{ url: 'http://x/art.jpg' }] },
+            },
+          ],
+        },
+      }),
+    })
+    const results = await searchTracks('tok', 'q', 20, fake)
+    assert(results.length === 1)
+    assert(results[0].explicit === true, 'explicit must be surfaced')
+    assert(results[0].durationMs === 100_000)
+    assert(results[0].artistName === 'Artist A')
+    assert(results[0].artworkUrl === 'http://x/art.jpg')
+  })
+
+  await test('searchTracks only reads — it never auto-adds to a playlist', async () => {
+    let capturedUrl = ''
+    let capturedMethod = ''
+    const fake: FetchLike = async (url, init) => {
+      capturedUrl = url
+      capturedMethod = init?.method ?? ''
+      return { ok: true, status: 200, json: async () => ({ tracks: { items: [] } }) }
+    }
+    await searchTracks('tok', 'q', 20, fake)
+    assert(capturedMethod === 'GET')
+    assert(capturedUrl.includes('/search'))
+    assert(!capturedUrl.includes('/playlists'), 'search must not write to a playlist')
+  })
+
+  await test('launching a playlist uses a context URI, not a secret', async () => {
+    let capturedBody = ''
+    const fake: FetchLike = async (_url, init) => {
+      capturedBody = init?.body ?? ''
+      return { ok: true, status: 204, json: async () => null }
+    }
+    await play('tok', { contextUri: 'spotify:playlist:abc' }, fake)
+    assert(capturedBody.includes('spotify:playlist:abc'))
+  })
+
+  await test('API headers carry only the bearer token, never a client secret', async () => {
+    let capturedHeaders: Record<string, string> = {}
+    const fake: FetchLike = async (_url, init) => {
+      capturedHeaders = init?.headers ?? {}
+      return { ok: true, status: 200, json: async () => ({ id: 'u1', display_name: 'Teacher' }) }
+    }
+    const profile = await fetchUserProfile('tok', fake)
+    assert(profile.id === 'u1')
+    assert(capturedHeaders.Authorization === 'Bearer tok')
+    assert(!('client_secret' in capturedHeaders))
+    assert(!JSON.stringify(capturedHeaders).toLowerCase().includes('secret'))
+  })
+
+  await test('fetchUserPlaylists maps private flag and owner', async () => {
+    const fake: FetchLike = async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        items: [
+          { id: 'p1', name: 'Math', uri: 'spotify:playlist:p1', public: false, owner: { display_name: 'Teacher' } },
+        ],
+      }),
+    })
+    const lists = await fetchUserPlaylists('tok', fake)
+    assert(lists.length === 1)
+    assert(lists[0].isPublic === false)
+    assert(lists[0].ownerName === 'Teacher')
+  })
+
+  await test('isValidPresetUri accepts only playlist URIs', () => {
+    assert(isValidPresetUri('spotify:playlist:abc123') === true)
+    assert(isValidPresetUri('spotify:track:abc') === false)
+    assert(isValidPresetUri('https://open.spotify.com/playlist/abc') === false)
+    assert(isValidPresetUri('') === false)
+  })
+
+  await test('sanitizePresets drops invalid entries and strips extra/private keys', () => {
+    const raw = [
+      { id: '1', label: 'Morning', uri: 'spotify:playlist:abc', category: 'classroom' },
+      { id: '2', label: 'Bad', uri: 'spotify:track:x', category: '' },
+      { id: '3', label: '', uri: 'spotify:playlist:def', category: '' },
+      null,
+      { id: '4', label: 'HasToken', uri: 'spotify:playlist:ghi', category: '', accessToken: 'SECRET' },
+    ]
+    const out = sanitizePresets(raw)
+    assert(out.length === 2, `expected 2 valid presets, got ${out.length}`)
+    assert(out[0].label === 'Morning')
+    assert(out[1].label === 'HasToken')
+    assert(!('accessToken' in (out[1] as object)), 'extra private key must be dropped')
+  })
+
+  await test('playlist recipes are deterministic and mark teacher review', () => {
+    assert(CLASSROOM_PLAYLIST_RECIPES.length >= 7)
+    const requiredIds = [
+      'morning-arrival-calm',
+      'independent-work-focus',
+      'math-work-instrumental',
+      'writing-time-piano',
+      'clean-up-cue',
+      'rainy-day-calm',
+      'test-mode-quiet',
+    ]
+    for (const id of requiredIds) {
+      const r = getRecipeById(id)
+      assert(r !== undefined, `missing recipe ${id}`)
+      assert(r.title.length > 0)
+      assert(r.searchQueries.length > 0)
+      assert(r.avoid.length > 0)
+      assert(r.energy === 'low' || r.energy === 'medium' || r.energy === 'high')
+      assert(r.teacherNote.toLowerCase().includes('review'), `recipe ${id} must note teacher review`)
+    }
+  })
+
+  await test('student-safe projection drops playlist-builder fields', () => {
+    const dirty = {
+      trackName: 'T',
+      artistName: 'A',
+      isPlaying: true,
+      playlists: [{ id: 'p' }],
+      presets: [{ uri: 'spotify:playlist:x' }],
+      searchResults: [{ explicit: true }],
+    } as unknown as NowPlaying
+    const safe = toSafeNowPlaying(dirty)
+    assert(safe !== null)
+    assert(!('playlists' in (safe as object)), 'playlists leaked into safe projection')
+    assert(!('presets' in (safe as object)), 'presets leaked into safe projection')
+    assert(!('searchResults' in (safe as object)), 'search results leaked into safe projection')
   })
 
   console.log(`\nClean Board Spotify Tests: ${passed} passed, ${failed} failed`)

@@ -1,5 +1,13 @@
 import { SPOTIFY_API_BASE } from './spotifyTypes'
-import type { FetchLike, HttpResponse, NowPlaying, SpotifyDevice } from './spotifyTypes'
+import type {
+  FetchLike,
+  HttpResponse,
+  NowPlaying,
+  SpotifyDevice,
+  SpotifyPlaylistSummary,
+  SpotifyTrack,
+  SpotifyUserProfile,
+} from './spotifyTypes'
 
 /**
  * DB-2A — Spotify Web API wrapper (pure, fetch-injectable).
@@ -163,4 +171,154 @@ export async function previous(
     headers: authHeaders(token),
   })
   await parseOrThrow(res, 'previous')
+}
+
+// ── Playlist builder / search API (DB-2C) ──
+
+interface SpotifyUserJson {
+  id?: string
+  display_name?: string
+}
+
+interface SpotifyPlaylistJson {
+  id?: string
+  name?: string
+  uri?: string
+  public?: boolean
+  owner?: { display_name?: string }
+}
+
+interface SpotifyPlaylistsResponse {
+  items?: SpotifyPlaylistJson[]
+}
+
+interface SpotifyTrackJson {
+  id?: string
+  name?: string
+  uri?: string
+  explicit?: boolean
+  duration_ms?: number
+  artists?: SpotifyArtistJson[]
+  album?: { name?: string; images?: SpotifyImageJson[] }
+}
+
+interface SpotifySearchResponse {
+  tracks?: { items?: SpotifyTrackJson[] }
+}
+
+interface SpotifyCreatePlaylistResponse {
+  id?: string
+  name?: string
+  uri?: string
+}
+
+/**
+ * Build a private-only create-playlist body. `public` is always false in this
+ * phase — public creation is deliberately deferred (no UI toggle yet).
+ */
+export function buildCreatePlaylistBody(
+  name: string,
+  description?: string,
+): { name: string; description?: string; public: boolean } {
+  return { name, ...(description ? { description } : {}), public: false }
+}
+
+/** Build an add-tracks body from a list of track URIs. */
+export function buildAddTracksBody(uris: string[]): { uris: string[] } {
+  return { uris }
+}
+
+function mapTrackJson(t: SpotifyTrackJson): SpotifyTrack {
+  const artists = (t.artists ?? [])
+    .map((a) => a.name)
+    .filter((n): n is string => Boolean(n))
+    .join(', ')
+  return {
+    id: t.id ?? '',
+    name: t.name ?? 'Unknown track',
+    uri: t.uri ?? '',
+    artistName: artists || 'Unknown artist',
+    albumName: t.album?.name,
+    artworkUrl: t.album?.images?.[0]?.url,
+    durationMs: t.duration_ms,
+    explicit: Boolean(t.explicit),
+  }
+}
+
+export async function fetchUserProfile(
+  token: string,
+  fetchFn: FetchLike = defaultFetch,
+): Promise<SpotifyUserProfile> {
+  const res = await fetchFn(`${SPOTIFY_API_BASE}/me`, {
+    method: 'GET',
+    headers: authHeaders(token),
+  })
+  const json = (await parseOrThrow(res, 'fetchUserProfile')) as SpotifyUserJson
+  return { id: json.id ?? '', displayName: json.display_name }
+}
+
+export async function fetchUserPlaylists(
+  token: string,
+  fetchFn: FetchLike = defaultFetch,
+): Promise<SpotifyPlaylistSummary[]> {
+  const res = await fetchFn(`${SPOTIFY_API_BASE}/me/playlists`, {
+    method: 'GET',
+    headers: authHeaders(token),
+  })
+  const json = (await parseOrThrow(res, 'fetchUserPlaylists')) as SpotifyPlaylistsResponse | null
+  return (json?.items ?? []).map((p) => ({
+    id: p.id ?? '',
+    name: p.name ?? 'Untitled playlist',
+    uri: p.uri ?? '',
+    isPublic: Boolean(p.public),
+    ownerName: p.owner?.display_name,
+  }))
+}
+
+export async function searchTracks(
+  token: string,
+  query: string,
+  limit = 20,
+  fetchFn: FetchLike = defaultFetch,
+): Promise<SpotifyTrack[]> {
+  const url = new URL(`${SPOTIFY_API_BASE}/search`)
+  url.searchParams.set('q', query)
+  url.searchParams.set('type', 'track')
+  url.searchParams.set('limit', String(limit))
+  const res = await fetchFn(url.toString(), {
+    method: 'GET',
+    headers: authHeaders(token),
+  })
+  const json = (await parseOrThrow(res, 'searchTracks')) as SpotifySearchResponse | null
+  return (json?.tracks?.items ?? []).map(mapTrackJson)
+}
+
+export async function createPlaylist(
+  token: string,
+  userId: string,
+  name: string,
+  description?: string,
+  fetchFn: FetchLike = defaultFetch,
+): Promise<SpotifyPlaylistSummary> {
+  const res = await fetchFn(`${SPOTIFY_API_BASE}/users/${encodeURIComponent(userId)}/playlists`, {
+    method: 'POST',
+    headers: authHeaders(token),
+    body: JSON.stringify(buildCreatePlaylistBody(name, description)),
+  })
+  const json = (await parseOrThrow(res, 'createPlaylist')) as SpotifyCreatePlaylistResponse
+  return { id: json.id ?? '', name: json.name ?? name, uri: json.uri ?? '', isPublic: false }
+}
+
+export async function addTracksToPlaylist(
+  token: string,
+  playlistId: string,
+  trackUris: string[],
+  fetchFn: FetchLike = defaultFetch,
+): Promise<void> {
+  const res = await fetchFn(`${SPOTIFY_API_BASE}/playlists/${encodeURIComponent(playlistId)}/tracks`, {
+    method: 'POST',
+    headers: authHeaders(token),
+    body: JSON.stringify(buildAddTracksBody(trackUris)),
+  })
+  await parseOrThrow(res, 'addTracksToPlaylist')
 }

@@ -1,12 +1,17 @@
 import { create } from 'zustand'
 import { exchangeCodeForToken, refreshAccessToken } from './spotifyAuth'
 import {
+  addTracksToPlaylist as apiAddTracks,
+  createPlaylist as apiCreatePlaylist,
   fetchCurrentlyPlaying,
   fetchDevices,
+  fetchUserPlaylists as apiFetchUserPlaylists,
+  fetchUserProfile as apiFetchUserProfile,
   next,
   pause,
   play,
   previous,
+  searchTracks as apiSearchTracks,
   transferPlayback,
 } from './spotifyApi'
 import { DEFAULT_PLAYLIST_PRESETS, resolveSpotifyConfig } from './spotifyConfig'
@@ -39,7 +44,15 @@ import {
 } from './spotifyState'
 import type { SpotifyCore } from './spotifyState'
 import type { SpotifyAuthStatus, SpotifyOpStatus } from './spotifyTypes'
-import type { NowPlaying, SpotifyDevice, SpotifyTokens } from './spotifyTypes'
+import type {
+  NowPlaying,
+  PlaylistPreset,
+  SpotifyDevice,
+  SpotifyPlaylistSummary,
+  SpotifyTokens,
+  SpotifyTrack,
+  SpotifyUserProfile,
+} from './spotifyTypes'
 
 /**
  * DB-2B — Spotify connection store (singleton).
@@ -65,6 +78,16 @@ interface SpotifyStoreState {
   errorMessage: string | null
   /** Sanitized informational/warning message (transfer success, refresh failed). */
   noticeMessage: string | null
+  userProfile: SpotifyUserProfile | null
+  playlists: SpotifyPlaylistSummary[]
+  presets: PlaylistPreset[]
+  searchResults: SpotifyTrack[]
+  searchQuery: string
+  searching: boolean
+  builderBusy: boolean
+  /** Sanitized playlist-builder message — never tokens/secrets/account data. */
+  builderMessage: string | null
+  selectedPlaylistId: string | null
   init: () => Promise<void>
   connect: () => Promise<void>
   handleCallback: () => Promise<void>
@@ -82,6 +105,13 @@ interface SpotifyStoreState {
   next: () => Promise<void>
   previous: () => Promise<void>
   launchPreset: (uri: string) => Promise<void>
+  loadUserPlaylists: () => Promise<void>
+  searchForTracks: (query: string) => Promise<void>
+  createClassroomPlaylist: (name: string) => Promise<void>
+  addApprovedTracks: (playlistId: string, trackUris: string[]) => Promise<void>
+  selectPlaylist: (id: string | null) => void
+  savePreset: (label: string, uri: string, category: string) => void
+  removePreset: (id: string) => void
 }
 
 function readEnvConfig() {
@@ -123,8 +153,19 @@ export const useSpotifyStore = create<SpotifyStoreState>()((set, get) => ({
   sdkDeviceId: null,
   errorMessage: null,
   noticeMessage: null,
+  userProfile: null,
+  playlists: [],
+  presets: [],
+  searchResults: [],
+  searchQuery: '',
+  searching: false,
+  builderBusy: false,
+  builderMessage: null,
+  selectedPlaylistId: null,
 
   init: async () => {
+    // Playlist presets are local, non-secret config — load regardless of auth.
+    set({ presets: storage.loadPresets() })
     const cfg = readEnvConfig()
     set({ clientId: cfg.clientId, redirectUri: cfg.redirectUri })
     if (cfg.missing) {
@@ -271,6 +312,13 @@ export const useSpotifyStore = create<SpotifyStoreState>()((set, get) => ({
       sdkDeviceId: null,
       errorMessage: null,
       noticeMessage: null,
+      // Account-derived data must not linger after sign-out.
+      userProfile: null,
+      playlists: [],
+      searchResults: [],
+      searchQuery: '',
+      builderMessage: null,
+      selectedPlaylistId: null,
     })
   },
 
@@ -527,6 +575,106 @@ export const useSpotifyStore = create<SpotifyStoreState>()((set, get) => ({
         errorMessage: 'Could not start the playlist.',
       }))
     }
+  },
+
+  loadUserPlaylists: async () => {
+    const token = currentToken(get())
+    if (!token) return
+    set({ builderBusy: true, builderMessage: null })
+    try {
+      const playlists = await apiFetchUserPlaylists(token)
+      set({ playlists })
+    } catch {
+      set({ builderMessage: 'Could not load playlists.' })
+    } finally {
+      set({ builderBusy: false })
+    }
+  },
+
+  searchForTracks: async (query: string) => {
+    const token = currentToken(get())
+    if (!token) return
+    const q = query.trim()
+    if (!q) {
+      set({ searchResults: [], searchQuery: '' })
+      return
+    }
+    set({ searching: true, searchQuery: q })
+    try {
+      const results = await apiSearchTracks(token, q)
+      set({ searchResults: results })
+    } catch {
+      set({ searchResults: [], builderMessage: 'Could not search tracks.' })
+    } finally {
+      set({ searching: false })
+    }
+  },
+
+  createClassroomPlaylist: async (name: string) => {
+    const token = currentToken(get())
+    if (!token) return
+    const trimmed = name.trim()
+    if (!trimmed) return
+    set({ builderBusy: true, builderMessage: null })
+    try {
+      let profile = get().userProfile
+      if (!profile) {
+        profile = await apiFetchUserProfile(token)
+        set({ userProfile: profile })
+      }
+      const playlist = await apiCreatePlaylist(
+        token,
+        profile.id,
+        trimmed,
+        'Classroom playlist — teacher reviewed',
+      )
+      set((s) => ({
+        playlists: [playlist, ...s.playlists],
+        selectedPlaylistId: playlist.id,
+        builderMessage: `Created private playlist "${playlist.name}".`,
+      }))
+    } catch {
+      set({ builderMessage: 'Could not create playlist.' })
+    } finally {
+      set({ builderBusy: false })
+    }
+  },
+
+  addApprovedTracks: async (playlistId: string, trackUris: string[]) => {
+    const token = currentToken(get())
+    if (!token) return
+    if (!playlistId || trackUris.length === 0) return
+    set({ builderBusy: true, builderMessage: null })
+    try {
+      await apiAddTracks(token, playlistId, trackUris)
+      set({ builderMessage: `Added ${trackUris.length} track(s) — teacher approved.` })
+    } catch {
+      set({ builderMessage: 'Could not add tracks.' })
+    } finally {
+      set({ builderBusy: false })
+    }
+  },
+
+  selectPlaylist: (id) => {
+    set({ selectedPlaylistId: id })
+  },
+
+  savePreset: (label, uri, category) => {
+    const preset: PlaylistPreset = {
+      id: `preset-${Date.now()}`,
+      label: label.trim(),
+      uri,
+      category,
+    }
+    const presets = storage.sanitizePresets([...get().presets, preset])
+    storage.savePresets(presets)
+    set({ presets })
+  },
+
+  removePreset: (id) => {
+    const presets = get().presets.filter((p) => p.id !== id)
+    storage.savePresets(presets)
+    set({ presets })
   },
 }))
 
