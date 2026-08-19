@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { BoardCanvas } from './BoardCanvas'
 import { BoardToolbar } from './BoardToolbar'
-import { toSafeBoardPage } from './boardSafety'
+import { pageHasKind, toSafeBoardPage } from './boardSafety'
 import { createSeedBoard } from './seedBoard'
 import { SpotifyTeacherPanel } from './spotify/SpotifyTeacherPanel'
 import { hasCallbackParams } from './spotify/spotifyPkce'
@@ -175,6 +175,14 @@ export function BoardLabPage() {
 
   const handleAddObject = (kind: BoardObjectKind) => {
     const pageId = activePage.id
+    // A now-playing tile is singular by nature — prevent stacking duplicates
+    // (e.g. from repeated "Add Spotify" clicks across HMR) by re-selecting the
+    // existing object instead of adding another.
+    if (kind === 'spotifyNowPlayingPlaceholder' && pageHasKind(activePage.objects, kind)) {
+      const existing = activePage.objects.find((o) => o.kind === kind)
+      if (existing) setSelectedObjectId(existing.id)
+      return
+    }
     const obj = createDefaultObject(kind, `${kind}-${Date.now()}`)
     setDeck((prev) => ({
       ...prev,

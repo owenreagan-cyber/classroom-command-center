@@ -39,6 +39,11 @@ export function sortByLayer(objects: BoardObject[]): BoardObject[] {
   return [...objects].sort((a, b) => a.layer - b.layer)
 }
 
+/** Whether a page already contains an object of the given kind. */
+export function pageHasKind(objects: BoardObject[], kind: BoardObject['kind']): boolean {
+  return objects.some((o) => o.kind === kind)
+}
+
 /**
  * Student-safe projection of a page. Strips teacherNotes, filters hidden
  * objects, sorts by layer, and sanitizes widget configs. The returned object

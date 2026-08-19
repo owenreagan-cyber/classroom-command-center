@@ -14,6 +14,7 @@ import {
 } from './boardGeometry'
 import {
   hasForbiddenBoardKey,
+  pageHasKind,
   safeBoardPageHasNoForbiddenKeys,
   sortByLayer,
   toSafeBoardPage,
@@ -197,6 +198,21 @@ test('seed board objects are within the 1920x1080 canvas bounds', () => {
       assert(o.y + o.h <= 1080.01, `${o.id} within canvas height`)
     }
   }
+})
+
+// ── Spotify tile singularity ──
+
+test('seed board page 1 has exactly one Spotify now-playing tile', () => {
+  const deck = createSeedBoard()
+  const page = deck.pages[0]
+  const spots = page.objects.filter((o) => o.kind === 'spotifyNowPlayingPlaceholder')
+  assert(spots.length === 1, `expected 1 spotify tile, got ${spots.length}`)
+})
+
+test('pageHasKind detects an existing spotify tile', () => {
+  const deck = createSeedBoard()
+  assert(pageHasKind(deck.pages[0].objects, 'spotifyNowPlayingPlaceholder') === true)
+  assert(pageHasKind(deck.pages[1].objects, 'spotifyNowPlayingPlaceholder') === false)
 })
 
 // ── Summary ──

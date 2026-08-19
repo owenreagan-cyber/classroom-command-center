@@ -1,20 +1,51 @@
 # DB-2B — Live Spotify OAuth + Premium Device Validation
 
-Status: **Live bugfix complete; live OAuth/playback validated to PARTIAL PASS.
-State-handling bug fixed and unit-tested. Awaiting Owen's retest of the fixed UI.**
+Status: **Live OAuth/device/playback validated. Auto-refresh and duplicate-tile
+cleanup complete. One final live retest pending.**
 
 Branch: `db-2b-live-spotify-validation`
 
 ## Summary
 
 DB-2B is the live-integration validation phase for the DB-2A Spotify Level 2
-vertical slice. Two rounds of work landed here:
+vertical slice. Focused fix rounds landed here:
 
-1. **Round 1 (commit `49974ce`)** fixed the OAuth callback routing, SDK player
-   lifecycle, and raw-device-ID leakage.
-2. **Round 2 (this commit)** fixed the state-handling bug observed during live
-   testing: the panel showed "Error" + "Connect Spotify" even though a valid
-   token existed and playback commands reached Spotify.
+1. **Round 1 (commit `49974ce`)** — OAuth callback routing, SDK player lifecycle,
+   raw-device-ID leakage.
+2. **Round 2 (commit `6dfda10`)** — auth/op status split so a valid token never
+   renders as "Connect Spotify".
+3. **Round 3 (commit `a2e5842`)** — clear stale "Could not start playback." after
+   live refresh.
+4. **Round 4 (commit `e09abc3`)** — automatic now-playing polling while connected.
+5. **Round 5 (this commit)** — prevent duplicate Spotify now-playing board tiles.
+
+## Duplicate Spotify tile — root cause
+
+During live testing the board showed two identical Spotify now-playing tiles.
+This was **not** a code/seed duplication and **not** a localStorage issue — the
+deck is held in React state only (`useState(() => createSeedBoard())`), and the
+seed defines exactly one `spotifyNowPlayingPlaceholder`.
+
+The extra tile came from a manual "Add Spotify" click in Edit mode. That object
+lives in in-memory React state and was preserved across code edits by HMR /
+react-refresh, so it survived long after the testing session that created it.
+A full page reload resets the deck to the seed (single tile).
+
+Two safeguards were added:
+
+- `handleAddObject` now refuses to stack a second now-playing tile: if the page
+  already has a `spotifyNowPlayingPlaceholder`, it re-selects the existing one
+  instead of adding a duplicate.
+- A test asserts the seed board's first page contains exactly one Spotify tile.
+
+### How Owen can clear the old duplicated in-memory state
+
+The duplicate was local test state, not persisted data. To clear it:
+
+1. **Hard-reload the page** (`Cmd+Shift+R`) — this resets the board deck to the
+   fresh seed (one Spotify tile). HMR state does not survive a full reload.
+2. If a duplicate ever reappears from rapid "Add Spotify" clicks, it will no
+   longer stack — the second click now just re-selects the existing tile.
 
 ## Observed initial bug (live)
 
