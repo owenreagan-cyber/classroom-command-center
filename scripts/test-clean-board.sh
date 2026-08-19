@@ -17,12 +17,12 @@ trap cleanup EXIT
 
 # ── Import guard ──
 echo "== clean-board import guard =="
-FORBIDDEN_IMPORT='presentation-hub|display-studio|display-composer'
+FORBIDDEN_IMPORT='classroom-atmosphere|SpotifyEmbedPlayer|SpotifyProvider|presentation-hub|display-studio|display-composer'
 if grep -RInE "$FORBIDDEN_IMPORT" "$ROOT/src/features/clean-board" 2>/dev/null; then
-  echo "FAIL: clean-board imports from old presentation-hub/display-studio/display-composer"
+  echo "FAIL: clean-board imports/references old classroom-atmosphere embed or hub/studio/composer shell"
   exit 1
 fi
-echo "PASS: clean-board has no old shell imports"
+echo "PASS: clean-board has no old shell or spotify embed imports"
 
 # ── Compile + run pure-logic tests ──
 "$ROOT/node_modules/.bin/tsc" \

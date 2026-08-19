@@ -3,6 +3,9 @@ import { BoardCanvas } from './BoardCanvas'
 import { BoardToolbar } from './BoardToolbar'
 import { toSafeBoardPage } from './boardSafety'
 import { createSeedBoard } from './seedBoard'
+import { SpotifyTeacherPanel } from './spotify/SpotifyTeacherPanel'
+import { toSafeNowPlaying } from './spotify/spotifySafety'
+import { useSpotifyStore } from './spotify/spotifyStore'
 import type { BoardDeck, BoardMode, BoardObject, BoardObjectKind } from './types'
 
 const segBtn = 'rounded-md px-3 py-1.5 text-xs font-semibold transition'
@@ -106,6 +109,13 @@ export function BoardLabPage() {
 
   const activePage = deck.pages.find((p) => p.id === deck.activePageId) ?? deck.pages[0]
 
+  const spotifyNowPlaying = useSpotifyStore((s) => s.nowPlaying)
+  const safeNowPlaying = useMemo(() => toSafeNowPlaying(spotifyNowPlaying), [spotifyNowPlaying])
+
+  const selectedObject = activePage.objects.find((o) => o.id === selectedObjectId)
+  const showSpotifyPanel =
+    mode === 'edit' && selectedObject?.kind === 'spotifyNowPlayingPlaceholder'
+
   const present = useMemo(() => toSafeBoardPage(activePage), [activePage])
 
   const canvasObjects = useMemo(() => {
@@ -203,16 +213,24 @@ export function BoardLabPage() {
         </div>
       )}
 
-      <main className="min-h-0 flex-1">
-        <BoardCanvas
-          background={mode === 'present' ? present.background : activePage.background}
-          objects={canvasObjects}
-          mode={mode}
-          selectedObjectId={selectedObjectId}
-          onSelect={setSelectedObjectId}
-          onMoveObject={handleMoveObject}
-        />
-      </main>
+      <div className="flex min-h-0 flex-1">
+        <main className="min-h-0 flex-1">
+          <BoardCanvas
+            background={mode === 'present' ? present.background : activePage.background}
+            objects={canvasObjects}
+            mode={mode}
+            selectedObjectId={selectedObjectId}
+            onSelect={setSelectedObjectId}
+            onMoveObject={handleMoveObject}
+            spotifyNowPlaying={safeNowPlaying}
+          />
+        </main>
+        {showSpotifyPanel && (
+          <div className="w-80 shrink-0" data-board-lab-spotify-panel>
+            <SpotifyTeacherPanel />
+          </div>
+        )}
+      </div>
 
       <footer
         className="flex shrink-0 items-center justify-center gap-2 border-t border-slate-800 py-2.5"
