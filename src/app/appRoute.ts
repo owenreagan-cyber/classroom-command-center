@@ -1,10 +1,11 @@
-export type AppRoute = 'control' | 'display' | 'root' | 'canvasSpike'
+export type AppRoute = 'control' | 'display' | 'root' | 'canvasSpike' | 'boardLab'
 
 export type AppShellRoute = Exclude<AppRoute, 'root'>
 
 const CONTROL_PATH = '/control'
 const DISPLAY_PATH = '/display'
 const CANVAS_SPIKE_PATH = '/canvas-spike'
+const BOARD_LAB_PATH = '/board-lab'
 
 function normalizePathname(pathname: string): string {
   const trimmed = pathname.replace(/\/+$/, '')
@@ -17,6 +18,7 @@ export function getAppRoute(pathname: string): AppRoute {
   if (normalized === CONTROL_PATH) return 'control'
   if (normalized === DISPLAY_PATH) return 'display'
   if (normalized === CANVAS_SPIKE_PATH) return 'canvasSpike'
+  if (normalized === BOARD_LAB_PATH) return 'boardLab'
   return 'root'
 }
 

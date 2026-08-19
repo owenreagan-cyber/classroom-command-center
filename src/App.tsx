@@ -7,6 +7,9 @@ import { useAppRoute } from './app/useAppRoute'
 // Only fetched when a browser navigates to /canvas-spike.
 const CanvasSpikePage = lazy(() => import('./features/canvas-spike/CanvasSpikePage'))
 
+// DB-1: Clean Board Lab — isolated, lazy-loaded, never wired as the default app.
+const BoardLabPage = lazy(() => import('./features/clean-board/BoardLabPage'))
+
 function App() {
   const route = useAppRoute()
 
@@ -18,6 +21,14 @@ function App() {
     return (
       <Suspense fallback={<div className="flex h-screen w-screen items-center justify-center bg-slate-950 text-white text-lg">Loading spike...</div>}>
         <CanvasSpikePage />
+      </Suspense>
+    )
+  }
+
+  if (route === 'boardLab') {
+    return (
+      <Suspense fallback={<div className="flex h-screen w-screen items-center justify-center bg-slate-950 text-white text-lg">Loading board lab...</div>}>
+        <BoardLabPage />
       </Suspense>
     )
   }
