@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { BoardCanvas } from './BoardCanvas'
 import { BoardToolbar } from './BoardToolbar'
+import { KeepAwakeToggle } from './KeepAwakeToggle'
 import { pageHasKind, toSafeBoardPage } from './boardSafety'
 import { createSeedBoard } from './seedBoard'
 import { SpotifyTeacherPanel } from './spotify/SpotifyTeacherPanel'
@@ -258,6 +259,9 @@ export function BoardLabPage() {
         <div className="flex shrink-0 items-center gap-3 border-b border-slate-800 px-5 py-2">
           <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Add</span>
           <BoardToolbar onAdd={handleAddObject} />
+          <div className="ml-auto">
+            <KeepAwakeToggle />
+          </div>
         </div>
       )}
 

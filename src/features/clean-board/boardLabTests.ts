@@ -22,6 +22,11 @@ import {
 import { createSeedBoard } from './seedBoard'
 import { BOARD_OBJECT_KINDS } from './types'
 import type { BoardObject, BoardPage } from './types'
+import {
+  describeWakeLockStatus,
+  isWakeLockSupported,
+  shouldReacquire,
+} from './wakeLockState'
 
 let passed = 0
 let failed = 0
@@ -213,6 +218,32 @@ test('pageHasKind detects an existing spotify tile', () => {
   const deck = createSeedBoard()
   assert(pageHasKind(deck.pages[0].objects, 'spotifyNowPlayingPlaceholder') === true)
   assert(pageHasKind(deck.pages[1].objects, 'spotifyNowPlayingPlaceholder') === false)
+})
+
+// ── Keep Awake (wake lock) ──
+
+test('isWakeLockSupported requires a callable request function', () => {
+  assert(isWakeLockSupported(null) === false)
+  assert(isWakeLockSupported(undefined) === false)
+  assert(isWakeLockSupported({}) === false)
+  assert(isWakeLockSupported({ wakeLock: null }) === false)
+  assert(isWakeLockSupported({ wakeLock: {} }) === false)
+  assert(isWakeLockSupported({ wakeLock: { request: () => Promise.resolve(null) } }) === true)
+})
+
+test('describeWakeLockStatus matches the required labels', () => {
+  assert(describeWakeLockStatus('active') === 'Keep Awake active')
+  assert(describeWakeLockStatus('unsupported') === 'Wake Lock unsupported in this browser')
+  assert(describeWakeLockStatus('released') === 'Wake Lock released; click to re-enable')
+  assert(describeWakeLockStatus('reacquiring') === 'Reacquiring…')
+  assert(describeWakeLockStatus('disabled') === 'Keep Awake off')
+})
+
+test('shouldReacquire requires enabled + visible + no sentinel', () => {
+  assert(shouldReacquire(true, true, false) === true)
+  assert(shouldReacquire(false, true, false) === false, 'disabled toggle never reacquires')
+  assert(shouldReacquire(true, false, false) === false, 'hidden tab never reacquires')
+  assert(shouldReacquire(true, true, true) === false, 'existing sentinel blocks reacquire')
 })
 
 // ── Summary ──
