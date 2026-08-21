@@ -1,3 +1,4 @@
+import { SpotifyApiError } from './spotifyDiagnostics'
 import { SPOTIFY_API_BASE } from './spotifyTypes'
 import type {
   FetchLike,
@@ -53,7 +54,7 @@ function authHeaders(token: string): Record<string, string> {
 }
 
 async function parseOrThrow(res: HttpResponse, action: string): Promise<unknown> {
-  if (!res.ok) throw new Error(`${action} failed (${res.status})`)
+  if (!res.ok) throw new SpotifyApiError(action, res.status)
   if (res.status === 204) return null
   return res.json()
 }

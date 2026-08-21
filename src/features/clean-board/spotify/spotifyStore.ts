@@ -15,6 +15,7 @@ import {
   transferPlayback,
 } from './spotifyApi'
 import { DEFAULT_PLAYLIST_PRESETS, resolveSpotifyConfig } from './spotifyConfig'
+import { classifySpotifyError, describeSpotifyError } from './spotifyDiagnostics'
 import {
   buildAuthorizationUrl,
   generateCodeChallenge,
@@ -88,6 +89,8 @@ interface SpotifyStoreState {
   /** Sanitized playlist-builder message — never tokens/secrets/account data. */
   builderMessage: string | null
   selectedPlaylistId: string | null
+  /** True while a transport command (play/pause/next/previous/launch) is in flight. */
+  transportBusy: boolean
   init: () => Promise<void>
   connect: () => Promise<void>
   handleCallback: () => Promise<void>
@@ -162,6 +165,7 @@ export const useSpotifyStore = create<SpotifyStoreState>()((set, get) => ({
   builderBusy: false,
   builderMessage: null,
   selectedPlaylistId: null,
+  transportBusy: false,
 
   init: async () => {
     // Playlist presets are local, non-secret config — load regardless of auth.
@@ -319,6 +323,7 @@ export const useSpotifyStore = create<SpotifyStoreState>()((set, get) => ({
       searchQuery: '',
       builderMessage: null,
       selectedPlaylistId: null,
+      transportBusy: false,
     })
   },
 
@@ -467,7 +472,7 @@ export const useSpotifyStore = create<SpotifyStoreState>()((set, get) => ({
     const token = currentToken(get())
     if (!token) return
     set((s) => onCommandStart(coreOf(s)))
-    set({ errorMessage: null })
+    set({ errorMessage: null, transportBusy: true })
     try {
       await play(token, { deviceId: get().activeDeviceId ?? undefined })
       const cur = get().nowPlaying
@@ -479,11 +484,13 @@ export const useSpotifyStore = create<SpotifyStoreState>()((set, get) => ({
       } else if (result === 'empty') {
         set({ noticeMessage: 'Command sent. Waiting for Spotify playback state.' })
       }
-    } catch {
+    } catch (e) {
       set((s) => ({
         ...onCommandFailure(coreOf(s)),
-        errorMessage: 'Could not start playback.',
+        errorMessage: describeSpotifyError(classifySpotifyError(e)),
       }))
+    } finally {
+      set({ transportBusy: false })
     }
   },
 
@@ -491,7 +498,7 @@ export const useSpotifyStore = create<SpotifyStoreState>()((set, get) => ({
     const token = currentToken(get())
     if (!token) return
     set((s) => onCommandStart(coreOf(s)))
-    set({ errorMessage: null })
+    set({ errorMessage: null, transportBusy: true })
     try {
       await pause(token)
       const cur = get().nowPlaying
@@ -503,11 +510,13 @@ export const useSpotifyStore = create<SpotifyStoreState>()((set, get) => ({
       } else if (result === 'empty') {
         set({ noticeMessage: 'Command sent. Waiting for Spotify playback state.' })
       }
-    } catch {
+    } catch (e) {
       set((s) => ({
         ...onCommandFailure(coreOf(s)),
-        errorMessage: 'Could not pause playback.',
+        errorMessage: describeSpotifyError(classifySpotifyError(e)),
       }))
+    } finally {
+      set({ transportBusy: false })
     }
   },
 
@@ -515,7 +524,7 @@ export const useSpotifyStore = create<SpotifyStoreState>()((set, get) => ({
     const token = currentToken(get())
     if (!token) return
     set((s) => onCommandStart(coreOf(s)))
-    set({ errorMessage: null })
+    set({ errorMessage: null, transportBusy: true })
     try {
       await next(token)
       set((s) => onCommandSuccess(coreOf(s)))
@@ -525,11 +534,13 @@ export const useSpotifyStore = create<SpotifyStoreState>()((set, get) => ({
       } else if (result === 'empty') {
         set({ noticeMessage: 'Command sent. Waiting for Spotify playback state.' })
       }
-    } catch {
+    } catch (e) {
       set((s) => ({
         ...onCommandFailure(coreOf(s)),
-        errorMessage: 'Could not skip forward.',
+        errorMessage: describeSpotifyError(classifySpotifyError(e)),
       }))
+    } finally {
+      set({ transportBusy: false })
     }
   },
 
@@ -537,7 +548,7 @@ export const useSpotifyStore = create<SpotifyStoreState>()((set, get) => ({
     const token = currentToken(get())
     if (!token) return
     set((s) => onCommandStart(coreOf(s)))
-    set({ errorMessage: null })
+    set({ errorMessage: null, transportBusy: true })
     try {
       await previous(token)
       set((s) => onCommandSuccess(coreOf(s)))
@@ -547,11 +558,13 @@ export const useSpotifyStore = create<SpotifyStoreState>()((set, get) => ({
       } else if (result === 'empty') {
         set({ noticeMessage: 'Command sent. Waiting for Spotify playback state.' })
       }
-    } catch {
+    } catch (e) {
       set((s) => ({
         ...onCommandFailure(coreOf(s)),
-        errorMessage: 'Could not skip back.',
+        errorMessage: describeSpotifyError(classifySpotifyError(e)),
       }))
+    } finally {
+      set({ transportBusy: false })
     }
   },
 
@@ -559,7 +572,7 @@ export const useSpotifyStore = create<SpotifyStoreState>()((set, get) => ({
     const token = currentToken(get())
     if (!token) return
     set((s) => onCommandStart(coreOf(s)))
-    set({ errorMessage: null })
+    set({ errorMessage: null, transportBusy: true })
     try {
       await play(token, { deviceId: get().activeDeviceId ?? undefined, contextUri: uri })
       set((s) => onCommandSuccess(coreOf(s)))
@@ -569,11 +582,13 @@ export const useSpotifyStore = create<SpotifyStoreState>()((set, get) => ({
       } else if (result === 'empty') {
         set({ noticeMessage: 'Command sent. Waiting for Spotify playback state.' })
       }
-    } catch {
+    } catch (e) {
       set((s) => ({
         ...onCommandFailure(coreOf(s)),
-        errorMessage: 'Could not start the playlist.',
+        errorMessage: describeSpotifyError(classifySpotifyError(e)),
       }))
+    } finally {
+      set({ transportBusy: false })
     }
   },
 
@@ -584,8 +599,8 @@ export const useSpotifyStore = create<SpotifyStoreState>()((set, get) => ({
     try {
       const playlists = await apiFetchUserPlaylists(token)
       set({ playlists })
-    } catch {
-      set({ builderMessage: 'Could not load playlists.' })
+    } catch (e) {
+      set({ builderMessage: describeSpotifyError(classifySpotifyError(e)) })
     } finally {
       set({ builderBusy: false })
     }
@@ -602,9 +617,15 @@ export const useSpotifyStore = create<SpotifyStoreState>()((set, get) => ({
     set({ searching: true, searchQuery: q })
     try {
       const results = await apiSearchTracks(token, q)
-      set({ searchResults: results })
-    } catch {
-      set({ searchResults: [], builderMessage: 'Could not search tracks.' })
+      set({
+        searchResults: results,
+        builderMessage: results.length === 0 ? 'Search returned no results' : null,
+      })
+    } catch (e) {
+      set({
+        searchResults: [],
+        builderMessage: describeSpotifyError(classifySpotifyError(e)),
+      })
     } finally {
       set({ searching: false })
     }
@@ -633,8 +654,8 @@ export const useSpotifyStore = create<SpotifyStoreState>()((set, get) => ({
         selectedPlaylistId: playlist.id,
         builderMessage: `Created private playlist "${playlist.name}".`,
       }))
-    } catch {
-      set({ builderMessage: 'Could not create playlist.' })
+    } catch (e) {
+      set({ builderMessage: describeSpotifyError(classifySpotifyError(e, true)) })
     } finally {
       set({ builderBusy: false })
     }
@@ -648,8 +669,8 @@ export const useSpotifyStore = create<SpotifyStoreState>()((set, get) => ({
     try {
       await apiAddTracks(token, playlistId, trackUris)
       set({ builderMessage: `Added ${trackUris.length} track(s) — teacher approved.` })
-    } catch {
-      set({ builderMessage: 'Could not add tracks.' })
+    } catch (e) {
+      set({ builderMessage: describeSpotifyError(classifySpotifyError(e, true)) })
     } finally {
       set({ builderBusy: false })
     }

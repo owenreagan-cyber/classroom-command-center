@@ -1,4 +1,6 @@
-import type { BoardObject } from './types'
+import { showTeacherControls } from './boardSafety'
+import type { BoardMode, BoardObject } from './types'
+import { SpotifyBoardMediaControls } from './spotify/SpotifyBoardMediaControls'
 import { SpotifyNowPlayingWidget } from './spotify/SpotifyNowPlayingWidget'
 import type { SafeNowPlaying } from './spotify/spotifySafety'
 
@@ -6,6 +8,8 @@ interface BoardObjectRendererProps {
   object: BoardObject
   /** Student-safe now-playing metadata; null while idle or disconnected. */
   spotifyNowPlaying?: SafeNowPlaying | null
+  /** Present vs edit. Edit mode may render teacher-only embedded controls. */
+  mode: BoardMode
 }
 
 /**
@@ -13,9 +17,13 @@ interface BoardObjectRendererProps {
  *
  * Presentational only: no selection, drag, or teacher state. Clock and timer
  * remain static placeholders; the Spotify placeholder renders the safe
- * now-playing widget when metadata is provided.
+ * now-playing widget, plus teacher-only media controls in edit mode only.
  */
-export function BoardObjectRenderer({ object, spotifyNowPlaying = null }: BoardObjectRendererProps) {
+export function BoardObjectRenderer({
+  object,
+  spotifyNowPlaying = null,
+  mode,
+}: BoardObjectRendererProps) {
   const cfg = object.config
   switch (cfg.kind) {
     case 'text':
@@ -83,6 +91,11 @@ export function BoardObjectRenderer({ object, spotifyNowPlaying = null }: BoardO
         </div>
       )
     case 'spotifyNowPlayingPlaceholder':
-      return <SpotifyNowPlayingWidget nowPlaying={spotifyNowPlaying} />
+      return (
+        <SpotifyNowPlayingWidget
+          nowPlaying={spotifyNowPlaying}
+          controls={showTeacherControls(mode) ? <SpotifyBoardMediaControls /> : undefined}
+        />
+      )
   }
 }
