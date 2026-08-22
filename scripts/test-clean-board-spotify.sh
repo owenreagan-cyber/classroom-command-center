@@ -44,6 +44,7 @@ echo "PASS: clean-board has no old spotify embed or shell imports"
   "$ROOT/src/features/clean-board/spotify/spotifyApi.ts" \
   "$ROOT/src/features/clean-board/spotify/spotifyAuth.ts" \
   "$ROOT/src/features/clean-board/spotify/playlistRecipes.ts" \
+  "$ROOT/src/features/clean-board/spotify/playlistAiProvider.ts" \
   "$ROOT/src/features/clean-board/spotify/spotifyTests.ts"
 
 printf '{"type":"commonjs"}\n' > "$OUT/package.json"

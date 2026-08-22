@@ -36,6 +36,14 @@ import {
   parseCallbackParams,
 } from './spotifyPkce'
 import { CLASSROOM_PLAYLIST_RECIPES, getRecipeById } from './playlistRecipes'
+import {
+  deterministicPlaylistGenerator,
+  isValidPlaylistPlan,
+  planHasNoForbiddenKeys,
+  playlistPromptGenerator,
+  sanitizePlaylistPlan,
+} from './playlistAiProvider'
+import type { PlaylistPlan, PlaylistPromptInput } from './playlistAiProvider'
 import { safeNowPlayingHasNoForbiddenKeys, toSafeNowPlaying } from './spotifySafety'
 import {
   describeStatus,
@@ -699,6 +707,161 @@ async function main(): Promise<void> {
     assert(messageIsSafe('refresh token expired') === false)
     assert(messageIsSafe('client_secret leaked') === false)
     assert(messageIsSafe('Authorization: Bearer abc') === false)
+  })
+
+  // ── DB-2F — AI classroom playlist plan generator ──
+
+  const sampleInput: PlaylistPromptInput = {
+    goal: 'Calm writing music for Friday afternoon. No lyrics. Piano style.',
+    durationMinutes: 30,
+    energy: 'low',
+    restrictions: ['no explicit lyrics', 'instrumental preferred'],
+  }
+
+  await test('deterministic generator produces a valid, review-flagged plan', async () => {
+    const plan = await deterministicPlaylistGenerator.generatePlan(sampleInput)
+    assert(isValidPlaylistPlan(plan) === true)
+    assert(plan.title.length > 0)
+    assert(plan.searchQueries.length > 0)
+    assert(plan.requirements.length > 0)
+    assert(plan.teacherNotes.toLowerCase().includes('review'))
+  })
+
+  await test('isValidPlaylistPlan requires title, search queries, and restrictions', () => {
+    assert(isValidPlaylistPlan(null) === false)
+    assert(isValidPlaylistPlan({}) === false)
+    assert(
+      isValidPlaylistPlan({
+        title: '',
+        durationMinutes: 30,
+        energy: 'low',
+        requirements: [],
+        searchQueries: ['q'],
+        teacherNotes: 'x',
+      }) === false,
+      'empty title invalid',
+    )
+    assert(
+      isValidPlaylistPlan({
+        title: 'T',
+        durationMinutes: 30,
+        energy: 'low',
+        requirements: [],
+        searchQueries: [],
+        teacherNotes: 'x',
+      }) === false,
+      'empty search queries invalid',
+    )
+    assert(
+      isValidPlaylistPlan({
+        title: 'T',
+        durationMinutes: 30,
+        energy: 'low',
+        searchQueries: ['q'],
+        teacherNotes: 'x',
+      }) === false,
+      'missing requirements field invalid',
+    )
+  })
+
+  await test('sanitizePlaylistPlan drops forbidden/extra keys and secret fields', () => {
+    const contaminated = {
+      ...sampleInput,
+      title: 'Friday Writing Focus',
+      classroomPurpose: 'Quiet writing block',
+      durationMinutes: 30,
+      energy: 'low',
+      requirements: ['no explicit lyrics'],
+      searchQueries: ['calm piano instrumental'],
+      teacherNotes: 'Review all tracks before adding.',
+      accessToken: 'SECRET_TOKEN',
+      refreshToken: 'SECRET_REFRESH',
+      email: 'teacher@school.edu',
+      studentName: 'Ada',
+      studentData: { roster: true },
+      clientSecret: 'SECRET',
+    }
+    const safe = sanitizePlaylistPlan(contaminated)
+    assert(safe !== null)
+    assert(planHasNoForbiddenKeys(safe as PlaylistPlan) === true)
+    const keys = Object.keys(safe as object)
+    const allowed = [
+      'title',
+      'classroomPurpose',
+      'durationMinutes',
+      'energy',
+      'requirements',
+      'searchQueries',
+      'teacherNotes',
+    ]
+    assert(keys.every((k) => allowed.includes(k)), `unexpected key in ${keys.join(',')}`)
+    assert(!('accessToken' in (safe as object)))
+    assert(!('studentName' in (safe as object)))
+  })
+
+  await test('sanitizePlaylistPlan rejects a plan carrying only secrets/student data', () => {
+    const invalid = {
+      title: 'T',
+      searchQueries: ['q'],
+      requirements: [],
+      durationMinutes: 30,
+      energy: 'low',
+      email: 'teacher@school.edu',
+    }
+    // sanitize whitelists, so required fields survive; forbidden keys dropped.
+    const safe = sanitizePlaylistPlan(invalid)
+    assert(safe !== null)
+    assert(!('email' in (safe as object)))
+    assert(planHasNoForbiddenKeys(safe as PlaylistPlan))
+  })
+
+  await test('generated plan contains no secrets and no track URIs (search strategy only)', async () => {
+    const plan = await playlistPromptGenerator.generatePlan(sampleInput)
+    const safe = sanitizePlaylistPlan(plan)
+    assert(safe !== null)
+    assert(planHasNoForbiddenKeys(safe as PlaylistPlan))
+    const json = JSON.stringify(safe)
+    assert(!/token|secret|bearer|access[_-]?token/i.test(json), 'no token-like data in plan')
+    assert(!/spotify:track:/i.test(json), 'plan is a search strategy, never final tracks')
+  })
+
+  await test('generated search queries feed the existing Spotify search path', async () => {
+    const plan = await deterministicPlaylistGenerator.generatePlan(sampleInput)
+    assert(plan.searchQueries.length > 0)
+    let capturedUrl = ''
+    const fake: FetchLike = async (url) => {
+      capturedUrl = url
+      return { ok: true, status: 200, json: async () => ({ tracks: { items: [] } }) }
+    }
+    // The first generated query is passed straight to the existing search API.
+    await searchTracks('tok', plan.searchQueries[0], 20, fake)
+    assert(capturedUrl.includes('/search'))
+    const parsed = new URL(capturedUrl)
+    assert(parsed.searchParams.get('q') === plan.searchQueries[0])
+    assert(parsed.searchParams.get('type') === 'track')
+  })
+
+  await test('deterministic fallback requires no AI provider/API key', async () => {
+    // The default generator is the deterministic fallback and produces output
+    // synchronously without any external dependency.
+    const plan = await playlistPromptGenerator.generatePlan({
+      goal: 'Reading block',
+      durationMinutes: 20,
+      energy: 'low',
+      restrictions: [],
+    })
+    assert(isValidPlaylistPlan(plan) === true)
+    assert(plan.teacherNotes.toLowerCase().includes('review'))
+  })
+
+  await test('recipes now include reading and seasonal categories', () => {
+    const cats = CLASSROOM_PLAYLIST_RECIPES.map((r) => r.category)
+    assert(cats.includes('reading'))
+    assert(cats.includes('seasonal'))
+    assert(cats.includes('morning-arrival'))
+    assert(cats.includes('testing'))
+    assert(getRecipeById('seasonal-fall') !== undefined)
+    assert(getRecipeById('reading-time-calm') !== undefined)
   })
 
   console.log(`\nClean Board Spotify Tests: ${passed} passed, ${failed} failed`)
