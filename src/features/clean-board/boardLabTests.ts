@@ -16,6 +16,7 @@ import {
   hasForbiddenBoardKey,
   pageHasKind,
   safeBoardPageHasNoForbiddenKeys,
+  showTeacherControls,
   sortByLayer,
   toSafeBoardPage,
 } from './boardSafety'
@@ -218,6 +219,13 @@ test('pageHasKind detects an existing spotify tile', () => {
   const deck = createSeedBoard()
   assert(pageHasKind(deck.pages[0].objects, 'spotifyNowPlayingPlaceholder') === true)
   assert(pageHasKind(deck.pages[1].objects, 'spotifyNowPlayingPlaceholder') === false)
+})
+
+// ── Board-embedded teacher controls gating ──
+
+test('showTeacherControls allows edit mode only, never present', () => {
+  assert(showTeacherControls('edit') === true)
+  assert(showTeacherControls('present') === false)
 })
 
 // ── Keep Awake (wake lock) ──

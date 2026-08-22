@@ -1,4 +1,4 @@
-import type { BoardObject, BoardObjectConfig, BoardPage } from './types'
+import type { BoardMode, BoardObject, BoardObjectConfig, BoardPage } from './types'
 
 /**
  * DB-1 — Clean Board student-safety projection.
@@ -42,6 +42,15 @@ export function sortByLayer(objects: BoardObject[]): BoardObject[] {
 /** Whether a page already contains an object of the given kind. */
 export function pageHasKind(objects: BoardObject[], kind: BoardObject['kind']): boolean {
   return objects.some((o) => o.kind === kind)
+}
+
+/**
+ * Whether teacher-only controls (e.g. Spotify media controls) may render for
+ * the given board mode. Present/student mode must never show them. This is the
+ * single source of truth gating board-embedded teacher controls.
+ */
+export function showTeacherControls(mode: BoardMode): boolean {
+  return mode === 'edit'
 }
 
 /**

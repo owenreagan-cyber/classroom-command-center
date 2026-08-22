@@ -31,6 +31,7 @@ export function SpotifyTeacherPanel() {
     sdkDeviceId,
     errorMessage,
     noticeMessage,
+    transportBusy,
     connect,
     disconnect,
     refreshDevices,
@@ -135,18 +136,18 @@ export function SpotifyTeacherPanel() {
           )}
 
           <div className="flex items-center gap-2">
-            <button type="button" className={btn} onClick={() => void previous()} disabled={controlsDisabled}>
+            <button type="button" className={btn} onClick={() => void previous()} disabled={controlsDisabled || transportBusy}>
               Prev
             </button>
             <button
               type="button"
               className={btn}
               onClick={() => void (nowPlaying?.isPlaying ? pause() : play())}
-              disabled={controlsDisabled}
+              disabled={controlsDisabled || transportBusy}
             >
-              {nowPlaying?.isPlaying ? 'Pause' : 'Play'}
+              {transportBusy ? '…' : nowPlaying?.isPlaying ? 'Pause' : 'Play'}
             </button>
-            <button type="button" className={btn} onClick={() => void next()} disabled={controlsDisabled}>
+            <button type="button" className={btn} onClick={() => void next()} disabled={controlsDisabled || transportBusy}>
               Next
             </button>
             <button type="button" className={btn} onClick={() => void refreshPlayback()} disabled={controlsDisabled}>

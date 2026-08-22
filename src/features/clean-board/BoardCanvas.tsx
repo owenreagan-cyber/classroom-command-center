@@ -151,7 +151,11 @@ export function BoardCanvas({
                   onPointerUp={endDrag}
                   onPointerCancel={endDrag}
                 >
-                  <BoardObjectRenderer object={o} spotifyNowPlaying={spotifyNowPlaying} />
+                  <BoardObjectRenderer
+                    object={o}
+                    spotifyNowPlaying={spotifyNowPlaying}
+                    mode={mode}
+                  />
                   {selected && (
                     <div
                       className="pointer-events-none absolute inset-0 rounded-xl outline outline-2 outline-cyan-400"

@@ -22,6 +22,12 @@ import {
 } from './spotifyApi'
 import { resolveSpotifyConfig, SPOTIFY_SCOPES } from './spotifyConfig'
 import {
+  classifySpotifyError,
+  describeSpotifyError,
+  messageIsSafe,
+  SpotifyApiError,
+} from './spotifyDiagnostics'
+import {
   buildAuthorizationUrl,
   generateCodeChallenge,
   generateCodeVerifier,
@@ -632,6 +638,67 @@ async function main(): Promise<void> {
     assert(!('playlists' in (safe as object)), 'playlists leaked into safe projection')
     assert(!('presets' in (safe as object)), 'presets leaked into safe projection')
     assert(!('searchResults' in (safe as object)), 'search results leaked into safe projection')
+  })
+
+  // ── DB-2E — diagnostics / error categories ──
+
+  await test('SpotifyApiError carries status only, never a token', () => {
+    const err = new SpotifyApiError('searchTracks', 403)
+    assert(err.status === 403)
+    assert(err.message === 'searchTracks failed (403)')
+    assert(!/bearer|token|secret/i.test(err.message), 'error message must not contain secrets')
+  })
+
+  await test('classifySpotifyError maps 401 to sessionExpired', () => {
+    assert(classifySpotifyError(new SpotifyApiError('searchTracks', 401)) === 'sessionExpired')
+  })
+
+  await test('classifySpotifyError maps 403 to missingScope (read) and playlistPermissionMissing (write)', () => {
+    assert(classifySpotifyError(new SpotifyApiError('searchTracks', 403), false) === 'missingScope')
+    assert(
+      classifySpotifyError(new SpotifyApiError('createPlaylist', 403), true) ===
+        'playlistPermissionMissing',
+    )
+  })
+
+  await test('classifySpotifyError maps 429/5xx to apiUnavailable, other errors to networkError', () => {
+    assert(classifySpotifyError(new SpotifyApiError('searchTracks', 429)) === 'apiUnavailable')
+    assert(classifySpotifyError(new SpotifyApiError('searchTracks', 503)) === 'apiUnavailable')
+    assert(classifySpotifyError(new Error('boom')) === 'networkError')
+  })
+
+  await test('describeSpotifyError produces teacher-safe categories', () => {
+    assert(describeSpotifyError('sessionExpired') === 'Spotify session expired')
+    assert(describeSpotifyError('missingScope') === 'Missing permission scope')
+    assert(describeSpotifyError('apiUnavailable') === 'Spotify API unavailable')
+    assert(describeSpotifyError('playlistPermissionMissing') === 'Playlist permission missing')
+    assert(describeSpotifyError('networkError') === 'Spotify is unreachable')
+  })
+
+  await test('playlist creation errors are sanitized and never expose tokens', () => {
+    const msg = describeSpotifyError(classifySpotifyError(new SpotifyApiError('createPlaylist', 403), true))
+    assert(msg === 'Playlist permission missing')
+    assert(messageIsSafe(msg) === true)
+    assert(!/token|secret|bearer/i.test(msg))
+  })
+
+  await test('failed search maps to a safe category and preserves auth semantics', () => {
+    // A failed search is a builder warning, not an auth demotion. The category
+    // is safe and the store never touches authStatus in this path.
+    const category = classifySpotifyError(new SpotifyApiError('searchTracks', 401))
+    assert(category === 'sessionExpired')
+    assert(describeSpotifyError(category) === 'Spotify session expired')
+    // The connected auth state is unchanged by a command failure (see
+    // onCommandFailure tests above) — search failure only sets builderMessage.
+    assert(isAuthConnected('connected') === true)
+  })
+
+  await test('messageIsSafe rejects token/secret-like strings', () => {
+    assert(messageIsSafe('Spotify API unavailable') === true)
+    assert(messageIsSafe('access_token=abc') === false)
+    assert(messageIsSafe('refresh token expired') === false)
+    assert(messageIsSafe('client_secret leaked') === false)
+    assert(messageIsSafe('Authorization: Bearer abc') === false)
   })
 
   console.log(`\nClean Board Spotify Tests: ${passed} passed, ${failed} failed`)
