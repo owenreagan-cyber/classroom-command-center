@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { BoardCanvas } from './BoardCanvas'
+import { BoardLookPanel } from './BoardLookPanel'
 import { BoardToolbar } from './BoardToolbar'
 import { KeepAwakeToggle } from './KeepAwakeToggle'
 import { SavedBoardsPanel } from './SavedBoardsPanel'
+import { DEFAULT_BACKGROUND } from './backgrounds'
 import { pageHasKind, toSafeBoardPage } from './boardSafety'
 import { createSeedBoard } from './seedBoard'
 import { SpotifyTeacherPanel } from './spotify/SpotifyTeacherPanel'
@@ -10,11 +12,14 @@ import { hasCallbackParams } from './spotify/spotifyPkce'
 import { toSafeNowPlaying } from './spotify/spotifySafety'
 import { useSpotifyStore } from './spotify/spotifyStore'
 import { layoutFromPage, loadAutosaveLayout, saveAutosaveLayout } from './storage/boardStorage'
+import { DEFAULT_THEME } from './themes'
 import type {
+  BoardBackground,
   BoardDeck,
   BoardMode,
   BoardObject,
   BoardObjectKind,
+  BoardTheme,
   SavedLayout,
 } from './types'
 
@@ -43,7 +48,13 @@ function hydrateSeed(): BoardDeck {
     updatedAt: Date.now(),
     pages: seed.pages.map((p) =>
       p.id === seed.activePageId
-        ? { ...p, title: autosave.name, background: autosave.background, objects: autosave.objects }
+        ? {
+            ...p,
+            title: autosave.name,
+            background: autosave.background,
+            theme: autosave.theme,
+            objects: autosave.objects,
+          }
         : p,
     ),
   }
@@ -253,8 +264,43 @@ export function BoardLabPage() {
       updatedAt: Date.now(),
       pages: prev.pages.map((p) =>
         p.id === activePage.id
-          ? { ...p, title: layout.name, background: layout.background, objects: layout.objects }
+          ? {
+              ...p,
+              title: layout.name,
+              background: layout.background,
+              theme: layout.theme,
+              objects: layout.objects,
+            }
           : p,
+      ),
+    }))
+  }
+
+  const handleSetBackground = (background: BoardBackground) => {
+    const pageId = activePage.id
+    setDeck((prev) => ({
+      ...prev,
+      updatedAt: Date.now(),
+      pages: prev.pages.map((p) => (p.id === pageId ? { ...p, background } : p)),
+    }))
+  }
+
+  const handleSetTheme = (theme: BoardTheme) => {
+    const pageId = activePage.id
+    setDeck((prev) => ({
+      ...prev,
+      updatedAt: Date.now(),
+      pages: prev.pages.map((p) => (p.id === pageId ? { ...p, theme } : p)),
+    }))
+  }
+
+  const handleResetLook = () => {
+    const pageId = activePage.id
+    setDeck((prev) => ({
+      ...prev,
+      updatedAt: Date.now(),
+      pages: prev.pages.map((p) =>
+        p.id === pageId ? { ...p, background: DEFAULT_BACKGROUND, theme: DEFAULT_THEME } : p,
       ),
     }))
   }
@@ -324,8 +370,18 @@ export function BoardLabPage() {
             onSelect={setSelectedObjectId}
             onMoveObject={handleMoveObject}
             spotifyNowPlaying={safeNowPlaying}
+            accent={activePage.theme.accent}
           />
         </main>
+        {mode === 'edit' && (
+          <BoardLookPanel
+            background={activePage.background}
+            theme={activePage.theme}
+            onSetBackground={handleSetBackground}
+            onSetTheme={handleSetTheme}
+            onReset={handleResetLook}
+          />
+        )}
         {showSpotifyPanel && (
           <div className="w-80 shrink-0" data-board-lab-spotify-panel>
             <SpotifyTeacherPanel />

@@ -63,6 +63,7 @@ export function toSafeBoardPage(page: BoardPage): BoardPage {
     id: page.id,
     title: page.title,
     background: page.background,
+    theme: page.theme,
     objects: sortByLayer(
       page.objects
         .filter((o) => o.visible)

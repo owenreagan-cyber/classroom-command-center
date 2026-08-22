@@ -1,3 +1,4 @@
+import { DEFAULT_THEME } from './themes'
 import type { BoardDeck } from './types'
 
 /**
@@ -15,7 +16,8 @@ export function createSeedBoard(): BoardDeck {
       {
         id: 'page-morning',
         title: 'Morning Board',
-        background: { type: 'gradient', from: '#0f172a', to: '#1e3a8a', angleDeg: 135 },
+        background: { type: 'preset', presetId: 'calm-blue' },
+        theme: DEFAULT_THEME,
         teacherNotes: 'Sample teacher note — never projected to present mode.',
         objects: [
           {
@@ -117,7 +119,8 @@ export function createSeedBoard(): BoardDeck {
       {
         id: 'page-work',
         title: 'Morning Work',
-        background: { type: 'gradient', from: '#111827', to: '#334155', angleDeg: 135 },
+        background: { type: 'preset', presetId: 'slate-focus' },
+        theme: DEFAULT_THEME,
         objects: [
           {
             id: 'text-heading-2',

@@ -1,4 +1,6 @@
 import { BOARD_OBJECT_KINDS } from '../types'
+import { DEFAULT_BACKGROUND, isBackgroundPresetId, isReadabilityOverlay } from '../backgrounds'
+import { DEFAULT_THEME, getTheme, isBoardThemeId } from '../themes'
 import type {
   BoardBackground,
   BoardObject,
@@ -6,7 +8,9 @@ import type {
   BoardObjectKind,
   BoardScene,
   BoardState,
+  BoardTheme,
   DisplayMode,
+  ReadabilityOverlay,
   SavedLayout,
   SceneType,
 } from '../types'
@@ -61,27 +65,54 @@ function isBool(v: unknown): v is boolean {
   return typeof v === 'boolean'
 }
 
-// ── background ──
+// ── background / theme ──
 
-function sanitizeBackground(raw: unknown): BoardBackground | null {
-  if (!isRecord(raw)) return null
+function sanitizeOverlay(raw: unknown): ReadabilityOverlay | undefined {
+  return isReadabilityOverlay(raw) ? raw : undefined
+}
+
+/**
+ * Whitelist-validate a background. Never null: an invalid or unknown value
+ * (including a removed `image`/`wallpaper` shape, remote URLs, or blobs)
+ * recovers to the default preset so a single bad record can't reject a layout.
+ */
+export function sanitizeBackground(raw: unknown): BoardBackground {
+  if (!isRecord(raw)) return DEFAULT_BACKGROUND
+  const overlay = sanitizeOverlay(raw.readabilityOverlay)
   const type = raw.type
   if (type === 'gradient') {
-    if (!isStr(raw.from) || !isStr(raw.to)) return null
+    if (!isStr(raw.from) || !isStr(raw.to)) return DEFAULT_BACKGROUND
     return {
       type: 'gradient',
       from: raw.from,
       to: raw.to,
       ...(isNum(raw.angleDeg) ? { angleDeg: raw.angleDeg } : {}),
+      ...(overlay ? { readabilityOverlay: overlay } : {}),
     }
   }
   if (type === 'solid') {
-    return isStr(raw.color) ? { type: 'solid', color: raw.color } : null
+    if (!isStr(raw.color)) return DEFAULT_BACKGROUND
+    return { type: 'solid', color: raw.color, ...(overlay ? { readabilityOverlay: overlay } : {}) }
   }
-  if (type === 'image') {
-    return isStr(raw.assetPath) ? { type: 'image', assetPath: raw.assetPath } : null
+  if (type === 'preset') {
+    if (!isBackgroundPresetId(raw.presetId)) return DEFAULT_BACKGROUND
+    return {
+      type: 'preset',
+      presetId: raw.presetId,
+      ...(overlay ? { readabilityOverlay: overlay } : {}),
+    }
   }
-  return null
+  return DEFAULT_BACKGROUND
+}
+
+/**
+ * Whitelist-validate a theme by id. Unknown ids recover to the default; the
+ * returned object is always the fixed catalog entry, so unknown/private keys
+ * can never enter board state.
+ */
+export function sanitizeTheme(raw: unknown): BoardTheme {
+  if (isRecord(raw) && isBoardThemeId(raw.id)) return getTheme(raw.id)
+  return DEFAULT_THEME
 }
 
 // ── object config (whitelist per kind) ──
@@ -174,7 +205,6 @@ export function sanitizeSavedLayout(raw: unknown): SavedLayout | null {
   if (!isRecord(raw)) return null
   if (!isStr(raw.id) || !isStr(raw.name)) return null
   const background = sanitizeBackground(raw.background)
-  if (!background) return null
   const objects = sanitizeObjects(raw.objects)
   if (!objects) return null
   const displayMode = DISPLAY_MODES.includes(raw.displayMode as DisplayMode)
@@ -186,6 +216,7 @@ export function sanitizeSavedLayout(raw: unknown): SavedLayout | null {
     name: raw.name,
     kind: 'layout',
     background,
+    theme: sanitizeTheme(raw.theme),
     objects,
     displayMode,
     createdAt: isNum(raw.createdAt) ? raw.createdAt : 0,
@@ -215,6 +246,9 @@ export function sanitizeBoardScene(raw: unknown): BoardScene | null {
     ...(isStr(raw.spotifyPresetRef) ? { spotifyPresetRef: raw.spotifyPresetRef } : {}),
     ...(isStr(raw.timerPresetRef) ? { timerPresetRef: raw.timerPresetRef } : {}),
     ...(isStr(raw.backgroundRef) ? { backgroundRef: raw.backgroundRef } : {}),
+    ...(isBackgroundPresetId(raw.backgroundPresetId)
+      ? { backgroundPresetId: raw.backgroundPresetId }
+      : {}),
     keepAwake: isBool(raw.keepAwake) ? raw.keepAwake : false,
     studentSafe: isBool(raw.studentSafe) ? raw.studentSafe : true,
     createdAt: isNum(raw.createdAt) ? raw.createdAt : 0,
