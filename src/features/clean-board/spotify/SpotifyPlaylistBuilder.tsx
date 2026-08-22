@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { AiPlaylistPromptBuilder } from './AiPlaylistPromptBuilder'
 import { CLASSROOM_PLAYLIST_RECIPES } from './playlistRecipes'
 import { useSpotifyStore } from './spotifyStore'
 import type { SpotifyTrack } from './spotifyTypes'
@@ -75,6 +76,9 @@ export function SpotifyPlaylistBuilder() {
           {builderMessage}
         </p>
       )}
+
+      {/* AI playlist prompt (DB-2F) — generates a search strategy, not tracks */}
+      <AiPlaylistPromptBuilder />
 
       {/* Playlists */}
       <div className="space-y-2">

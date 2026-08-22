@@ -108,6 +108,7 @@ export interface SpotifyTrack {
 export interface PlaylistRecipe {
   id: string
   title: string
+  category: PlaylistCategory
   classroomUse: string
   suggestedDurationMinutes: number
   energy: 'low' | 'medium' | 'high'
@@ -115,6 +116,17 @@ export interface PlaylistRecipe {
   searchQueries: string[]
   teacherNote: string
 }
+
+/** Broad classroom grouping for recipe organization (DB-2F). */
+export type PlaylistCategory =
+  | 'morning-arrival'
+  | 'independent-work'
+  | 'math'
+  | 'reading'
+  | 'writing'
+  | 'cleanup'
+  | 'testing'
+  | 'seasonal'
 
 /** Minimal fetch response shape — decouples the API wrapper from DOM types. */
 export interface HttpResponse {
