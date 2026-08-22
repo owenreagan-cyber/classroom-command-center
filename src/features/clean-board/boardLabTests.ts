@@ -25,13 +25,26 @@ import {
   boardStateHasNoForbiddenKeys,
   createEmptyBoardState,
   parseBoardStateJson,
+  sanitizeBackground,
   sanitizeSavedLayout,
+  sanitizeTheme,
   serializeBoardState,
 } from './storage/boardSerialization'
+import {
+  BACKGROUND_PRESET_IDS,
+  BACKGROUND_PRESETS,
+  DEFAULT_BACKGROUND,
+  effectiveOverlay,
+  isBackgroundPresetId,
+  overlayScrimCss,
+  textToneForBackground,
+} from './backgrounds'
+import { BOARD_THEME_IDS, DEFAULT_THEME, getTheme, isBoardThemeId } from './themes'
 import { migrateBoardState } from './storage/boardMigrations'
 import {
   deleteLayout,
   deleteScene,
+  layoutFromPage,
   renameLayout,
   saveLayout,
   saveScene,
@@ -136,6 +149,7 @@ test('hidden objects are dropped from present projection', () => {
     id: 'p1',
     title: 'T',
     background: solidBackground,
+    theme: DEFAULT_THEME,
     objects: [obj('a', 1, true), obj('b', 1, false)],
   }
   const safe = toSafeBoardPage(page)
@@ -148,6 +162,7 @@ test('teacherNotes is stripped from present projection', () => {
     id: 'p1',
     title: 'T',
     background: solidBackground,
+    theme: DEFAULT_THEME,
     objects: [],
     teacherNotes: 'secret note',
   }
@@ -170,6 +185,7 @@ test('spotify placeholder config is sanitized to label-only', () => {
     id: 'p1',
     title: 'T',
     background: solidBackground,
+    theme: DEFAULT_THEME,
     objects: [withSecret],
   }
   const safe = toSafeBoardPage(page)
@@ -286,6 +302,7 @@ function layoutFixture(name: string, id: string): SavedLayout {
     name,
     kind: 'layout',
     background: { type: 'solid', color: '#000000' },
+    theme: DEFAULT_THEME,
     objects: [obj('a', 1)],
     displayMode: 'default',
     createdAt: 1,
@@ -460,12 +477,182 @@ test('persisted scene projection never leaks teacher notes', () => {
     id: 'p1',
     title: 'T',
     background: { type: 'solid', color: '#000' },
+    theme: DEFAULT_THEME,
     objects: [obj('a', 1)],
     teacherNotes: 'private',
   }
   const safe = toSafeBoardPage(page)
   assert(!('teacherNotes' in safe))
   assert(safeBoardPageHasNoForbiddenKeys(safe))
+})
+
+// ── DB-4B — backgrounds and themes ──
+
+test('background preset catalog is complete and valid', () => {
+  assert(BACKGROUND_PRESET_IDS.length === 10, 'ten presets defined')
+  const categories = ['calm', 'focus', 'morning', 'reading', 'math', 'transition', 'neutral']
+  const seen = new Set<string>()
+  for (const preset of BACKGROUND_PRESETS) {
+    assert(!seen.has(preset.id), `preset id ${preset.id} is unique`)
+    seen.add(preset.id)
+    assert(preset.name.length > 0, `${preset.id} has a name`)
+    assert(categories.includes(preset.category), `${preset.id} category is valid`)
+    assert(preset.textTone === 'dark' || preset.textTone === 'light', `${preset.id} textTone valid`)
+    assert(
+      preset.overlay === 'none' || preset.overlay === 'soft' || preset.overlay === 'strong',
+      `${preset.id} overlay valid`,
+    )
+    assert(preset.css.length > 0, `${preset.id} has css`)
+    assert(!preset.css.includes('url('), `${preset.id} css has no external url`)
+  }
+})
+
+test('isBackgroundPresetId validates ids and rejects remote urls', () => {
+  assert(isBackgroundPresetId('calm-blue') === true)
+  assert(isBackgroundPresetId('math-grid-subtle') === true)
+  assert(isBackgroundPresetId('nope') === false)
+  assert(isBackgroundPresetId('https://evil.example/x.png') === false)
+  assert(isBackgroundPresetId(42) === false)
+})
+
+test('valid preset background serializes', () => {
+  const bg = sanitizeBackground({ type: 'preset', presetId: 'soft-green' })
+  assert(bg.type === 'preset')
+  assert(bg.presetId === 'soft-green')
+})
+
+test('invalid preset recovers to default background', () => {
+  const bg = sanitizeBackground({ type: 'preset', presetId: 'not-a-real-preset' })
+  assert(bg.type === 'preset' && bg.presetId === DEFAULT_BACKGROUND.presetId)
+  const nonRecord = sanitizeBackground('garbage')
+  assert(nonRecord.type === 'preset' && nonRecord.presetId === DEFAULT_BACKGROUND.presetId)
+})
+
+test('background sanitization rejects remote URLs, image paths, and blobs', () => {
+  const withUrl = sanitizeBackground({
+    type: 'preset',
+    presetId: 'calm-blue',
+    url: 'https://evil.example/x.png',
+    assetPath: '/local/photo.png',
+  })
+  assert(!('url' in withUrl), 'drops remote url')
+  assert(!('assetPath' in withUrl), 'drops file path')
+  const imageShape = sanitizeBackground({ type: 'image', assetPath: '/local/photo.png' })
+  assert(imageShape.type === 'preset' && imageShape.presetId === DEFAULT_BACKGROUND.presetId)
+})
+
+test('background sanitization strips private keys', () => {
+  const bg = sanitizeBackground({
+    type: 'preset',
+    presetId: 'calm-blue',
+    accessToken: 'SECRET',
+  } as unknown)
+  assert(!('accessToken' in bg), 'drops accessToken from background')
+  assert(bg.type === 'preset' && bg.presetId === 'calm-blue')
+})
+
+test('theme catalog exposes valid ids and lookups', () => {
+  assert(BOARD_THEME_IDS.length >= 2)
+  for (const id of BOARD_THEME_IDS) {
+    assert(isBoardThemeId(id) === true)
+    const t = getTheme(id)
+    assert(t.id === id && t.name.length > 0)
+    assert(t.textTone === 'dark' || t.textTone === 'light')
+    assert(t.surface === 'glass' || t.surface === 'solid' || t.surface === 'minimal')
+    assert(t.accent.length > 0)
+  }
+})
+
+test('valid theme serializes', () => {
+  const theme = sanitizeTheme({ id: 'glass-dark' })
+  assert(theme.id === 'glass-dark')
+  assert(theme.name === 'Glass Dark')
+})
+
+test('invalid theme recovers to default', () => {
+  const theme = sanitizeTheme({ id: 'bogus-theme' })
+  assert(theme.id === DEFAULT_THEME.id)
+  assert(sanitizeTheme(null).id === DEFAULT_THEME.id)
+})
+
+test('theme sanitization strips unknown/private keys', () => {
+  const theme = sanitizeTheme({ id: 'minimal-dark', accessToken: 'SECRET', email: 'x@y.z' })
+  assert(!('accessToken' in theme), 'drops accessToken from theme')
+  assert(!('email' in theme), 'drops email from theme')
+  assert(theme.id === 'minimal-dark')
+})
+
+test('saved layout preserves background through round-trip', () => {
+  let state = createEmptyBoardState()
+  state = saveLayout(
+    state,
+    {
+      ...layoutFixture('Green Board', 'l1'),
+      background: { type: 'preset', presetId: 'soft-green' },
+    },
+  )
+  const migrated = migrateBoardState(parseBoardStateJson(serializeBoardState(state)))
+  assert(migrated !== null)
+  const bg = migrated.layouts[0].background
+  assert(bg.type === 'preset' && bg.presetId === 'soft-green', 'preset background survives round-trip')
+})
+
+test('saved layout preserves theme through round-trip', () => {
+  let state = createEmptyBoardState()
+  state = saveLayout(
+    state,
+    { ...layoutFixture('Glass', 'l1'), theme: getTheme('glass-dark') },
+  )
+  const migrated = migrateBoardState(parseBoardStateJson(serializeBoardState(state)))
+  assert(migrated !== null)
+  assert(migrated.layouts[0].theme.id === 'glass-dark', 'theme survives round-trip')
+})
+
+test('autosave carries background and theme', () => {
+  const page = createSeedBoard().pages[0]
+  const layout = layoutFromPage(page, 'Autosave')
+  assert(layout.background.type === 'preset')
+  assert(layout.theme.id === page.theme.id)
+  // loadAutosaveLayout passes through sanitizeSavedLayout; validate that path.
+  const sanitized = sanitizeSavedLayout(layout)
+  assert(sanitized !== null)
+  assert(sanitized.background.type === 'preset')
+  assert(sanitized.theme.id === page.theme.id)
+})
+
+test('present projection keeps background/theme but never teacher notes', () => {
+  const page = createSeedBoard().pages[0]
+  const safe = toSafeBoardPage(page)
+  assert(safe.background.type === 'preset')
+  assert(safe.theme.id === page.theme.id)
+  assert(!('teacherNotes' in safe))
+  assert(safeBoardPageHasNoForbiddenKeys(safe))
+})
+
+test('present mode never exposes board look controls', () => {
+  assert(showTeacherControls('present') === false)
+  assert(showTeacherControls('edit') === true)
+})
+
+test('effective overlay and scrim derive from preset defaults', () => {
+  assert(effectiveOverlay({ type: 'preset', presetId: 'calm-blue' }) === 'soft')
+  assert(effectiveOverlay({ type: 'preset', presetId: 'clean-white' }) === 'none')
+  const scrim = overlayScrimCss({ type: 'preset', presetId: 'calm-blue' })
+  assert(scrim !== null && typeof scrim.backgroundColor === 'string')
+  assert(overlayScrimCss({ type: 'preset', presetId: 'clean-white' }) === null)
+})
+
+test('text tone resolves per background for scrim direction', () => {
+  assert(textToneForBackground({ type: 'preset', presetId: 'calm-blue' }) === 'light')
+  assert(textToneForBackground({ type: 'preset', presetId: 'clean-white' }) === 'dark')
+  assert(textToneForBackground({ type: 'solid', color: '#ffffff' }) === 'dark')
+  assert(textToneForBackground({ type: 'solid', color: '#0b1120' }) === 'light')
+})
+
+test('reset constants point at the default background and theme', () => {
+  assert(DEFAULT_BACKGROUND.type === 'preset')
+  assert(isBackgroundPresetId(DEFAULT_BACKGROUND.presetId))
+  assert(isBoardThemeId(DEFAULT_THEME.id))
 })
 
 // ── Summary ──

@@ -50,6 +50,7 @@ export function layoutFromPage(page: BoardPage, name: string): SavedLayout {
     name,
     kind: 'layout',
     background: page.background,
+    theme: page.theme,
     objects: page.objects,
     displayMode: 'default',
     createdAt: now,

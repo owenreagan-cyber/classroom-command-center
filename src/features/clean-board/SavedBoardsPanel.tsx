@@ -69,6 +69,9 @@ export function SavedBoardsPanel({
       type: sceneType,
       layoutId: layout.id,
       displayMode: 'default',
+      ...(activePage.background.type === 'preset'
+        ? { backgroundPresetId: activePage.background.presetId }
+        : {}),
       keepAwake: false,
       studentSafe: true,
       createdAt: now,

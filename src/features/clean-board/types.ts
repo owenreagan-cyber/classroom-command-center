@@ -24,10 +24,49 @@ export type BoardObjectKind = (typeof BOARD_OBJECT_KINDS)[number]
 
 export type BoardMode = 'present' | 'edit'
 
+export type BackgroundCategory =
+  | 'calm'
+  | 'focus'
+  | 'morning'
+  | 'reading'
+  | 'math'
+  | 'transition'
+  | 'neutral'
+
+export type BackgroundPresetId =
+  | 'calm-blue'
+  | 'soft-green'
+  | 'warm-neutral'
+  | 'clean-white'
+  | 'slate-focus'
+  | 'morning-glow'
+  | 'reading-cream'
+  | 'math-grid-subtle'
+  | 'quiet-purple'
+  | 'transition-dark'
+
+export type ReadabilityOverlay = 'none' | 'soft' | 'strong'
+
+export type BoardThemeId = 'minimal-light' | 'minimal-dark' | 'glass-dark' | 'solid-focus'
+
+export type BoardTheme = {
+  id: BoardThemeId
+  name: string
+  textTone: 'dark' | 'light'
+  accent: string
+  surface: 'glass' | 'solid' | 'minimal'
+}
+
 export type BoardBackground =
-  | { type: 'gradient'; from: string; to: string; angleDeg?: number }
-  | { type: 'solid'; color: string }
-  | { type: 'image'; assetPath: string }
+  | {
+      type: 'gradient'
+      from: string
+      to: string
+      angleDeg?: number
+      readabilityOverlay?: ReadabilityOverlay
+    }
+  | { type: 'solid'; color: string; readabilityOverlay?: ReadabilityOverlay }
+  | { type: 'preset'; presetId: BackgroundPresetId; readabilityOverlay?: ReadabilityOverlay }
 
 export type BoardObjectConfig =
   | {
@@ -65,6 +104,7 @@ export interface BoardPage {
   id: string
   title: string
   background: BoardBackground
+  theme: BoardTheme
   objects: BoardObject[]
   /** Teacher-only. Never projected into present mode. */
   teacherNotes?: string
@@ -104,6 +144,7 @@ export interface SavedLayout {
   name: string
   kind: 'layout'
   background: BoardBackground
+  theme: BoardTheme
   objects: BoardObject[]
   displayMode: DisplayMode
   createdAt: number
@@ -126,6 +167,7 @@ export interface BoardScene {
   spotifyPresetRef?: string
   timerPresetRef?: string
   backgroundRef?: string
+  backgroundPresetId?: BackgroundPresetId
   keepAwake: boolean
   studentSafe: boolean
   createdAt: number

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react'
+import { getBackgroundPreset, overlayScrimCss } from './backgrounds'
 import { BoardObjectRenderer } from './BoardObjectRenderer'
 import {
   BOARD_LOGICAL_HEIGHT,
@@ -17,6 +18,8 @@ interface BoardCanvasProps {
   onSelect: (id: string | null) => void
   onMoveObject: (id: string, x: number, y: number) => void
   spotifyNowPlaying?: SafeNowPlaying | null
+  /** Theme accent used for edit-mode selection chrome only. */
+  accent?: string
 }
 
 interface DragState {
@@ -28,19 +31,15 @@ interface DragState {
 }
 
 function backgroundStyle(bg: BoardBackground): CSSProperties {
+  if (bg.type === 'preset') {
+    return { background: getBackgroundPreset(bg.presetId).css }
+  }
   if (bg.type === 'gradient') {
     return {
       background: `linear-gradient(${bg.angleDeg ?? 135}deg, ${bg.from}, ${bg.to})`,
     }
   }
-  if (bg.type === 'solid') {
-    return { backgroundColor: bg.color }
-  }
-  return {
-    backgroundImage: `url(${bg.assetPath})`,
-    backgroundSize: 'cover',
-    backgroundPosition: 'center',
-  }
+  return { backgroundColor: bg.color }
 }
 
 /**
@@ -58,6 +57,7 @@ export function BoardCanvas({
   onSelect,
   onMoveObject,
   spotifyNowPlaying,
+  accent = '#22d3ee',
 }: BoardCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const dragRef = useRef<DragState | null>(null)
@@ -79,6 +79,8 @@ export function BoardCanvas({
     () => [...objects].sort((a, b) => a.layer - b.layer),
     [objects],
   )
+
+  const scrim = overlayScrimCss(background)
 
   const handlePointerDown = (e: ReactPointerEvent<HTMLDivElement>, o: BoardObject) => {
     if (mode !== 'edit') return
@@ -131,6 +133,14 @@ export function BoardCanvas({
               if (mode === 'edit' && e.target === e.currentTarget) onSelect(null)
             }}
           >
+            {scrim && (
+              <div
+                className="pointer-events-none absolute inset-0"
+                style={scrim}
+                aria-hidden
+                data-board-readability-scrim
+              />
+            )}
             {ordered.map((o) => {
               const selected = mode === 'edit' && selectedObjectId === o.id
               return (
@@ -158,7 +168,8 @@ export function BoardCanvas({
                   />
                   {selected && (
                     <div
-                      className="pointer-events-none absolute inset-0 rounded-xl outline outline-2 outline-cyan-400"
+                      className="pointer-events-none absolute inset-0 rounded-xl"
+                      style={{ outline: `2px solid ${accent}`, outlineOffset: '2px' }}
                       data-board-selection
                     />
                   )}
