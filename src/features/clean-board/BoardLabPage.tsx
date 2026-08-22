@@ -2,13 +2,21 @@ import { useEffect, useMemo, useState } from 'react'
 import { BoardCanvas } from './BoardCanvas'
 import { BoardToolbar } from './BoardToolbar'
 import { KeepAwakeToggle } from './KeepAwakeToggle'
+import { SavedBoardsPanel } from './SavedBoardsPanel'
 import { pageHasKind, toSafeBoardPage } from './boardSafety'
 import { createSeedBoard } from './seedBoard'
 import { SpotifyTeacherPanel } from './spotify/SpotifyTeacherPanel'
 import { hasCallbackParams } from './spotify/spotifyPkce'
 import { toSafeNowPlaying } from './spotify/spotifySafety'
 import { useSpotifyStore } from './spotify/spotifyStore'
-import type { BoardDeck, BoardMode, BoardObject, BoardObjectKind } from './types'
+import { layoutFromPage, loadAutosaveLayout, saveAutosaveLayout } from './storage/boardStorage'
+import type {
+  BoardDeck,
+  BoardMode,
+  BoardObject,
+  BoardObjectKind,
+  SavedLayout,
+} from './types'
 
 const segBtn = 'rounded-md px-3 py-1.5 text-xs font-semibold transition'
 const segActive = 'bg-slate-700 text-white'
@@ -23,6 +31,22 @@ function readInitialMode(): BoardMode {
     return 'edit'
   }
   return 'present'
+}
+
+/** Restore the last autosaved active page (if any) onto the seed board. */
+function hydrateSeed(): BoardDeck {
+  const seed = createSeedBoard()
+  const autosave = loadAutosaveLayout()
+  if (!autosave) return seed
+  return {
+    ...seed,
+    updatedAt: Date.now(),
+    pages: seed.pages.map((p) =>
+      p.id === seed.activePageId
+        ? { ...p, title: autosave.name, background: autosave.background, objects: autosave.objects }
+        : p,
+    ),
+  }
 }
 
 function createDefaultObject(kind: BoardObjectKind, id: string): BoardObject {
@@ -109,7 +133,7 @@ function createDefaultObject(kind: BoardObjectKind, id: string): BoardObject {
  * Command Center UI.
  */
 export function BoardLabPage() {
-  const [deck, setDeck] = useState<BoardDeck>(() => createSeedBoard())
+  const [deck, setDeck] = useState<BoardDeck>(() => hydrateSeed())
   const [mode, setModeState] = useState<BoardMode>(() => readInitialMode())
   const [selectedObjectId, setSelectedObjectId] = useState<string | null>(() => {
     if (typeof window === 'undefined') return null
@@ -149,6 +173,16 @@ export function BoardLabPage() {
   }, [authStatus, startPlaybackPolling, stopPlaybackPolling])
 
   const activePage = deck.pages.find((p) => p.id === deck.activePageId) ?? deck.pages[0]
+
+  // Debounce-persist the current active page so the display survives refresh.
+  // Only the teacher-authored page content is stored (objects + background +
+  // name) — never tokens, account data, or transient UI state.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      saveAutosaveLayout(layoutFromPage(activePage, activePage.title))
+    }, 400)
+    return () => clearTimeout(timer)
+  }, [activePage])
 
   const spotifyNowPlaying = useSpotifyStore((s) => s.nowPlaying)
   const safeNowPlaying = useMemo(() => toSafeNowPlaying(spotifyNowPlaying), [spotifyNowPlaying])
@@ -213,6 +247,18 @@ export function BoardLabPage() {
     setSelectedObjectId(null)
   }
 
+  const handleLoadLayout = (layout: SavedLayout) => {
+    setDeck((prev) => ({
+      ...prev,
+      updatedAt: Date.now(),
+      pages: prev.pages.map((p) =>
+        p.id === activePage.id
+          ? { ...p, title: layout.name, background: layout.background, objects: layout.objects }
+          : p,
+      ),
+    }))
+  }
+
   return (
     <div
       className="flex h-dvh w-dvw flex-col overflow-hidden bg-slate-950 text-slate-100"
@@ -266,6 +312,9 @@ export function BoardLabPage() {
       )}
 
       <div className="flex min-h-0 flex-1">
+        {mode === 'edit' && (
+          <SavedBoardsPanel activePage={activePage} onLoadLayout={handleLoadLayout} />
+        )}
         <main className="min-h-0 flex-1">
           <BoardCanvas
             background={mode === 'present' ? present.background : activePage.background}

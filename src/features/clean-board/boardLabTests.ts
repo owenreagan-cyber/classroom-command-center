@@ -20,9 +20,32 @@ import {
   sortByLayer,
   toSafeBoardPage,
 } from './boardSafety'
+import {
+  BOARD_SCHEMA_VERSION,
+  boardStateHasNoForbiddenKeys,
+  createEmptyBoardState,
+  parseBoardStateJson,
+  sanitizeSavedLayout,
+  serializeBoardState,
+} from './storage/boardSerialization'
+import { migrateBoardState } from './storage/boardMigrations'
+import {
+  deleteLayout,
+  deleteScene,
+  renameLayout,
+  saveLayout,
+  saveScene,
+  setActiveLayout,
+  setActiveScene,
+} from './storage/boardStorage'
 import { createSeedBoard } from './seedBoard'
 import { BOARD_OBJECT_KINDS } from './types'
-import type { BoardObject, BoardPage } from './types'
+import type {
+  BoardObject,
+  BoardPage,
+  BoardScene,
+  SavedLayout,
+} from './types'
 import {
   describeWakeLockStatus,
   isWakeLockSupported,
@@ -252,6 +275,197 @@ test('shouldReacquire requires enabled + visible + no sentinel', () => {
   assert(shouldReacquire(false, true, false) === false, 'disabled toggle never reacquires')
   assert(shouldReacquire(true, false, false) === false, 'hidden tab never reacquires')
   assert(shouldReacquire(true, true, true) === false, 'existing sentinel blocks reacquire')
+})
+
+// ── DB-4A — saved layouts / scenes / persistence ──
+
+function layoutFixture(name: string, id: string): SavedLayout {
+  return {
+    schemaVersion: BOARD_SCHEMA_VERSION,
+    id,
+    name,
+    kind: 'layout',
+    background: { type: 'solid', color: '#000000' },
+    objects: [obj('a', 1)],
+    displayMode: 'default',
+    createdAt: 1,
+    updatedAt: 1,
+  }
+}
+
+function sceneFixture(name: string, id: string, layoutId: string): BoardScene {
+  return {
+    schemaVersion: BOARD_SCHEMA_VERSION,
+    id,
+    name,
+    kind: 'scene',
+    type: 'math',
+    layoutId,
+    displayMode: 'focus',
+    spotifyPresetRef: 'spotify:playlist:abc',
+    timerPresetRef: 'timer-5',
+    keepAwake: true,
+    studentSafe: true,
+    createdAt: 1,
+    updatedAt: 1,
+  }
+}
+
+test('schema version constant exists and is a positive number', () => {
+  assert(typeof BOARD_SCHEMA_VERSION === 'number')
+  assert(BOARD_SCHEMA_VERSION >= 1)
+  assert(createEmptyBoardState().schemaVersion === BOARD_SCHEMA_VERSION)
+})
+
+test('saveLayout inserts and replaces by id', () => {
+  let state = createEmptyBoardState()
+  state = saveLayout(state, layoutFixture('Morning', 'l1'))
+  assert(state.layouts.length === 1)
+  state = saveLayout(state, layoutFixture('Morning v2', 'l1'))
+  assert(state.layouts.length === 1, 'replace by id, not append')
+  assert(state.layouts[0].name === 'Morning v2')
+})
+
+test('renameLayout updates only the target layout', () => {
+  let state = createEmptyBoardState()
+  state = saveLayout(state, layoutFixture('A', 'l1'))
+  state = saveLayout(state, layoutFixture('B', 'l2'))
+  state = renameLayout(state, 'l1', 'Renamed')
+  assert(state.layouts.find((l) => l.id === 'l1')?.name === 'Renamed')
+  assert(state.layouts.find((l) => l.id === 'l2')?.name === 'B')
+})
+
+test('deleteLayout removes the layout and its scenes', () => {
+  let state = createEmptyBoardState()
+  state = saveLayout(state, layoutFixture('Morning', 'l1'))
+  state = saveScene(state, sceneFixture('Math Scene', 's1', 'l1'))
+  state = setActiveLayout(state, 'l1')
+  state = deleteLayout(state, 'l1')
+  assert(state.layouts.length === 0)
+  assert(state.scenes.length === 0, 'scene referencing deleted layout is removed')
+  assert(state.activeLayoutId === null)
+})
+
+test('layout survives serialize → parse → migrate round-trip', () => {
+  let state = createEmptyBoardState()
+  state = saveLayout(state, layoutFixture('Math Block', 'l1'))
+  const json = serializeBoardState(state)
+  const parsed = parseBoardStateJson(json)
+  const migrated = migrateBoardState(parsed)
+  assert(migrated !== null)
+  assert(migrated.layouts.length === 1)
+  assert(migrated.layouts[0].name === 'Math Block')
+  assert(migrated.layouts[0].objects.length === 1)
+})
+
+test('scene creation preserves metadata through round-trip', () => {
+  let state = createEmptyBoardState()
+  state = saveLayout(state, layoutFixture('Reading', 'l1'))
+  state = saveScene(state, sceneFixture('Reading Scene', 's1', 'l1'))
+  state = setActiveScene(state, 's1')
+  const migrated = migrateBoardState(parseBoardStateJson(serializeBoardState(state)))
+  assert(migrated !== null)
+  const scene = migrated.scenes[0]
+  assert(scene.type === 'math')
+  assert(scene.displayMode === 'focus')
+  assert(scene.keepAwake === true)
+  assert(scene.studentSafe === true)
+  assert(scene.spotifyPresetRef === 'spotify:playlist:abc')
+  assert(scene.layoutId === 'l1')
+  assert(migrated.activeSceneId === 's1')
+})
+
+test('load scene resolves its referenced layout', () => {
+  let state = createEmptyBoardState()
+  state = saveLayout(state, layoutFixture('Pack Up', 'l1'))
+  state = saveScene(state, sceneFixture('Pack Up Scene', 's1', 'l1'))
+  const scene = state.scenes[0]
+  const layout = state.layouts.find((l) => l.id === scene.layoutId)
+  assert(layout !== undefined, 'scene layoutId resolves to a saved layout')
+  assert(layout.name === 'Pack Up')
+})
+
+test('deleteScene removes only the scene, keeps the layout', () => {
+  let state = createEmptyBoardState()
+  state = saveLayout(state, layoutFixture('Morning', 'l1'))
+  state = saveScene(state, sceneFixture('Scene', 's1', 'l1'))
+  state = deleteScene(state, 's1')
+  assert(state.scenes.length === 0)
+  assert(state.layouts.length === 1)
+})
+
+test('corrupted storage recovers gracefully to null', () => {
+  assert(parseBoardStateJson('not json{{{') === null)
+  assert(migrateBoardState(parseBoardStateJson('{bad')) === null)
+  assert(migrateBoardState(null) === null)
+  assert(migrateBoardState({}) === null, 'missing schemaVersion is rejected')
+  assert(migrateBoardState({ schemaVersion: 999, layouts: [] }) === null, 'future version rejected')
+})
+
+test('sanitizeSavedLayout drops forbidden keys and secret-bearing config', () => {
+  const contaminated = {
+    schemaVersion: BOARD_SCHEMA_VERSION,
+    id: 'l1',
+    name: 'Layout',
+    kind: 'layout',
+    background: { type: 'solid', color: '#000' },
+    displayMode: 'default',
+    createdAt: 1,
+    updatedAt: 1,
+    accessToken: 'SECRET_TOKEN',
+    refreshToken: 'SECRET_REFRESH',
+    email: 'teacher@school.edu',
+    objects: [
+      {
+        id: 'a',
+        kind: 'spotifyNowPlayingPlaceholder',
+        x: 0, y: 0, w: 100, h: 100, rotation: 0, locked: false, visible: true, layer: 1,
+        config: {
+          kind: 'spotifyNowPlayingPlaceholder',
+          label: 'Now Playing',
+          accessToken: 'SECRET_TOKEN',
+          deviceId: 'device-123',
+        },
+      },
+    ],
+  }
+  const clean = sanitizeSavedLayout(contaminated)
+  assert(clean !== null)
+  assert(!('accessToken' in clean), 'token key dropped from layout')
+  assert(!('email' in clean))
+  const cfg = clean.objects[0].config as Record<string, unknown>
+  assert(cfg.kind === 'spotifyNowPlayingPlaceholder')
+  assert(!('accessToken' in cfg), 'token dropped from object config')
+  assert(!('deviceId' in cfg), 'device id dropped from object config')
+})
+
+test('boardStateHasNoForbiddenKeys rejects contaminated state', () => {
+  let state = createEmptyBoardState()
+  state = saveLayout(state, layoutFixture('Clean', 'l1'))
+  assert(boardStateHasNoForbiddenKeys(state) === true)
+  const contaminated = { ...state, accessToken: 'x' } as unknown as Parameters<typeof boardStateHasNoForbiddenKeys>[0]
+  assert(boardStateHasNoForbiddenKeys(contaminated) === false)
+})
+
+test('present mode does not expose save/scene controls', () => {
+  // Save/scene UI is gated behind edit mode only.
+  assert(showTeacherControls('present') === false)
+  assert(showTeacherControls('edit') === true)
+})
+
+test('persisted scene projection never leaks teacher notes', () => {
+  // The safety projection path already strips teacherNotes; a scene with a
+  // teacher note must not serialize private data into its projected page.
+  const page: BoardPage = {
+    id: 'p1',
+    title: 'T',
+    background: { type: 'solid', color: '#000' },
+    objects: [obj('a', 1)],
+    teacherNotes: 'private',
+  }
+  const safe = toSafeBoardPage(page)
+  assert(!('teacherNotes' in safe))
+  assert(safeBoardPageHasNoForbiddenKeys(safe))
 })
 
 // ── Summary ──

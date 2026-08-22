@@ -78,3 +78,76 @@ export interface BoardDeck {
   createdAt?: number
   updatedAt?: number
 }
+
+// ── DB-4A — persistence / scenes ──
+
+/** Present-mode projection preset (placeholder in DB-4A; wired in DB-4F). */
+export type DisplayMode = 'default' | 'focus' | 'calm' | 'transition'
+
+/** Semantic classroom category for a scene. */
+export type SceneType =
+  | 'arrival'
+  | 'math'
+  | 'reading'
+  | 'transition'
+  | 'packUp'
+  | 'custom'
+
+/**
+ * A named saved board ("saved layout"). The object-carrying persisted unit:
+ * holds the page's objects, background, and metadata. `objects` and
+ * `background` are the display content; `displayMode` is a placeholder.
+ */
+export interface SavedLayout {
+  schemaVersion: number
+  id: string
+  name: string
+  kind: 'layout'
+  background: BoardBackground
+  objects: BoardObject[]
+  displayMode: DisplayMode
+  createdAt: number
+  updatedAt: number
+}
+
+/**
+ * A classroom scene referencing a saved layout plus future automation refs.
+ * The refs are non-secret, teacher-authored placeholders — nothing is wired
+ * to them in DB-4A.
+ */
+export interface BoardScene {
+  schemaVersion: number
+  id: string
+  name: string
+  kind: 'scene'
+  type: SceneType
+  layoutId: string
+  displayMode: DisplayMode
+  spotifyPresetRef?: string
+  timerPresetRef?: string
+  backgroundRef?: string
+  keepAwake: boolean
+  studentSafe: boolean
+  createdAt: number
+  updatedAt: number
+}
+
+/** Discriminated union of the two persisted item kinds. */
+export type SavedBoardItem = SavedLayout | BoardScene
+
+/**
+ * Top-level persisted collection under `clean-board.board.state`. Wraps the
+ * named layouts and scenes plus the currently-active references and a
+ * monotonic schema version for migrations.
+ */
+export interface BoardState {
+  schemaVersion: number
+  id: string
+  name: string
+  activeLayoutId: string | null
+  activeSceneId: string | null
+  layouts: SavedLayout[]
+  scenes: BoardScene[]
+  createdAt: number
+  updatedAt: number
+}
