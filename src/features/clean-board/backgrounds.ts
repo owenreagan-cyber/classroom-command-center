@@ -154,10 +154,11 @@ export function isReadabilityOverlay(v: unknown): v is ReadabilityOverlay {
   return v === 'none' || v === 'soft' || v === 'strong'
 }
 
-/** Effective overlay: the teacher's explicit choice, or the preset default. */
+/** Effective overlay: the teacher's explicit choice, or a safe per-type default. */
 export function effectiveOverlay(bg: BoardBackground): ReadabilityOverlay {
   if (bg.readabilityOverlay) return bg.readabilityOverlay
   if (bg.type === 'preset') return getBackgroundPreset(bg.presetId).overlay
+  if (bg.type === 'localImage') return 'soft'
   return 'none'
 }
 
@@ -189,6 +190,7 @@ export function isLightColor(color: string): boolean {
 /** Text tone implied by a background (used to direct the scrim contrast). */
 export function textToneForBackground(bg: BoardBackground): 'dark' | 'light' {
   if (bg.type === 'preset') return getBackgroundPreset(bg.presetId).textTone
+  if (bg.type === 'localImage') return 'light'
   if (bg.type === 'solid') return isLightColor(bg.color) ? 'dark' : 'light'
   return isLightColor(bg.from) ? 'dark' : 'light'
 }

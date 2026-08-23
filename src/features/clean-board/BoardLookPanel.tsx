@@ -1,6 +1,8 @@
+import { useRef, useState } from 'react'
 import type { BoardBackground, BoardTheme, ReadabilityOverlay } from './types'
-import { BACKGROUND_PRESETS, effectiveOverlay } from './backgrounds'
+import { BACKGROUND_PRESETS, DEFAULT_BACKGROUND, effectiveOverlay } from './backgrounds'
 import { BOARD_THEME_IDS, BOARD_THEMES } from './themes'
+import { imageRejectMessage, readImageFileToSafeDataUrl } from './images'
 
 /**
  * DB-4B — teacher-only "Board Look" panel (edit mode only).
@@ -36,12 +38,35 @@ export function BoardLookPanel({
   const activePresetId = background.type === 'preset' ? background.presetId : null
   const currentOverlay = effectiveOverlay(background)
 
+  const wallpaperInputRef = useRef<HTMLInputElement>(null)
+  const [wallpaperStatus, setWallpaperStatus] = useState<{
+    kind: 'error' | 'ok'
+    message: string
+  } | null>(null)
+
   const selectPreset = (presetId: (typeof BACKGROUND_PRESETS)[number]['id']) => {
     onSetBackground({ type: 'preset', presetId })
   }
 
   const selectOverlay = (overlay: ReadabilityOverlay) => {
     onSetBackground({ ...background, readabilityOverlay: overlay })
+  }
+
+  const pickWallpaper = () => {
+    wallpaperInputRef.current?.click()
+  }
+
+  const handleWallpaperFiles = async (files: FileList | null) => {
+    const file = files?.[0]
+    if (!file) return
+    const result = await readImageFileToSafeDataUrl(file)
+    if (!result.ok) {
+      setWallpaperStatus({ kind: 'error', message: imageRejectMessage(result.reason) })
+      return
+    }
+    onSetBackground({ type: 'localImage', image: result.image })
+    setWallpaperStatus({ kind: 'ok', message: 'Wallpaper applied' })
+    if (wallpaperInputRef.current) wallpaperInputRef.current.value = ''
   }
 
   return (
@@ -98,6 +123,52 @@ export function BoardLookPanel({
             )
           })}
         </div>
+      </div>
+
+      <div className="space-y-1">
+        <h3 className="m-0 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+          Wallpaper
+        </h3>
+        <input
+          ref={wallpaperInputRef}
+          type="file"
+          accept="image/png,image/jpeg,image/webp"
+          className="hidden"
+          onChange={(e) => void handleWallpaperFiles(e.target.files)}
+          data-wallpaper-input
+        />
+        <div className="flex flex-wrap items-center gap-1.5">
+          <button type="button" className={btn} onClick={pickWallpaper} data-upload-wallpaper>
+            Upload wallpaper
+          </button>
+          {background.type === 'localImage' && (
+            <button
+              type="button"
+              className={btn}
+              onClick={() =>
+                onSetBackground({ type: 'preset', presetId: DEFAULT_BACKGROUND.presetId })
+              }
+              data-remove-wallpaper
+            >
+              Remove
+            </button>
+          )}
+        </div>
+        {background.type === 'localImage' && (
+          <p className="m-0 text-[10px] text-slate-400" data-wallpaper-applied>
+            Local wallpaper applied. Upload another to replace it.
+          </p>
+        )}
+        {wallpaperStatus && (
+          <p
+            className={`m-0 text-[10px] ${
+              wallpaperStatus.kind === 'error' ? 'text-amber-400' : 'text-emerald-400'
+            }`}
+            data-wallpaper-status={wallpaperStatus.kind}
+          >
+            {wallpaperStatus.message}
+          </p>
+        )}
       </div>
 
       <div className="space-y-1">

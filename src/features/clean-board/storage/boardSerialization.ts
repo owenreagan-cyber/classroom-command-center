@@ -3,6 +3,7 @@ import { DEFAULT_BACKGROUND, isBackgroundPresetId, isReadabilityOverlay } from '
 import { DEFAULT_THEME, getTheme, isBoardThemeId } from '../themes'
 import { sanitizeMessageCardConfig } from '../messageCards'
 import { sanitizeTimerConfig } from '../timerPresets'
+import { sanitizeImageObjectConfig, sanitizeLocalImage } from '../images'
 import type {
   BoardBackground,
   BoardObject,
@@ -104,6 +105,11 @@ export function sanitizeBackground(raw: unknown): BoardBackground {
       ...(overlay ? { readabilityOverlay: overlay } : {}),
     }
   }
+  if (type === 'localImage') {
+    const image = sanitizeLocalImage(raw.image)
+    if (!image) return DEFAULT_BACKGROUND
+    return { type: 'localImage', image, ...(overlay ? { readabilityOverlay: overlay } : {}) }
+  }
   return DEFAULT_BACKGROUND
 }
 
@@ -133,12 +139,7 @@ function sanitizeConfig(kind: BoardObjectKind, raw: unknown): BoardObjectConfig 
           }
         : null
     case 'image':
-      return {
-        kind,
-        src: isStr(raw.src) ? raw.src : '',
-        alt: isStr(raw.alt) ? raw.alt : '',
-        fit: raw.fit === 'contain' || raw.fit === 'fill' ? raw.fit : 'cover',
-      }
+      return sanitizeImageObjectConfig(raw)
     case 'link':
       return isStr(raw.url) && isStr(raw.label)
         ? { kind, url: raw.url, label: raw.label }

@@ -79,8 +79,9 @@ export function BoardObjectRenderer({
           </p>
         </div>
       )
-    case 'image':
-      if (!cfg.src) {
+    case 'image': {
+      const dataUrl = cfg.image.dataUrl
+      if (!dataUrl) {
         return (
           <div className="flex h-full w-full items-center justify-center rounded-2xl border border-dashed border-slate-600 bg-slate-900/40">
             <span className="text-2xl font-medium text-slate-400">Image</span>
@@ -89,13 +90,14 @@ export function BoardObjectRenderer({
       }
       return (
         <img
-          src={cfg.src}
-          alt={cfg.alt}
+          src={dataUrl}
+          alt={cfg.image.altText || 'Image'}
           draggable={false}
           className="h-full w-full rounded-2xl"
-          style={{ objectFit: cfg.fit }}
+          style={{ objectFit: cfg.fit, opacity: cfg.opacity }}
         />
       )
+    }
     case 'link':
       return (
         <div className="flex h-full w-full items-center gap-4 rounded-2xl border border-slate-700/60 bg-slate-900/60 px-6">
