@@ -2,8 +2,10 @@ import type {
   BoardPage,
   BoardScene,
   BoardState,
+  DisplayModeId,
   SavedLayout,
 } from '../types'
+import { DEFAULT_DISPLAY_MODE_ID } from '../displayModes'
 import {
   BOARD_SCHEMA_VERSION,
   parseBoardStateJson,
@@ -42,7 +44,11 @@ function getStore(): Storage | null {
 // ── pure CRUD (no DOM) ──
 
 /** Snapshot a page into a persisted `SavedLayout` (used by save + autosave). */
-export function layoutFromPage(page: BoardPage, name: string): SavedLayout {
+export function layoutFromPage(
+  page: BoardPage,
+  name: string,
+  displayModeId: DisplayModeId = DEFAULT_DISPLAY_MODE_ID,
+): SavedLayout {
   const now = Date.now()
   return {
     schemaVersion: BOARD_SCHEMA_VERSION,
@@ -52,7 +58,7 @@ export function layoutFromPage(page: BoardPage, name: string): SavedLayout {
     background: page.background,
     theme: page.theme,
     objects: page.objects,
-    displayMode: 'default',
+    displayModeId,
     createdAt: now,
     updatedAt: now,
   }

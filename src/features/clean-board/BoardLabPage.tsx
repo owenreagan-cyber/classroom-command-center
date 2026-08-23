@@ -10,6 +10,8 @@ import { DEFAULT_BACKGROUND } from './backgrounds'
 import { pageHasKind, toSafeBoardPage } from './boardSafety'
 import { createImageObjectFromSafeImage, imageRejectMessage, readImageFileToSafeDataUrl } from './images'
 import { DEFAULT_MESSAGE_CARD_KIND, getMessageCardPreset } from './messageCards'
+import { DEFAULT_DISPLAY_MODE_ID, projectPageForDisplayMode } from './displayModes'
+import { DisplayModeSelector } from './DisplayModeSelector'
 import { createSeedBoard } from './seedBoard'
 import { SpotifyTeacherPanel } from './spotify/SpotifyTeacherPanel'
 import { hasCallbackParams } from './spotify/spotifyPkce'
@@ -29,6 +31,7 @@ import type {
   BoardObjectConfig,
   BoardObjectKind,
   BoardTheme,
+  DisplayModeId,
   MessageCardConfig,
   SavedLayout,
   TimerConfig,
@@ -170,6 +173,13 @@ export function BoardLabPage() {
     return null
   })
 
+  // DB-4F — the currently-selected classroom display mode. Restored from the
+  // last autosave so the projection preference survives refresh; defaults to
+  // `custom` (teacher-controlled, show everything).
+  const [displayModeId, setDisplayModeId] = useState<DisplayModeId>(
+    () => loadAutosaveLayout()?.displayModeId ?? DEFAULT_DISPLAY_MODE_ID,
+  )
+
   const init = useSpotifyStore((s) => s.init)
   const authStatus = useSpotifyStore((s) => s.authStatus)
   const startPlaybackPolling = useSpotifyStore((s) => s.startPlaybackPolling)
@@ -201,10 +211,10 @@ export function BoardLabPage() {
   // name) — never tokens, account data, or transient UI state.
   useEffect(() => {
     const timer = setTimeout(() => {
-      saveAutosaveLayout(layoutFromPage(activePage, activePage.title))
+      saveAutosaveLayout(layoutFromPage(activePage, activePage.title, displayModeId))
     }, 400)
     return () => clearTimeout(timer)
-  }, [activePage])
+  }, [activePage, displayModeId])
 
   const spotifyNowPlaying = useSpotifyStore((s) => s.nowPlaying)
   const safeNowPlaying = useMemo(() => toSafeNowPlaying(spotifyNowPlaying), [spotifyNowPlaying])
@@ -225,7 +235,10 @@ export function BoardLabPage() {
     null,
   )
 
-  const present = useMemo(() => toSafeBoardPage(activePage), [activePage])
+  const present = useMemo(
+    () => projectPageForDisplayMode(toSafeBoardPage(activePage), displayModeId),
+    [activePage, displayModeId],
+  )
 
   const canvasObjects = useMemo(() => {
     if (mode === 'present') return present.objects
@@ -332,7 +345,8 @@ export function BoardLabPage() {
     setSelectedObjectId(null)
   }
 
-  const handleLoadLayout = (layout: SavedLayout) => {
+  const handleLoadLayout = (layout: SavedLayout, nextModeId: DisplayModeId) => {
+    setDisplayModeId(nextModeId)
     setDeck((prev) => ({
       ...prev,
       updatedAt: Date.now(),
@@ -429,6 +443,9 @@ export function BoardLabPage() {
               Edit
             </button>
           </div>
+          {mode === 'edit' && (
+            <DisplayModeSelector value={displayModeId} onChange={setDisplayModeId} />
+          )}
         </div>
         <span className="truncate text-sm font-medium text-slate-300" data-board-page-title>
           {activePage.title}
@@ -494,7 +511,12 @@ export function BoardLabPage() {
             </div>
             <div className="min-h-0 flex-1 overflow-hidden">
               {drawerTab === 'saved' && (
-                <SavedBoardsPanel fullWidth activePage={activePage} onLoadLayout={handleLoadLayout} />
+                <SavedBoardsPanel
+                  fullWidth
+                  activePage={activePage}
+                  displayModeId={displayModeId}
+                  onLoadLayout={handleLoadLayout}
+                />
               )}
               {drawerTab === 'look' && (
                 <BoardLookPanel
@@ -531,7 +553,11 @@ export function BoardLabPage() {
       ) : (
         <div className="flex min-h-0 flex-1">
           {mode === 'edit' && (
-            <SavedBoardsPanel activePage={activePage} onLoadLayout={handleLoadLayout} />
+            <SavedBoardsPanel
+              activePage={activePage}
+              displayModeId={displayModeId}
+              onLoadLayout={handleLoadLayout}
+            />
           )}
           <main className="min-h-0 flex-1">{boardCanvas}</main>
           {mode === 'edit' && (

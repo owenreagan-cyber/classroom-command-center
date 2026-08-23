@@ -226,8 +226,19 @@ export interface BoardDeck {
 
 // ── DB-4A — persistence / scenes ──
 
-/** Present-mode projection preset (placeholder in DB-4A; wired in DB-4F). */
-export type DisplayMode = 'default' | 'focus' | 'calm' | 'transition'
+/**
+ * DB-4F — a teacher-selectable classroom display mode. A projection-layer
+ * preference applied on top of existing scene/layout content; it never owns
+ * widgets, timers, Spotify, images, or messages.
+ */
+export type DisplayModeId =
+  | 'morningArrival'
+  | 'focus'
+  | 'reading'
+  | 'transition'
+  | 'cleanup'
+  | 'assessment'
+  | 'custom'
 
 /** Semantic classroom category for a scene. */
 export type SceneType =
@@ -241,7 +252,8 @@ export type SceneType =
 /**
  * A named saved board ("saved layout"). The object-carrying persisted unit:
  * holds the page's objects, background, and metadata. `objects` and
- * `background` are the display content; `displayMode` is a placeholder.
+ * `background` are the display content; `displayModeId` is a projection-layer
+ * preference restored when the layout is loaded.
  */
 export interface SavedLayout {
   schemaVersion: number
@@ -251,7 +263,7 @@ export interface SavedLayout {
   background: BoardBackground
   theme: BoardTheme
   objects: BoardObject[]
-  displayMode: DisplayMode
+  displayModeId: DisplayModeId
   createdAt: number
   updatedAt: number
 }
@@ -268,7 +280,7 @@ export interface BoardScene {
   kind: 'scene'
   type: SceneType
   layoutId: string
-  displayMode: DisplayMode
+  displayModeId: DisplayModeId
   spotifyPresetRef?: string
   timerPresetRef?: string
   backgroundRef?: string
