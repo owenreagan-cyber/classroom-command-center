@@ -3,9 +3,11 @@ import { BoardCanvas } from './BoardCanvas'
 import { BoardLookPanel } from './BoardLookPanel'
 import { BoardToolbar } from './BoardToolbar'
 import { KeepAwakeToggle } from './KeepAwakeToggle'
+import { MessageCardTeacherPanel } from './MessageCardTeacherPanel'
 import { SavedBoardsPanel } from './SavedBoardsPanel'
 import { DEFAULT_BACKGROUND } from './backgrounds'
 import { pageHasKind, toSafeBoardPage } from './boardSafety'
+import { DEFAULT_MESSAGE_CARD_KIND, getMessageCardPreset } from './messageCards'
 import { createSeedBoard } from './seedBoard'
 import { SpotifyTeacherPanel } from './spotify/SpotifyTeacherPanel'
 import { hasCallbackParams } from './spotify/spotifyPkce'
@@ -18,8 +20,10 @@ import type {
   BoardDeck,
   BoardMode,
   BoardObject,
+  BoardObjectConfig,
   BoardObjectKind,
   BoardTheme,
+  MessageCardConfig,
   SavedLayout,
 } from './types'
 
@@ -132,6 +136,15 @@ function createDefaultObject(kind: BoardObjectKind, id: string): BoardObject {
         h: 130,
         config: { kind, label: 'Now Playing' },
       }
+    case 'messageCard':
+      return {
+        ...base,
+        x: 160,
+        y: 520,
+        w: 720,
+        h: 360,
+        config: { kind, ...getMessageCardPreset(DEFAULT_MESSAGE_CARD_KIND) },
+      }
   }
 }
 
@@ -201,6 +214,8 @@ export function BoardLabPage() {
   const selectedObject = activePage.objects.find((o) => o.id === selectedObjectId)
   const showSpotifyPanel =
     mode === 'edit' && selectedObject?.kind === 'spotifyNowPlayingPlaceholder'
+  const showMessageCardPanel =
+    mode === 'edit' && selectedObject?.kind === 'messageCard'
 
   const present = useMemo(() => toSafeBoardPage(activePage), [activePage])
 
@@ -248,6 +263,19 @@ export function BoardLabPage() {
       pages: prev.pages.map((p) =>
         p.id === pageId
           ? { ...p, objects: p.objects.map((o) => (o.id === id ? { ...o, x, y } : o)) }
+          : p,
+      ),
+    }))
+  }
+
+  const handleUpdateObjectConfig = (id: string, config: BoardObjectConfig) => {
+    const pageId = activePage.id
+    setDeck((prev) => ({
+      ...prev,
+      updatedAt: Date.now(),
+      pages: prev.pages.map((p) =>
+        p.id === pageId
+          ? { ...p, objects: p.objects.map((o) => (o.id === id ? { ...o, config } : o)) }
           : p,
       ),
     }))
@@ -371,6 +399,7 @@ export function BoardLabPage() {
             onMoveObject={handleMoveObject}
             spotifyNowPlaying={safeNowPlaying}
             accent={activePage.theme.accent}
+            theme={activePage.theme}
           />
         </main>
         {mode === 'edit' && (
@@ -386,6 +415,12 @@ export function BoardLabPage() {
           <div className="w-80 shrink-0" data-board-lab-spotify-panel>
             <SpotifyTeacherPanel />
           </div>
+        )}
+        {showMessageCardPanel && selectedObject?.kind === 'messageCard' && (
+          <MessageCardTeacherPanel
+            config={selectedObject.config as MessageCardConfig}
+            onChange={(next) => handleUpdateObjectConfig(selectedObject.id, next)}
+          />
         )}
       </div>
 

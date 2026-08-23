@@ -18,6 +18,7 @@ export const BOARD_OBJECT_KINDS = [
   'clock',
   'timer',
   'spotifyNowPlayingPlaceholder',
+  'messageCard',
 ] as const
 
 export type BoardObjectKind = (typeof BOARD_OBJECT_KINDS)[number]
@@ -68,6 +69,39 @@ export type BoardBackground =
   | { type: 'solid'; color: string; readabilityOverlay?: ReadabilityOverlay }
   | { type: 'preset'; presetId: BackgroundPresetId; readabilityOverlay?: ReadabilityOverlay }
 
+// ── DB-4C — Directions / Message Card widget ──
+
+/** Semantic label a teacher picks for a message card. */
+export type MessageCardKind =
+  | 'doNow'
+  | 'objective'
+  | 'directions'
+  | 'reminder'
+  | 'transition'
+  | 'exitTicket'
+  | 'announcement'
+
+/** Visual tone for the card's accent. */
+export type MessageCardTone = 'neutral' | 'calm' | 'focus' | 'warning' | 'success'
+
+/** Text scale for title + body. */
+export type MessageCardTextSize = 'small' | 'medium' | 'large'
+
+/**
+ * Student-facing message card content. Plain text only — no HTML, markdown,
+ * links, images, or remote content. `title` and `message` are rendered as text
+ * (React escapes by construction), so nothing here can execute.
+ */
+export type MessageCardConfig = {
+  kind: 'messageCard'
+  title: string
+  message: string
+  cardKind: MessageCardKind
+  tone: MessageCardTone
+  textSize: MessageCardTextSize
+  checklistStyle: boolean
+}
+
 export type BoardObjectConfig =
   | {
       kind: 'text'
@@ -82,6 +116,7 @@ export type BoardObjectConfig =
   | { kind: 'clock'; format: '12h' | '24h'; label: string }
   | { kind: 'timer'; durationMinutes: number; label: string }
   | { kind: 'spotifyNowPlayingPlaceholder'; label: string }
+  | MessageCardConfig
 
 export interface BoardObject {
   id: string

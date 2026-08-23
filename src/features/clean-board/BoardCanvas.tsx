@@ -8,7 +8,7 @@ import {
   fitBoardToContainer,
 } from './boardGeometry'
 import type { SafeNowPlaying } from './spotify/spotifySafety'
-import type { BoardBackground, BoardMode, BoardObject } from './types'
+import type { BoardBackground, BoardMode, BoardObject, BoardTheme } from './types'
 
 interface BoardCanvasProps {
   background: BoardBackground
@@ -20,6 +20,8 @@ interface BoardCanvasProps {
   spotifyNowPlaying?: SafeNowPlaying | null
   /** Theme accent used for edit-mode selection chrome only. */
   accent?: string
+  /** Board theme; forwarded to widget renderers (e.g. message card surface). */
+  theme?: BoardTheme
 }
 
 interface DragState {
@@ -58,6 +60,7 @@ export function BoardCanvas({
   onMoveObject,
   spotifyNowPlaying,
   accent = '#22d3ee',
+  theme,
 }: BoardCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const dragRef = useRef<DragState | null>(null)
@@ -165,6 +168,7 @@ export function BoardCanvas({
                     object={o}
                     spotifyNowPlaying={spotifyNowPlaying}
                     mode={mode}
+                    theme={theme}
                   />
                   {selected && (
                     <div

@@ -1,4 +1,5 @@
 import type { BoardMode, BoardObject, BoardObjectConfig, BoardPage } from './types'
+import { sanitizeMessageCardConfig } from './messageCards'
 
 /**
  * DB-1 — Clean Board student-safety projection.
@@ -25,6 +26,11 @@ function sanitizeConfig(config: BoardObjectConfig): BoardObjectConfig {
   if (config.kind === 'spotifyNowPlayingPlaceholder') {
     // Never forward account/token/device detail — label only.
     return { kind: 'spotifyNowPlayingPlaceholder', label: config.label }
+  }
+  if (config.kind === 'messageCard') {
+    // Message cards are student-facing: re-whitelist to strip any extra keys and
+    // neutralize HTML/URL content before it reaches present mode.
+    return sanitizeMessageCardConfig(config)
   }
   return config
 }
