@@ -15,6 +15,9 @@ import { toSafeNowPlaying } from './spotify/spotifySafety'
 import { useSpotifyStore } from './spotify/spotifyStore'
 import { layoutFromPage, loadAutosaveLayout, saveAutosaveLayout } from './storage/boardStorage'
 import { DEFAULT_THEME } from './themes'
+import { EDIT_DRAWER_TAB_LABELS, getCleanBoardEditTabs } from './editLayout'
+import type { EditDrawerTab } from './editLayout'
+import { useCleanBoardEditLayoutMode } from './useCleanBoardEditLayoutMode'
 import type {
   BoardBackground,
   BoardDeck,
@@ -217,6 +220,10 @@ export function BoardLabPage() {
   const showMessageCardPanel =
     mode === 'edit' && selectedObject?.kind === 'messageCard'
 
+  const editLayoutMode = useCleanBoardEditLayoutMode()
+  const responsive = mode === 'edit' && editLayoutMode === 'responsivePanels'
+  const [drawerTab, setDrawerTab] = useState<EditDrawerTab>('saved')
+
   const present = useMemo(() => toSafeBoardPage(activePage), [activePage])
 
   const canvasObjects = useMemo(() => {
@@ -234,6 +241,15 @@ export function BoardLabPage() {
     }
   }
 
+  // Select an object and, on narrow screens, surface its teacher panel in the
+  // drawer (Spotify tile → Spotify tab, message card → Message Card tab).
+  const selectObject = (id: string | null, hintKind?: BoardObjectKind) => {
+    setSelectedObjectId(id)
+    const kind = id ? hintKind ?? activePage.objects.find((o) => o.id === id)?.kind : undefined
+    if (kind === 'messageCard') setDrawerTab('messageCard')
+    else if (kind === 'spotifyNowPlayingPlaceholder') setDrawerTab('spotify')
+  }
+
   const handleAddObject = (kind: BoardObjectKind) => {
     const pageId = activePage.id
     // A now-playing tile is singular by nature — prevent stacking duplicates
@@ -241,8 +257,10 @@ export function BoardLabPage() {
     // existing object instead of adding another.
     if (kind === 'spotifyNowPlayingPlaceholder' && pageHasKind(activePage.objects, kind)) {
       const existing = activePage.objects.find((o) => o.kind === kind)
-      if (existing) setSelectedObjectId(existing.id)
-      return
+      if (existing) {
+        selectObject(existing.id, kind)
+        return
+      }
     }
     const obj = createDefaultObject(kind, `${kind}-${Date.now()}`)
     setDeck((prev) => ({
@@ -252,7 +270,7 @@ export function BoardLabPage() {
         p.id === pageId ? { ...p, objects: [...p.objects, obj] } : p,
       ),
     }))
-    setSelectedObjectId(obj.id)
+    selectObject(obj.id, kind)
   }
 
   const handleMoveObject = (id: string, x: number, y: number) => {
@@ -333,6 +351,20 @@ export function BoardLabPage() {
     }))
   }
 
+  const boardCanvas = (
+    <BoardCanvas
+      background={mode === 'present' ? present.background : activePage.background}
+      objects={canvasObjects}
+      mode={mode}
+      selectedObjectId={selectedObjectId}
+      onSelect={selectObject}
+      onMoveObject={handleMoveObject}
+      spotifyNowPlaying={safeNowPlaying}
+      accent={activePage.theme.accent}
+      theme={activePage.theme}
+    />
+  )
+
   return (
     <div
       className="flex h-dvh w-dvw flex-col overflow-hidden bg-slate-950 text-slate-100"
@@ -385,44 +417,89 @@ export function BoardLabPage() {
         </div>
       )}
 
-      <div className="flex min-h-0 flex-1">
-        {mode === 'edit' && (
-          <SavedBoardsPanel activePage={activePage} onLoadLayout={handleLoadLayout} />
-        )}
-        <main className="min-h-0 flex-1">
-          <BoardCanvas
-            background={mode === 'present' ? present.background : activePage.background}
-            objects={canvasObjects}
-            mode={mode}
-            selectedObjectId={selectedObjectId}
-            onSelect={setSelectedObjectId}
-            onMoveObject={handleMoveObject}
-            spotifyNowPlaying={safeNowPlaying}
-            accent={activePage.theme.accent}
-            theme={activePage.theme}
-          />
-        </main>
-        {mode === 'edit' && (
-          <BoardLookPanel
-            background={activePage.background}
-            theme={activePage.theme}
-            onSetBackground={handleSetBackground}
-            onSetTheme={handleSetTheme}
-            onReset={handleResetLook}
-          />
-        )}
-        {showSpotifyPanel && (
-          <div className="w-80 shrink-0" data-board-lab-spotify-panel>
-            <SpotifyTeacherPanel />
+      {responsive ? (
+        <div className="flex min-h-0 flex-1 flex-col">
+          <main className="min-h-0 flex-1">{boardCanvas}</main>
+          <div
+            className="flex h-64 shrink-0 flex-col border-t border-slate-800 bg-slate-900/40"
+            data-responsive-edit-panels
+          >
+            <div className="flex shrink-0 flex-wrap items-center gap-1 border-b border-slate-800 px-3 py-2">
+              {getCleanBoardEditTabs({
+                showSpotify: showSpotifyPanel,
+                showMessageCard: showMessageCardPanel,
+              }).map((tab) => (
+                <button
+                  key={tab}
+                  type="button"
+                  onClick={() => setDrawerTab(tab)}
+                  data-edit-drawer-tab={tab}
+                  data-active={drawerTab === tab || undefined}
+                  className={`rounded-md px-2.5 py-1 text-xs font-semibold transition ${
+                    drawerTab === tab
+                      ? 'bg-slate-700 text-white'
+                      : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'
+                  }`}
+                >
+                  {EDIT_DRAWER_TAB_LABELS[tab]}
+                </button>
+              ))}
+            </div>
+            <div className="min-h-0 flex-1 overflow-hidden">
+              {drawerTab === 'saved' && (
+                <SavedBoardsPanel fullWidth activePage={activePage} onLoadLayout={handleLoadLayout} />
+              )}
+              {drawerTab === 'look' && (
+                <BoardLookPanel
+                  fullWidth
+                  background={activePage.background}
+                  theme={activePage.theme}
+                  onSetBackground={handleSetBackground}
+                  onSetTheme={handleSetTheme}
+                  onReset={handleResetLook}
+                />
+              )}
+              {drawerTab === 'spotify' && showSpotifyPanel && <SpotifyTeacherPanel />}
+              {drawerTab === 'messageCard' &&
+                showMessageCardPanel &&
+                selectedObject?.kind === 'messageCard' && (
+                  <MessageCardTeacherPanel
+                    fullWidth
+                    config={selectedObject.config as MessageCardConfig}
+                    onChange={(next) => handleUpdateObjectConfig(selectedObject.id, next)}
+                  />
+                )}
+            </div>
           </div>
-        )}
-        {showMessageCardPanel && selectedObject?.kind === 'messageCard' && (
-          <MessageCardTeacherPanel
-            config={selectedObject.config as MessageCardConfig}
-            onChange={(next) => handleUpdateObjectConfig(selectedObject.id, next)}
-          />
-        )}
-      </div>
+        </div>
+      ) : (
+        <div className="flex min-h-0 flex-1">
+          {mode === 'edit' && (
+            <SavedBoardsPanel activePage={activePage} onLoadLayout={handleLoadLayout} />
+          )}
+          <main className="min-h-0 flex-1">{boardCanvas}</main>
+          {mode === 'edit' && (
+            <BoardLookPanel
+              background={activePage.background}
+              theme={activePage.theme}
+              onSetBackground={handleSetBackground}
+              onSetTheme={handleSetTheme}
+              onReset={handleResetLook}
+            />
+          )}
+          {showSpotifyPanel && (
+            <div className="w-80 shrink-0" data-board-lab-spotify-panel>
+              <SpotifyTeacherPanel />
+            </div>
+          )}
+          {showMessageCardPanel && selectedObject?.kind === 'messageCard' && (
+            <MessageCardTeacherPanel
+              config={selectedObject.config as MessageCardConfig}
+              onChange={(next) => handleUpdateObjectConfig(selectedObject.id, next)}
+            />
+          )}
+        </div>
+      )}
 
       <footer
         className="flex shrink-0 items-center justify-center gap-2 border-t border-slate-800 py-2.5"

@@ -32,9 +32,12 @@ const SCENE_TYPES: SceneType[] = ['arrival', 'math', 'reading', 'transition', 'p
 export function SavedBoardsPanel({
   activePage,
   onLoadLayout,
+  fullWidth = false,
 }: {
   activePage: BoardPage
   onLoadLayout: (layout: SavedLayout) => void
+  /** Fill the parent drawer width instead of a fixed 256px side panel. */
+  fullWidth?: boolean
 }) {
   const [state, setState] = useState<BoardState>(
     () => loadPersistedBoardState() ?? createEmptyBoardState(),
@@ -105,7 +108,9 @@ export function SavedBoardsPanel({
 
   return (
     <aside
-      className="flex h-full w-64 shrink-0 flex-col gap-3 overflow-y-auto border-r border-slate-800 bg-slate-900/40 p-3"
+      className={`flex h-full flex-col gap-3 overflow-y-auto bg-slate-900/40 p-3 ${
+        fullWidth ? 'w-full' : 'w-64 shrink-0 border-r border-slate-800'
+      }`}
       data-saved-boards-panel
     >
       <div className="flex items-center justify-between">

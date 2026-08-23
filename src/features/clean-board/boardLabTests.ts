@@ -80,6 +80,12 @@ import {
   isWakeLockSupported,
   shouldReacquire,
 } from './wakeLockState'
+import {
+  CLEAN_BOARD_EDIT_BREAKPOINT,
+  EDIT_DRAWER_TAB_LABELS,
+  getCleanBoardEditLayoutMode,
+  getCleanBoardEditTabs,
+} from './editLayout'
 
 let passed = 0
 let failed = 0
@@ -857,6 +863,53 @@ test('switching card kind preset updates title/message/cardKind', () => {
   assert(preset.cardKind === 'objective')
   assert(preset.title === 'Objective')
   assert(preset.message === 'I can explain my thinking clearly and use evidence.')
+})
+
+// ── DB-4C follow-up — responsive edit layout ──
+
+test('getCleanBoardEditLayoutMode picks sidePanels at desktop and responsivePanels on iPad', () => {
+  assert(getCleanBoardEditLayoutMode(1440) === 'sidePanels')
+  assert(getCleanBoardEditLayoutMode(1180) === 'responsivePanels', 'iPad landscape uses the drawer')
+  assert(getCleanBoardEditLayoutMode(820) === 'responsivePanels', 'iPad portrait uses the drawer')
+  assert(getCleanBoardEditLayoutMode(390) === 'responsivePanels', 'phone width uses the drawer')
+})
+
+test('getCleanBoardEditLayoutMode breakpoint boundary is exclusive', () => {
+  assert(getCleanBoardEditLayoutMode(CLEAN_BOARD_EDIT_BREAKPOINT - 1) === 'responsivePanels')
+  assert(getCleanBoardEditLayoutMode(CLEAN_BOARD_EDIT_BREAKPOINT) === 'sidePanels')
+  assert(CLEAN_BOARD_EDIT_BREAKPOINT > 1180, 'breakpoint is above iPad landscape width')
+})
+
+test('responsive drawer always exposes Saved Boards and Board Look', () => {
+  const tabs = getCleanBoardEditTabs({ showSpotify: false, showMessageCard: false })
+  assert(tabs.includes('saved'), 'saved boards tab present')
+  assert(tabs.includes('look'), 'board look tab present')
+  assert(!tabs.includes('spotify'), 'no spotify tab without a selected tile')
+  assert(!tabs.includes('messageCard'), 'no message card tab without a selected card')
+})
+
+test('responsive drawer adds Spotify and Message Card tabs conditionally', () => {
+  const withSpotify = getCleanBoardEditTabs({ showSpotify: true, showMessageCard: false })
+  assert(withSpotify.includes('spotify'))
+  const withCard = getCleanBoardEditTabs({ showSpotify: false, showMessageCard: true })
+  assert(withCard.includes('messageCard'))
+  const both = getCleanBoardEditTabs({ showSpotify: true, showMessageCard: true })
+  assert(both.includes('spotify') && both.includes('messageCard'))
+})
+
+test('drawer tab labels cover all four teacher panels', () => {
+  const labels = Object.values(EDIT_DRAWER_TAB_LABELS)
+  assert(labels.includes('Saved Boards'))
+  assert(labels.includes('Board Look'))
+  assert(labels.includes('Spotify'))
+  assert(labels.includes('Message Card'))
+})
+
+test('present mode never renders teacher panels regardless of layout mode', () => {
+  // Layout selection is edit-mode-only; present mode is gated by
+  // showTeacherControls, which already returns false for present.
+  assert(showTeacherControls('present') === false)
+  assert(showTeacherControls('edit') === true)
 })
 
 // ── Summary ──
