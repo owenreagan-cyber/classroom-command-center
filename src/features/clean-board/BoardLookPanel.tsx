@@ -21,6 +21,8 @@ interface BoardLookPanelProps {
   onSetBackground: (bg: BoardBackground) => void
   onSetTheme: (theme: BoardTheme) => void
   onReset: () => void
+  /** Fill the parent drawer width instead of a fixed 256px side panel. */
+  fullWidth?: boolean
 }
 
 export function BoardLookPanel({
@@ -29,6 +31,7 @@ export function BoardLookPanel({
   onSetBackground,
   onSetTheme,
   onReset,
+  fullWidth = false,
 }: BoardLookPanelProps) {
   const activePresetId = background.type === 'preset' ? background.presetId : null
   const currentOverlay = effectiveOverlay(background)
@@ -43,7 +46,9 @@ export function BoardLookPanel({
 
   return (
     <aside
-      className="flex h-full w-64 shrink-0 flex-col gap-3 overflow-y-auto border-l border-slate-800 bg-slate-900/40 p-3"
+      className={`flex h-full flex-col gap-3 overflow-y-auto bg-slate-900/40 p-3 ${
+        fullWidth ? 'w-full' : 'w-64 shrink-0 border-l border-slate-800'
+      }`}
       data-board-look-panel
     >
       <div className="flex items-center justify-between">

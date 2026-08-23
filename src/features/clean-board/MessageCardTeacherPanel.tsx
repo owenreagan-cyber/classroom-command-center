@@ -33,16 +33,24 @@ const TONE_ACCENTS: Record<MessageCardTone, string> = {
 interface MessageCardTeacherPanelProps {
   config: MessageCardConfig
   onChange: (next: MessageCardConfig) => void
+  /** Fill the parent drawer width instead of a fixed 288px side panel. */
+  fullWidth?: boolean
 }
 
-export function MessageCardTeacherPanel({ config, onChange }: MessageCardTeacherPanelProps) {
+export function MessageCardTeacherPanel({
+  config,
+  onChange,
+  fullWidth = false,
+}: MessageCardTeacherPanelProps) {
   const applyKind = (cardKind: MessageCardKind) => {
     onChange({ ...config, ...getMessageCardPreset(cardKind) })
   }
 
   return (
     <aside
-      className="flex h-full w-72 shrink-0 flex-col gap-3 overflow-y-auto border-l border-slate-800 bg-slate-900/40 p-3"
+      className={`flex h-full flex-col gap-3 overflow-y-auto bg-slate-900/40 p-3 ${
+        fullWidth ? 'w-full' : 'w-72 shrink-0 border-l border-slate-800'
+      }`}
       data-message-card-panel
     >
       <h2 className="m-0 text-xs font-bold uppercase tracking-wider text-slate-200">
