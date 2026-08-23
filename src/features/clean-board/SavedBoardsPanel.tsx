@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import type { BoardPage, BoardScene, BoardState, SavedLayout, SceneType } from './types'
+import type { BoardPage, BoardScene, BoardState, DisplayModeId, SavedLayout, SceneType } from './types'
+import { getDisplayModeConfig } from './displayModes'
 import {
   deleteLayout,
   deleteScene,
@@ -31,11 +32,13 @@ const SCENE_TYPES: SceneType[] = ['arrival', 'math', 'reading', 'transition', 'p
 
 export function SavedBoardsPanel({
   activePage,
+  displayModeId,
   onLoadLayout,
   fullWidth = false,
 }: {
   activePage: BoardPage
-  onLoadLayout: (layout: SavedLayout) => void
+  displayModeId: DisplayModeId
+  onLoadLayout: (layout: SavedLayout, displayModeId: DisplayModeId) => void
   /** Fill the parent drawer width instead of a fixed 256px side panel. */
   fullWidth?: boolean
 }) {
@@ -55,14 +58,14 @@ export function SavedBoardsPanel({
   const handleSave = () => {
     const trimmed = name.trim()
     if (!trimmed) return
-    commit(saveLayout(state, layoutFromPage(activePage, trimmed)))
+    commit(saveLayout(state, layoutFromPage(activePage, trimmed, displayModeId)))
     setName('')
   }
 
   const handleSaveScene = () => {
     const trimmed = name.trim()
     if (!trimmed) return
-    const layout = layoutFromPage(activePage, trimmed)
+    const layout = layoutFromPage(activePage, trimmed, displayModeId)
     const now = Date.now()
     const scene: BoardScene = {
       schemaVersion: BOARD_SCHEMA_VERSION,
@@ -71,11 +74,11 @@ export function SavedBoardsPanel({
       kind: 'scene',
       type: sceneType,
       layoutId: layout.id,
-      displayMode: 'default',
+      displayModeId,
       ...(activePage.background.type === 'preset'
         ? { backgroundPresetId: activePage.background.presetId }
         : {}),
-      keepAwake: false,
+      keepAwake: getDisplayModeConfig(displayModeId).keepAwakeDefault,
       studentSafe: true,
       createdAt: now,
       updatedAt: now,
@@ -89,14 +92,14 @@ export function SavedBoardsPanel({
 
   const handleLoad = (layout: SavedLayout) => {
     commit(setActiveLayout(setActiveScene(state, null), layout.id))
-    onLoadLayout(layout)
+    onLoadLayout(layout, layout.displayModeId)
   }
 
   const handleLoadScene = (scene: BoardScene) => {
     const layout = state.layouts.find((l) => l.id === scene.layoutId)
     if (!layout) return
     commit(setActiveScene(setActiveLayout(state, layout.id), scene.id))
-    onLoadLayout(layout)
+    onLoadLayout(layout, scene.displayModeId)
   }
 
   const handleRename = (id: string) => {

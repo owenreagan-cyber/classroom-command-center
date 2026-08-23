@@ -121,6 +121,16 @@ import {
   getCleanBoardEditLayoutMode,
   getCleanBoardEditTabs,
 } from './editLayout'
+import {
+  DEFAULT_DISPLAY_MODE_ID,
+  DISPLAY_MODE_IDS,
+  DISPLAY_MODES,
+  getDisplayModeConfig,
+  isDisplayModeId,
+  projectObjectsForDisplayMode,
+  projectPageForDisplayMode,
+  sanitizeDisplayModeId,
+} from './displayModes'
 
 let passed = 0
 let failed = 0
@@ -361,7 +371,7 @@ function layoutFixture(name: string, id: string): SavedLayout {
     background: { type: 'solid', color: '#000000' },
     theme: DEFAULT_THEME,
     objects: [obj('a', 1)],
-    displayMode: 'default',
+    displayModeId: 'custom',
     createdAt: 1,
     updatedAt: 1,
   }
@@ -375,7 +385,7 @@ function sceneFixture(name: string, id: string, layoutId: string): BoardScene {
     kind: 'scene',
     type: 'math',
     layoutId,
-    displayMode: 'focus',
+    displayModeId: 'focus',
     spotifyPresetRef: 'spotify:playlist:abc',
     timerPresetRef: 'timer-5',
     keepAwake: true,
@@ -441,7 +451,7 @@ test('scene creation preserves metadata through round-trip', () => {
   assert(migrated !== null)
   const scene = migrated.scenes[0]
   assert(scene.type === 'math')
-  assert(scene.displayMode === 'focus')
+  assert(scene.displayModeId === 'focus')
   assert(scene.keepAwake === true)
   assert(scene.studentSafe === true)
   assert(scene.spotifyPresetRef === 'spotify:playlist:abc')
@@ -483,7 +493,7 @@ test('sanitizeSavedLayout drops forbidden keys and secret-bearing config', () =>
     name: 'Layout',
     kind: 'layout',
     background: { type: 'solid', color: '#000' },
-    displayMode: 'default',
+    displayModeId: 'custom',
     createdAt: 1,
     updatedAt: 1,
     accessToken: 'SECRET_TOKEN',
@@ -1393,6 +1403,212 @@ test('image object never leaks forbidden keys after round-trip', () => {
   assert(migrated !== null)
   const cfg = migrated.layouts[0].objects[0].config as Record<string, unknown>
   assert(!('accessToken' in cfg), 'token dropped after round-trip')
+})
+
+// ── DB-4F — classroom display modes ──
+
+function kindObj(kind: BoardObject['kind'], id: string): BoardObject {
+  return { ...obj(id, 1), kind, config: { kind } as unknown as BoardObject['config'] }
+}
+
+test('all display mode presets exist with full config', () => {
+  assert(DISPLAY_MODE_IDS.length === 7, 'seven modes: morning, focus, reading, transition, cleanup, assessment, custom')
+  for (const id of DISPLAY_MODE_IDS) {
+    const cfg = DISPLAY_MODES[id]
+    assert(cfg !== undefined, `preset ${id} exists`)
+    assert(cfg.id === id)
+    assert(typeof cfg.name === 'string' && cfg.name.length > 0)
+    assert(typeof cfg.description === 'string' && cfg.description.length > 0)
+    assert(typeof cfg.showSpotify === 'boolean')
+    assert(typeof cfg.showTimer === 'boolean')
+    assert(typeof cfg.showMessageCards === 'boolean')
+    assert(typeof cfg.showImages === 'boolean')
+    assert(typeof cfg.keepAwakeDefault === 'boolean')
+  }
+})
+
+test('unknown display mode falls back to custom', () => {
+  assert(sanitizeDisplayModeId('bogus') === 'custom')
+  assert(sanitizeDisplayModeId(undefined) === 'custom')
+  assert(sanitizeDisplayModeId(null) === 'custom')
+  assert(sanitizeDisplayModeId(42) === 'custom')
+  assert(sanitizeDisplayModeId('assessment') === 'assessment')
+  assert(DEFAULT_DISPLAY_MODE_ID === 'custom')
+})
+
+test('isDisplayModeId recognizes only known ids', () => {
+  for (const id of DISPLAY_MODE_IDS) assert(isDisplayModeId(id) === true, `accepts ${id}`)
+  assert(isDisplayModeId('legacyDefault') === false)
+  assert(isDisplayModeId('') === false)
+  assert(isDisplayModeId(null) === false)
+})
+
+test('display mode survives layout save/load round-trip', () => {
+  let state = createEmptyBoardState()
+  state = saveLayout(state, { ...layoutFixture('Morning', 'l1'), displayModeId: 'morningArrival' })
+  const migrated = migrateBoardState(parseBoardStateJson(serializeBoardState(state)))
+  assert(migrated !== null)
+  assert(migrated.layouts[0].displayModeId === 'morningArrival')
+})
+
+test('scene preserves display mode and sanitizes unknown ids', () => {
+  let state = createEmptyBoardState()
+  state = saveLayout(state, layoutFixture('A', 'l1'))
+  state = saveScene(state, { ...sceneFixture('S', 's1', 'l1'), displayModeId: 'assessment' })
+  const migrated = migrateBoardState(parseBoardStateJson(serializeBoardState(state)))
+  assert(migrated !== null)
+  assert(migrated.scenes[0].displayModeId === 'assessment')
+  // Unknown id recovers to custom through the scene sanitizer (via round-trip).
+  let state2 = createEmptyBoardState()
+  state2 = saveLayout(state2, layoutFixture('B', 'l2'))
+  state2 = saveScene(state2, { ...sceneFixture('U', 's2', 'l2'), displayModeId: 'bogus' as never })
+  const migrated2 = migrateBoardState(parseBoardStateJson(serializeBoardState(state2)))
+  assert(migrated2 !== null)
+  assert(migrated2.scenes[0].displayModeId === 'custom')
+})
+
+test('legacy displayMode placeholder migrates to displayModeId', () => {
+  const legacy = sanitizeSavedLayout({
+    schemaVersion: BOARD_SCHEMA_VERSION,
+    id: 'l1',
+    name: 'L',
+    kind: 'layout',
+    background: { type: 'solid', color: '#000' },
+    theme: DEFAULT_THEME,
+    objects: [obj('a', 1)],
+    displayMode: 'focus',
+    createdAt: 1,
+    updatedAt: 1,
+  })
+  assert(legacy !== null)
+  assert(legacy.displayModeId === 'focus')
+  const legacyDefault = sanitizeSavedLayout({
+    schemaVersion: BOARD_SCHEMA_VERSION,
+    id: 'l2',
+    name: 'L2',
+    kind: 'layout',
+    background: { type: 'solid', color: '#000' },
+    theme: DEFAULT_THEME,
+    objects: [obj('a', 1)],
+    displayMode: 'default',
+    createdAt: 1,
+    updatedAt: 1,
+  })
+  assert(legacyDefault !== null && legacyDefault.displayModeId === 'custom')
+})
+
+test('display mode state cannot carry Spotify tokens or private keys', () => {
+  const clean = sanitizeSavedLayout({
+    schemaVersion: BOARD_SCHEMA_VERSION,
+    id: 'l1',
+    name: 'L',
+    kind: 'layout',
+    background: { type: 'solid', color: '#000' },
+    theme: DEFAULT_THEME,
+    objects: [obj('a', 1)],
+    displayModeId: 'morningArrival',
+    accessToken: 'SECRET',
+    refreshToken: 'SECRET2',
+    email: 'x@y.z',
+    createdAt: 1,
+    updatedAt: 1,
+  })
+  assert(clean !== null)
+  assert(!('accessToken' in clean))
+  assert(!('refreshToken' in clean))
+  assert(!('email' in clean))
+  assert(clean.displayModeId === 'morningArrival')
+})
+
+test('Morning Arrival projects spotify/timer/message/image visibility', () => {
+  const objs = [
+    kindObj('text', 't'),
+    kindObj('spotifyNowPlayingPlaceholder', 's'),
+    kindObj('timer', 'tm'),
+    kindObj('messageCard', 'm'),
+    kindObj('image', 'i'),
+    kindObj('clock', 'c'),
+  ]
+  const out = projectObjectsForDisplayMode(objs, 'morningArrival')
+  const kinds = out.map((o) => o.kind)
+  const expected: BoardObject['kind'][] = [
+    'spotifyNowPlayingPlaceholder',
+    'timer',
+    'messageCard',
+    'image',
+    'text',
+    'clock',
+  ]
+  for (const k of expected) {
+    assert(kinds.includes(k), `morning shows ${k}`)
+  }
+  assert(out.length === 6)
+})
+
+test('Assessment disables Spotify visibility and reduces distractions', () => {
+  const objs = [
+    kindObj('spotifyNowPlayingPlaceholder', 's'),
+    kindObj('timer', 'tm'),
+    kindObj('messageCard', 'm'),
+    kindObj('image', 'i'),
+    kindObj('text', 't'),
+  ]
+  const out = projectObjectsForDisplayMode(objs, 'assessment')
+  assert(!out.some((o) => o.kind === 'spotifyNowPlayingPlaceholder'), 'no spotify in assessment')
+  assert(!out.some((o) => o.kind === 'image'), 'no images in assessment')
+  assert(out.some((o) => o.kind === 'timer'), 'quiet timer still shown')
+  assert(out.some((o) => o.kind === 'messageCard'), 'focus message still shown')
+})
+
+test('Transition shows directions and timer, hides spotify/images', () => {
+  const objs = [
+    kindObj('messageCard', 'm'),
+    kindObj('timer', 'tm'),
+    kindObj('spotifyNowPlayingPlaceholder', 's'),
+    kindObj('image', 'i'),
+  ]
+  const out = projectObjectsForDisplayMode(objs, 'transition')
+  const kinds = out.map((o) => o.kind)
+  assert(kinds.includes('messageCard'), 'directions visible')
+  assert(kinds.includes('timer'), 'short timer visible')
+  assert(!kinds.includes('spotifyNowPlayingPlaceholder'))
+  assert(!kinds.includes('image'))
+})
+
+test('custom mode shows everything and projection does not mutate input', () => {
+  const objs = [
+    kindObj('text', 't'),
+    kindObj('spotifyNowPlayingPlaceholder', 's'),
+    kindObj('image', 'i'),
+  ]
+  const out = projectObjectsForDisplayMode(objs, 'custom')
+  assert(out.length === 3)
+  assert(objs.length === 3, 'input array not mutated')
+})
+
+test('projectPageForDisplayMode applies recommended background and is teacher-field-free', () => {
+  const page: BoardPage = {
+    id: 'p1',
+    title: 'T',
+    background: solidBackground,
+    theme: DEFAULT_THEME,
+    objects: [obj('a', 1)],
+  }
+  const projected = projectPageForDisplayMode(toSafeBoardPage(page), 'morningArrival')
+  assert(projected.background.type === 'preset')
+  assert((projected.background as { presetId: string }).presetId === 'morning-glow')
+  assert(!('teacherNotes' in projected))
+  assert(!('displayModeId' in projected))
+  assert(safeBoardPageHasNoForbiddenKeys(projected))
+  const custom = projectPageForDisplayMode(toSafeBoardPage(page), 'custom')
+  assert(custom.background.type === 'solid', 'custom preserves authored background')
+})
+
+test('display mode config drives scene keep-awake default', () => {
+  assert(getDisplayModeConfig('morningArrival').keepAwakeDefault === true)
+  assert(getDisplayModeConfig('assessment').keepAwakeDefault === false)
+  assert(getDisplayModeConfig('custom').recommendedSceneType === undefined)
+  assert(getDisplayModeConfig('transition').recommendedSceneType === 'transition')
 })
 
 // ── Summary ──

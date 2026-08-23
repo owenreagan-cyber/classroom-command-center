@@ -4,6 +4,7 @@ import { DEFAULT_THEME, getTheme, isBoardThemeId } from '../themes'
 import { sanitizeMessageCardConfig } from '../messageCards'
 import { sanitizeTimerConfig } from '../timerPresets'
 import { sanitizeImageObjectConfig, sanitizeLocalImage } from '../images'
+import { sanitizeDisplayModeId } from '../displayModes'
 import type {
   BoardBackground,
   BoardObject,
@@ -12,7 +13,7 @@ import type {
   BoardScene,
   BoardState,
   BoardTheme,
-  DisplayMode,
+  DisplayModeId,
   ReadabilityOverlay,
   SavedLayout,
   SceneType,
@@ -42,7 +43,6 @@ const FORBIDDEN_PERSIST_KEYS = [
   'userId',
 ] as const
 
-const DISPLAY_MODES: readonly DisplayMode[] = ['default', 'focus', 'calm', 'transition']
 const SCENE_TYPES: readonly SceneType[] = [
   'arrival',
   'math',
@@ -51,6 +51,15 @@ const SCENE_TYPES: readonly SceneType[] = [
   'packUp',
   'custom',
 ]
+
+/**
+ * Read a display-mode id from a persisted record. Prefers the DB-4F
+ * `displayModeId` field; falls back to the legacy `displayMode` placeholder
+ * (`default`/`calm`/`focus`/`transition`) so older records still recover.
+ */
+function readDisplayModeId(raw: Record<string, unknown>): DisplayModeId {
+  return sanitizeDisplayModeId(raw.displayModeId ?? raw.displayMode)
+}
 
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v)
@@ -208,9 +217,7 @@ export function sanitizeSavedLayout(raw: unknown): SavedLayout | null {
   const background = sanitizeBackground(raw.background)
   const objects = sanitizeObjects(raw.objects)
   if (!objects) return null
-  const displayMode = DISPLAY_MODES.includes(raw.displayMode as DisplayMode)
-    ? (raw.displayMode as DisplayMode)
-    : 'default'
+  const displayModeId = readDisplayModeId(raw)
   return {
     schemaVersion: BOARD_SCHEMA_VERSION,
     id: raw.id,
@@ -219,7 +226,7 @@ export function sanitizeSavedLayout(raw: unknown): SavedLayout | null {
     background,
     theme: sanitizeTheme(raw.theme),
     objects,
-    displayMode,
+    displayModeId,
     createdAt: isNum(raw.createdAt) ? raw.createdAt : 0,
     updatedAt: isNum(raw.updatedAt) ? raw.updatedAt : 0,
   }
@@ -233,9 +240,7 @@ export function sanitizeBoardScene(raw: unknown): BoardScene | null {
   const type = SCENE_TYPES.includes(raw.type as SceneType)
     ? (raw.type as SceneType)
     : 'custom'
-  const displayMode = DISPLAY_MODES.includes(raw.displayMode as DisplayMode)
-    ? (raw.displayMode as DisplayMode)
-    : 'default'
+  const displayModeId = readDisplayModeId(raw)
   return {
     schemaVersion: BOARD_SCHEMA_VERSION,
     id: raw.id,
@@ -243,7 +248,7 @@ export function sanitizeBoardScene(raw: unknown): BoardScene | null {
     kind: 'scene',
     type,
     layoutId: raw.layoutId,
-    displayMode,
+    displayModeId,
     ...(isStr(raw.spotifyPresetRef) ? { spotifyPresetRef: raw.spotifyPresetRef } : {}),
     ...(isStr(raw.timerPresetRef) ? { timerPresetRef: raw.timerPresetRef } : {}),
     ...(isStr(raw.backgroundRef) ? { backgroundRef: raw.backgroundRef } : {}),
