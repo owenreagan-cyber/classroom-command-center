@@ -123,7 +123,7 @@ export function BoardObjectRenderer({
       return (
         <div className="flex h-full w-full flex-col items-center justify-center rounded-2xl border border-slate-700/60 bg-slate-900/60">
           <p className="m-0 text-5xl font-bold tabular-nums text-slate-100">{cfg.label}</p>
-          <p className="m-0 text-base text-slate-400">Timer</p>
+          <p className="m-0 text-base text-slate-400">{cfg.title}</p>
         </div>
       )
     case 'spotifyNowPlayingPlaceholder':

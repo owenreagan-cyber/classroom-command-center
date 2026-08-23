@@ -38,6 +38,7 @@ echo "PASS: clean-board has no old shell or spotify embed imports"
   "$ROOT/src/features/clean-board/backgrounds.ts" \
   "$ROOT/src/features/clean-board/themes.ts" \
   "$ROOT/src/features/clean-board/messageCards.ts" \
+  "$ROOT/src/features/clean-board/timerPresets.ts" \
   "$ROOT/src/features/clean-board/boardGeometry.ts" \
   "$ROOT/src/features/clean-board/editLayout.ts" \
   "$ROOT/src/features/clean-board/boardSafety.ts" \
