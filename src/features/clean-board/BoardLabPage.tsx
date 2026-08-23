@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { BoardCanvas } from './BoardCanvas'
 import { BoardLookPanel } from './BoardLookPanel'
 import { BoardToolbar } from './BoardToolbar'
@@ -8,6 +8,7 @@ import { SavedBoardsPanel } from './SavedBoardsPanel'
 import { TimerTeacherPanel } from './TimerTeacherPanel'
 import { DEFAULT_BACKGROUND } from './backgrounds'
 import { pageHasKind, toSafeBoardPage } from './boardSafety'
+import { createImageObjectFromSafeImage, imageRejectMessage, readImageFileToSafeDataUrl } from './images'
 import { DEFAULT_MESSAGE_CARD_KIND, getMessageCardPreset } from './messageCards'
 import { createSeedBoard } from './seedBoard'
 import { SpotifyTeacherPanel } from './spotify/SpotifyTeacherPanel'
@@ -70,7 +71,7 @@ function hydrateSeed(): BoardDeck {
   }
 }
 
-function createDefaultObject(kind: BoardObjectKind, id: string): BoardObject {
+function createDefaultObject(kind: Exclude<BoardObjectKind, 'image'>, id: string): BoardObject {
   const base = { id, kind, rotation: 0, locked: false, visible: true, layer: 100 }
   switch (kind) {
     case 'text':
@@ -87,15 +88,6 @@ function createDefaultObject(kind: BoardObjectKind, id: string): BoardObject {
           color: '#f8fafc',
           align: 'center' as const,
         },
-      }
-    case 'image':
-      return {
-        ...base,
-        x: 640,
-        y: 360,
-        w: 640,
-        h: 360,
-        config: { kind, src: '', alt: 'Image placeholder', fit: 'cover' as const },
       }
     case 'link':
       return {
@@ -228,6 +220,11 @@ export function BoardLabPage() {
   const responsive = mode === 'edit' && editLayoutMode === 'responsivePanels'
   const [drawerTab, setDrawerTab] = useState<EditDrawerTab>('saved')
 
+  const imageInputRef = useRef<HTMLInputElement>(null)
+  const [imageStatus, setImageStatus] = useState<{ kind: 'error' | 'ok'; message: string } | null>(
+    null,
+  )
+
   const present = useMemo(() => toSafeBoardPage(activePage), [activePage])
 
   const canvasObjects = useMemo(() => {
@@ -255,7 +252,33 @@ export function BoardLabPage() {
     else if (kind === 'timer') setDrawerTab('timer')
   }
 
-  const handleAddObject = (kind: BoardObjectKind) => {
+  const pickImage = () => {
+    imageInputRef.current?.click()
+  }
+
+  const handleImageFiles = async (files: FileList | null) => {
+    const file = files?.[0]
+    if (!file) return
+    const result = await readImageFileToSafeDataUrl(file)
+    if (!result.ok) {
+      setImageStatus({ kind: 'error', message: imageRejectMessage(result.reason) })
+      return
+    }
+    const pageId = activePage.id
+    const obj = createImageObjectFromSafeImage(result.image, `image-${Date.now()}`)
+    setDeck((prev) => ({
+      ...prev,
+      updatedAt: Date.now(),
+      pages: prev.pages.map((p) =>
+        p.id === pageId ? { ...p, objects: [...p.objects, obj] } : p,
+      ),
+    }))
+    selectObject(obj.id, 'image')
+    setImageStatus({ kind: 'ok', message: 'Image added' })
+    if (imageInputRef.current) imageInputRef.current.value = ''
+  }
+
+  const handleAddObject = (kind: Exclude<BoardObjectKind, 'image'>) => {
     const pageId = activePage.id
     // A now-playing tile is singular by nature — prevent stacking duplicates
     // (e.g. from repeated "Add Spotify" clicks across HMR) by re-selecting the
@@ -415,7 +438,25 @@ export function BoardLabPage() {
       {mode === 'edit' && (
         <div className="flex shrink-0 items-center gap-3 border-b border-slate-800 px-5 py-2">
           <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Add</span>
-          <BoardToolbar onAdd={handleAddObject} />
+          <BoardToolbar onAdd={handleAddObject} onPickImage={pickImage} />
+          <input
+            ref={imageInputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            className="hidden"
+            onChange={(e) => void handleImageFiles(e.target.files)}
+            data-board-image-input
+          />
+          {imageStatus && (
+            <span
+              className={`text-xs font-medium ${
+                imageStatus.kind === 'error' ? 'text-amber-400' : 'text-emerald-400'
+              }`}
+              data-board-image-status={imageStatus.kind}
+            >
+              {imageStatus.message}
+            </span>
+          )}
           <div className="ml-auto">
             <KeepAwakeToggle />
           </div>

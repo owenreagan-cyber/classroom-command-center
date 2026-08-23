@@ -36,6 +36,15 @@ function backgroundStyle(bg: BoardBackground): CSSProperties {
   if (bg.type === 'preset') {
     return { background: getBackgroundPreset(bg.presetId).css }
   }
+  if (bg.type === 'localImage') {
+    return {
+      backgroundColor: '#0f172a',
+      backgroundImage: `url(${bg.image.dataUrl})`,
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundRepeat: 'no-repeat',
+    }
+  }
   if (bg.type === 'gradient') {
     return {
       background: `linear-gradient(${bg.angleDeg ?? 135}deg, ${bg.from}, ${bg.to})`,

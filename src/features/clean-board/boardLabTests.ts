@@ -72,6 +72,23 @@ import {
   timerConfigFromPreset,
 } from './timerPresets'
 import {
+  DEFAULT_IMAGE_FIT,
+  IMAGE_ALLOWED_MIME_TYPES,
+  IMAGE_MAX_BYTES,
+  IMAGE_MAX_DIMENSION,
+  createImageObjectFromSafeImage,
+  dataUrlByteSize,
+  detectImageMimeType,
+  imageRejectMessage,
+  isAllowedImageMimeType,
+  isImageFit,
+  isSafeImageDataUrl,
+  sanitizeImageAltText,
+  sanitizeImageObjectConfig,
+  sanitizeLocalImage,
+  validateImageFileMetadata,
+} from './images'
+import {
   deleteLayout,
   deleteScene,
   layoutFromPage,
@@ -87,6 +104,7 @@ import type {
   BoardObject,
   BoardPage,
   BoardScene,
+  ImageObjectConfig,
   MessageCardConfig,
   SavedLayout,
   TimerConfig,
@@ -1118,6 +1136,263 @@ test('corrupt saved timer recovers safely', () => {
   assert(cfg.tone === 'neutral')
   assert(cfg.title === 'Custom')
   assert(cfg.label === '10:00')
+})
+
+// ── DB-4E — safe local image insert + wallpaper upload ──
+
+const VALID_PNG_DATA_URL =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='
+
+function validImageRaw(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    kind: 'localData',
+    mimeType: 'image/png',
+    dataUrl: VALID_PNG_DATA_URL,
+    altText: 'Class mascot',
+    byteSize: 68,
+    width: 64,
+    height: 64,
+    ...overrides,
+  }
+}
+
+function validImageObjectRaw(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    kind: 'image',
+    image: validImageRaw(),
+    fit: 'contain',
+    opacity: 1,
+    ...overrides,
+  }
+}
+
+function imageObj(id: string, raw: Record<string, unknown>): BoardObject {
+  return {
+    id,
+    kind: 'image',
+    x: 0,
+    y: 0,
+    w: 200,
+    h: 200,
+    rotation: 0,
+    locked: false,
+    visible: true,
+    layer: 5,
+    config: raw as unknown as ImageObjectConfig,
+  }
+}
+
+test('allowed image MIME types pass', () => {
+  assert(IMAGE_ALLOWED_MIME_TYPES.length === 3, 'png/jpeg/webp only')
+  assert(isAllowedImageMimeType('image/png') === true)
+  assert(isAllowedImageMimeType('image/jpeg') === true)
+  assert(isAllowedImageMimeType('image/webp') === true)
+})
+
+test('disallowed image MIME types fail: SVG, HTML, PDF, HEIC, unknown', () => {
+  for (const m of [
+    'image/svg+xml',
+    'text/html',
+    'application/pdf',
+    'image/heic',
+    'application/octet-stream',
+    'image/gif',
+    '',
+  ]) {
+    assert(isAllowedImageMimeType(m) === false, `rejects ${m}`)
+  }
+  const svg = validateImageFileMetadata({ type: 'image/svg+xml', size: 100 })
+  assert(!svg.ok && svg.reason === 'unsupported-type')
+  const heic = validateImageFileMetadata({ type: 'image/heic', size: 100 })
+  assert(!heic.ok && heic.reason === 'unsupported-type')
+})
+
+test('oversized and empty image files are rejected', () => {
+  const over = validateImageFileMetadata({ type: 'image/png', size: IMAGE_MAX_BYTES + 1 })
+  assert(!over.ok && over.reason === 'oversized')
+  const empty = validateImageFileMetadata({ type: 'image/png', size: 0 })
+  assert(!empty.ok && empty.reason === 'empty')
+  const ok = validateImageFileMetadata({ type: 'image/png', size: 1024 })
+  assert(ok.ok === true)
+})
+
+test('magic bytes sniff PNG, JPEG, WebP and reject SVG/GIF/HTML', () => {
+  assert(detectImageMimeType(new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) === 'image/png')
+  assert(detectImageMimeType(new Uint8Array([0xff, 0xd8, 0xff, 0xe0])) === 'image/jpeg')
+  const webp = new Uint8Array(12)
+  ;[0x52, 0x49, 0x46, 0x46].forEach((b, i) => (webp[i] = b))
+  ;[0x57, 0x45, 0x42, 0x50].forEach((b, i) => (webp[8 + i] = b))
+  assert(detectImageMimeType(webp) === 'image/webp')
+  assert(detectImageMimeType(new Uint8Array([0x3c, 0x73, 0x76, 0x67])) === null, 'rejects <svg')
+  assert(detectImageMimeType(new Uint8Array([0x47, 0x49, 0x46, 0x38, 0x39, 0x61])) === null, 'rejects GIF')
+  assert(detectImageMimeType(new Uint8Array([0x25, 0x50, 0x44, 0x46])) === null, 'rejects %PDF')
+})
+
+test('valid base64 raster data URL is accepted', () => {
+  assert(isSafeImageDataUrl(VALID_PNG_DATA_URL) === true)
+  const img = sanitizeLocalImage(validImageRaw())
+  assert(img !== null)
+  assert(img.mimeType === 'image/png')
+  assert(img.dataUrl === VALID_PNG_DATA_URL)
+  assert(img.altText === 'Class mascot')
+  assert(img.byteSize > 0)
+  assert(dataUrlByteSize(VALID_PNG_DATA_URL) > 0)
+})
+
+test('remote URLs are rejected and dropped', () => {
+  assert(isSafeImageDataUrl('https://evil.example/x.png') === false)
+  assert(isSafeImageDataUrl('http://evil.example/x.png') === false)
+  assert(sanitizeLocalImage(validImageRaw({ dataUrl: 'https://evil.example/x.png' })) === null)
+  assert(sanitizeImageObjectConfig({ kind: 'image', image: validImageRaw({ dataUrl: 'https://evil.example/x.png' }) }) === null)
+})
+
+test('file paths and asset paths are rejected and dropped', () => {
+  assert(isSafeImageDataUrl('/local/photo.png') === false)
+  assert(isSafeImageDataUrl('file:///local/photo.png') === false)
+  assert(isSafeImageDataUrl('assets/wallpaper.png') === false)
+  assert(sanitizeLocalImage(validImageRaw({ dataUrl: '/local/photo.png' })) === null)
+})
+
+test('script-looking and HTML/SVG data URLs are rejected', () => {
+  assert(isSafeImageDataUrl('data:text/html;base64,PGh0bWw+PC9odG1sPg==') === false)
+  assert(isSafeImageDataUrl('data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=') === false)
+  assert(isSafeImageDataUrl('data:image/png;base64,<script>alert(1)</script>') === false)
+  assert(isSafeImageDataUrl('data:image/png,<svg onload=alert(1)>') === false)
+  assert(isSafeImageDataUrl('javascript:alert(1)') === false)
+})
+
+test('image object config sanitizes to only whitelisted fields', () => {
+  const cfg = sanitizeImageObjectConfig(validImageObjectRaw())
+  assert(cfg !== null)
+  assert(Object.keys(cfg).sort().join(',') === ['fit', 'image', 'kind', 'opacity'].join(','))
+  assert(
+    Object.keys(cfg.image).sort().join(',') ===
+      ['altText', 'byteSize', 'dataUrl', 'height', 'kind', 'mimeType', 'width'].join(','),
+  )
+})
+
+test('unknown image keys are removed', () => {
+  const cfg = sanitizeImageObjectConfig(validImageObjectRaw({ extra: 'nope', another: 1 }))
+  assert(cfg !== null)
+  assert(!('extra' in cfg) && !('another' in cfg))
+  const img = sanitizeLocalImage(validImageRaw({ extra: 'nope' }))
+  assert(img !== null && !('extra' in img))
+})
+
+test('token/secret-looking fields cannot survive image serialization', () => {
+  const cfg = sanitizeImageObjectConfig(
+    validImageObjectRaw({ accessToken: 'SECRET', refreshToken: 'SECRET2', email: 'x@y.z' }),
+  )
+  assert(cfg !== null)
+  assert(!('accessToken' in cfg) && !('refreshToken' in cfg) && !('email' in cfg))
+  const img = sanitizeLocalImage(validImageRaw({ accessToken: 'SECRET', deviceId: 'd1' }))
+  assert(img !== null && !('accessToken' in img) && !('deviceId' in img))
+})
+
+test('oversized dimensions are sanitized away', () => {
+  const img = sanitizeLocalImage(validImageRaw({ width: IMAGE_MAX_DIMENSION + 1, height: 99999 }))
+  assert(img !== null)
+  assert(!('width' in img) && !('height' in img), 'out-of-range dimensions dropped')
+})
+
+test('image object survives saved layout serialization round-trip', () => {
+  let state = createEmptyBoardState()
+  state = saveLayout(state, {
+    ...layoutFixture('Image Board', 'l1'),
+    objects: [imageObj('img1', validImageObjectRaw())],
+  })
+  const migrated = migrateBoardState(parseBoardStateJson(serializeBoardState(state)))
+  assert(migrated !== null)
+  const obj = migrated.layouts[0].objects[0]
+  assert(obj.kind === 'image')
+  const cfg = obj.config as unknown as ImageObjectConfig
+  assert(cfg.image.dataUrl === VALID_PNG_DATA_URL)
+  assert(cfg.image.altText === 'Class mascot')
+  assert(cfg.fit === 'contain')
+  assert(cfg.opacity === 1)
+})
+
+test('local wallpaper survives background serialization', () => {
+  const bg = sanitizeBackground({
+    type: 'localImage',
+    image: validImageRaw(),
+    readabilityOverlay: 'strong',
+  })
+  assert(bg.type === 'localImage')
+  assert(bg.image.dataUrl === VALID_PNG_DATA_URL)
+  assert(bg.readabilityOverlay === 'strong')
+  assert(effectiveOverlay(bg) === 'strong')
+})
+
+test('corrupt local wallpaper falls back to safe preset background', () => {
+  const badUrl = sanitizeBackground({ type: 'localImage', image: validImageRaw({ dataUrl: 'https://evil.example/x.png' }) })
+  assert(badUrl.type === 'preset' && badUrl.presetId === DEFAULT_BACKGROUND.presetId)
+  const badPayload = sanitizeBackground({ type: 'localImage', image: { kind: 'localData', dataUrl: 'data:text/html;base64,PGg=' } })
+  assert(badPayload.type === 'preset' && badPayload.presetId === DEFAULT_BACKGROUND.presetId)
+  const notImage = sanitizeBackground({ type: 'localImage' })
+  assert(notImage.type === 'preset' && notImage.presetId === DEFAULT_BACKGROUND.presetId)
+})
+
+test('present projection includes safe image objects', () => {
+  const page: BoardPage = {
+    id: 'p1',
+    title: 'T',
+    background: solidBackground,
+    theme: DEFAULT_THEME,
+    objects: [imageObj('img1', validImageObjectRaw())],
+  }
+  const safe = toSafeBoardPage(page)
+  assert(safe.objects.length === 1)
+  assert(safe.objects[0].kind === 'image')
+  assert(safeBoardPageHasNoForbiddenKeys(safe))
+})
+
+test('present projection strips private fields from image objects', () => {
+  const contaminated = imageObj('img1', validImageObjectRaw({ accessToken: 'SECRET', email: 'x@y.z' }))
+  const page: BoardPage = {
+    id: 'p1',
+    title: 'T',
+    background: solidBackground,
+    theme: DEFAULT_THEME,
+    objects: [contaminated],
+  }
+  const safe = toSafeBoardPage(page)
+  const cfg = safe.objects[0].config as Record<string, unknown>
+  assert(!('accessToken' in cfg) && !('email' in cfg), 'drops token/email in present projection')
+  assert(cfg.kind === 'image')
+  const image = cfg.image as Record<string, unknown>
+  assert(!('accessToken' in image) && !('email' in image), 'nested image is clean')
+})
+
+test('createImageObjectFromSafeImage produces a centered, sized image object', () => {
+  const img = sanitizeLocalImage(validImageRaw())
+  assert(img !== null)
+  const obj = createImageObjectFromSafeImage(img, 'img-x')
+  assert(obj.kind === 'image')
+  assert(obj.id === 'img-x')
+  assert(obj.w > 0 && obj.h > 0)
+  assert(obj.x >= 0 && obj.y >= 0)
+  assert(obj.x + obj.w <= 1920.01 && obj.y + obj.h <= 1080.01, 'object within canvas bounds')
+  assert(obj.config.kind === 'image')
+  assert((obj.config as ImageObjectConfig).fit === DEFAULT_IMAGE_FIT)
+})
+
+test('image fit and reject-message helpers behave', () => {
+  assert(isImageFit('contain') && isImageFit('cover') && isImageFit('fill'))
+  assert(!isImageFit('stretch') && !isImageFit(''))
+  assert(imageRejectMessage('unsupported-type').length > 0)
+  assert(sanitizeImageAltText('Mascot <script>alert(1)</script> https://x.example/y.png') === 'Mascot')
+})
+
+test('image object never leaks forbidden keys after round-trip', () => {
+  let state = createEmptyBoardState()
+  const contaminated = imageObj('img1', validImageObjectRaw({ accessToken: 'SECRET' }))
+  state = saveLayout(state, { ...layoutFixture('Img', 'l1'), objects: [contaminated] })
+  assert(boardStateHasNoForbiddenKeys(state) === true, 'image payload carries no top-level forbidden keys')
+  const migrated = migrateBoardState(parseBoardStateJson(serializeBoardState(state)))
+  assert(migrated !== null)
+  const cfg = migrated.layouts[0].objects[0].config as Record<string, unknown>
+  assert(!('accessToken' in cfg), 'token dropped after round-trip')
 })
 
 // ── Summary ──

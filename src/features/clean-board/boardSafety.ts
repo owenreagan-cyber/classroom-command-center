@@ -1,6 +1,7 @@
 import type { BoardMode, BoardObject, BoardObjectConfig, BoardPage } from './types'
 import { sanitizeMessageCardConfig } from './messageCards'
 import { sanitizeTimerConfig } from './timerPresets'
+import { sanitizeImageObjectConfig } from './images'
 
 /**
  * DB-1 — Clean Board student-safety projection.
@@ -37,6 +38,11 @@ function sanitizeConfig(config: BoardObjectConfig): BoardObjectConfig {
     // Timers are student-facing (title + remaining time). Re-whitelist to strip
     // any unknown/private keys before the config reaches present mode.
     return sanitizeTimerConfig(config)
+  }
+  if (config.kind === 'image') {
+    // Images project as content only. Re-whitelist the safe local payload so no
+    // extra/private keys (tokens, names, paths, URLs) reach present mode.
+    return sanitizeImageObjectConfig(config) ?? config
   }
   return config
 }

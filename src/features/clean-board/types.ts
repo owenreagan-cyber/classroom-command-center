@@ -48,6 +48,38 @@ export type BackgroundPresetId =
 
 export type ReadabilityOverlay = 'none' | 'soft' | 'strong'
 
+// ── DB-4E — safe local images / wallpaper ──
+
+/** Browser-safe raster MIME types accepted for teacher image uploads. */
+export type ImageMimeType = 'image/png' | 'image/jpeg' | 'image/webp'
+
+/** Object-fit mode for image board objects. */
+export type ImageFit = 'contain' | 'cover' | 'fill'
+
+/**
+ * A sanitized, local-only raster image. `dataUrl` is a self-contained
+ * `data:image/(png|jpeg|webp);base64,...` payload (never a remote URL, file
+ * path, blob, or SVG). No EXIF/private metadata is stored; the original file
+ * name is intentionally dropped.
+ */
+export type SafeLocalImage = {
+  kind: 'localData'
+  mimeType: ImageMimeType
+  dataUrl: string
+  altText: string
+  byteSize: number
+  width?: number
+  height?: number
+}
+
+/** Config for a board image object (replaces the old free-form `src` shape). */
+export type ImageObjectConfig = {
+  kind: 'image'
+  image: SafeLocalImage
+  fit: ImageFit
+  opacity: number
+}
+
 export type BoardThemeId = 'minimal-light' | 'minimal-dark' | 'glass-dark' | 'solid-focus'
 
 export type BoardTheme = {
@@ -68,6 +100,11 @@ export type BoardBackground =
     }
   | { type: 'solid'; color: string; readabilityOverlay?: ReadabilityOverlay }
   | { type: 'preset'; presetId: BackgroundPresetId; readabilityOverlay?: ReadabilityOverlay }
+  | {
+      type: 'localImage'
+      image: SafeLocalImage
+      readabilityOverlay?: ReadabilityOverlay
+    }
 
 // ── DB-4C — Directions / Message Card widget ──
 
@@ -143,7 +180,7 @@ export type BoardObjectConfig =
       color: string
       align: 'left' | 'center' | 'right'
     }
-  | { kind: 'image'; src: string; alt: string; fit: 'cover' | 'contain' | 'fill' }
+  | ImageObjectConfig
   | { kind: 'link'; url: string; label: string }
   | { kind: 'videoEmbed'; src: string; label: string }
   | { kind: 'clock'; format: '12h' | '24h'; label: string }
