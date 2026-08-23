@@ -1,6 +1,7 @@
 import { BOARD_OBJECT_KINDS } from '../types'
 import { DEFAULT_BACKGROUND, isBackgroundPresetId, isReadabilityOverlay } from '../backgrounds'
 import { DEFAULT_THEME, getTheme, isBoardThemeId } from '../themes'
+import { sanitizeMessageCardConfig } from '../messageCards'
 import type {
   BoardBackground,
   BoardObject,
@@ -159,6 +160,8 @@ function sanitizeConfig(kind: BoardObjectKind, raw: unknown): BoardObjectConfig 
       }
     case 'spotifyNowPlayingPlaceholder':
       return { kind, label: isStr(raw.label) ? raw.label : 'Now Playing' }
+    case 'messageCard':
+      return sanitizeMessageCardConfig(raw)
     default:
       return null
   }

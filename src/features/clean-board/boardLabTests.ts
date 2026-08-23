@@ -40,6 +40,21 @@ import {
   textToneForBackground,
 } from './backgrounds'
 import { BOARD_THEME_IDS, DEFAULT_THEME, getTheme, isBoardThemeId } from './themes'
+import {
+  DEFAULT_MESSAGE_CARD_KIND,
+  MESSAGE_CARD_KIND_LABELS,
+  MESSAGE_CARD_KINDS,
+  MESSAGE_CARD_PRESETS,
+  MESSAGE_CARD_TEXT_SIZES,
+  MESSAGE_CARD_TONES,
+  defaultMessageCardConfig,
+  getMessageCardPreset,
+  isMessageCardKind,
+  isMessageCardTextSize,
+  isMessageCardTone,
+  sanitizeMessageCardConfig,
+  sanitizePlainText,
+} from './messageCards'
 import { migrateBoardState } from './storage/boardMigrations'
 import {
   deleteLayout,
@@ -57,6 +72,7 @@ import type {
   BoardObject,
   BoardPage,
   BoardScene,
+  MessageCardConfig,
   SavedLayout,
 } from './types'
 import {
@@ -653,6 +669,194 @@ test('reset constants point at the default background and theme', () => {
   assert(DEFAULT_BACKGROUND.type === 'preset')
   assert(isBackgroundPresetId(DEFAULT_BACKGROUND.presetId))
   assert(isBoardThemeId(DEFAULT_THEME.id))
+})
+
+// ── DB-4C — directions / message card widget ──
+
+function messageCardObj(id: string, config: Record<string, unknown>): BoardObject {
+  return {
+    id,
+    kind: 'messageCard',
+    x: 0,
+    y: 0,
+    w: 720,
+    h: 360,
+    rotation: 0,
+    locked: false,
+    visible: true,
+    layer: 1,
+    config: config as unknown as MessageCardConfig,
+  }
+}
+
+function validMessageCardRaw(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    kind: 'messageCard',
+    title: 'Do Now',
+    message: '1. Take out your materials.\n2. Begin the first task.',
+    cardKind: 'doNow',
+    tone: 'focus',
+    textSize: 'medium',
+    checklistStyle: true,
+    ...overrides,
+  }
+}
+
+test('message card preset catalog is complete and valid', () => {
+  assert(MESSAGE_CARD_KINDS.length === 7, 'seven card kinds defined')
+  assert(MESSAGE_CARD_TONES.length === 5, 'five tones defined')
+  assert(MESSAGE_CARD_TEXT_SIZES.length === 3, 'three text sizes defined')
+  const seen = new Set<string>()
+  for (const kind of MESSAGE_CARD_KINDS) {
+    assert(!seen.has(kind), `kind ${kind} unique`)
+    seen.add(kind)
+    const preset = MESSAGE_CARD_PRESETS[kind]
+    assert(preset.title.length > 0, `${kind} has title`)
+    assert(preset.message.length > 0, `${kind} has message`)
+    assert(MESSAGE_CARD_TONES.includes(preset.tone), `${kind} tone valid`)
+    assert(MESSAGE_CARD_TEXT_SIZES.includes(preset.textSize), `${kind} textSize valid`)
+    assert(MESSAGE_CARD_KIND_LABELS[kind].length > 0, `${kind} has label`)
+  }
+})
+
+test('valid message card serializes', () => {
+  const cfg = sanitizeMessageCardConfig(validMessageCardRaw())
+  assert(cfg.kind === 'messageCard')
+  assert(cfg.title === 'Do Now')
+  assert(cfg.message.includes('Take out your materials'))
+  assert(cfg.cardKind === 'doNow')
+  assert(cfg.tone === 'focus')
+  assert(cfg.textSize === 'medium')
+  assert(cfg.checklistStyle === true)
+})
+
+test('invalid cardKind recovers to default', () => {
+  const cfg = sanitizeMessageCardConfig(validMessageCardRaw({ cardKind: 'notReal' }))
+  assert(cfg.cardKind === DEFAULT_MESSAGE_CARD_KIND)
+})
+
+test('invalid tone recovers to default', () => {
+  const cfg = sanitizeMessageCardConfig(validMessageCardRaw({ tone: 'loud' }))
+  assert(cfg.tone === 'neutral')
+})
+
+test('invalid textSize recovers to default', () => {
+  const cfg = sanitizeMessageCardConfig(validMessageCardRaw({ textSize: 'huge' }))
+  assert(cfg.textSize === 'medium')
+})
+
+test('HTML and script content is neutralized', () => {
+  const cleaned = sanitizePlainText('<script>alert(1)</script><b>Hello</b> world')
+  assert(!cleaned.includes('<script'), 'script block removed')
+  assert(!cleaned.includes('<b>'), 'tag removed')
+  assert(cleaned.includes('Hello world'), 'keeps text')
+})
+
+test('remote URLs are stripped', () => {
+  const cleaned = sanitizePlainText('Go to https://evil.example/x.png now')
+  assert(!cleaned.includes('https://'), 'scheme url removed')
+  assert(cleaned.includes('Go to') && cleaned.includes('now'), 'surrounding text kept')
+  const wwwCleaned = sanitizePlainText('See www.example.com for details')
+  assert(!wwwCleaned.includes('www.example.com'), 'bare www url removed')
+})
+
+test('sanitizePlainText preserves plain math comparison', () => {
+  assert(sanitizePlainText('x < 5') === 'x < 5')
+  assert(sanitizePlainText('3 > 2') === '3 > 2')
+})
+
+test('token and unknown keys are stripped from message card config', () => {
+  const cfg = sanitizeMessageCardConfig(
+    validMessageCardRaw({ accessToken: 'SECRET', email: 'x@y.z', extra: 'nope' }),
+  )
+  assert(!('accessToken' in cfg), 'drops accessToken')
+  assert(!('email' in cfg), 'drops email')
+  assert(!('extra' in cfg), 'drops unknown key')
+  const keys = Object.keys(cfg).sort()
+  assert(
+    keys.join(',') ===
+      ['cardKind', 'checklistStyle', 'kind', 'message', 'textSize', 'title', 'tone'].join(','),
+    `whitelist keys only, got ${keys.join(',')}`,
+  )
+})
+
+test('saved layout preserves message cards through round-trip', () => {
+  let state = createEmptyBoardState()
+  state = saveLayout(state, {
+    ...layoutFixture('Do Now Board', 'l1'),
+    objects: [messageCardObj('m1', validMessageCardRaw())],
+  })
+  const migrated = migrateBoardState(parseBoardStateJson(serializeBoardState(state)))
+  assert(migrated !== null)
+  const obj = migrated.layouts[0].objects[0]
+  assert(obj.kind === 'messageCard')
+  const cfg = obj.config as unknown as MessageCardConfig
+  assert(cfg.cardKind === 'doNow')
+  assert(cfg.message.includes('Take out your materials'))
+})
+
+test('autosave preserves message cards', () => {
+  const page = createSeedBoard().pages[0]
+  const hasCard = page.objects.some((o) => o.kind === 'messageCard')
+  assert(hasCard, 'seed page has a message card')
+  const layout = layoutFromPage(page, 'Autosave')
+  const sanitized = sanitizeSavedLayout(layout)
+  assert(sanitized !== null)
+  const card = sanitized.objects.find((o) => o.kind === 'messageCard')
+  assert(card !== undefined, 'message card survives autosave sanitization')
+  const cfg = card.config as unknown as MessageCardConfig
+  assert(cfg.title === 'Do Now')
+})
+
+test('message card appears in safe board projection', () => {
+  const page: BoardPage = {
+    id: 'p1',
+    title: 'T',
+    background: solidBackground,
+    theme: DEFAULT_THEME,
+    objects: [messageCardObj('m1', validMessageCardRaw())],
+  }
+  const safe = toSafeBoardPage(page)
+  assert(safe.objects.length === 1)
+  assert(safe.objects[0].kind === 'messageCard')
+  const cfg = safe.objects[0].config as unknown as MessageCardConfig
+  assert(cfg.title === 'Do Now')
+  assert(safeBoardPageHasNoForbiddenKeys(safe))
+})
+
+test('message card present projection strips private/unknown keys', () => {
+  const contaminated = messageCardObj('m1', validMessageCardRaw({ accessToken: 'SECRET' }))
+  const page: BoardPage = {
+    id: 'p1',
+    title: 'T',
+    background: solidBackground,
+    theme: DEFAULT_THEME,
+    objects: [contaminated],
+  }
+  const safe = toSafeBoardPage(page)
+  const cfg = safe.objects[0].config as Record<string, unknown>
+  assert(!('accessToken' in cfg), 'drops token in present projection')
+})
+
+test('edit controls are gated to edit mode only', () => {
+  assert(showTeacherControls('present') === false)
+  assert(showTeacherControls('edit') === true)
+})
+
+test('default message card is predictable', () => {
+  const cfg = defaultMessageCardConfig()
+  assert(cfg.kind === 'messageCard')
+  assert(cfg.cardKind === DEFAULT_MESSAGE_CARD_KIND)
+  assert(isMessageCardKind(cfg.cardKind))
+  assert(isMessageCardTone(cfg.tone))
+  assert(isMessageCardTextSize(cfg.textSize))
+})
+
+test('switching card kind preset updates title/message/cardKind', () => {
+  const preset = getMessageCardPreset('objective')
+  assert(preset.cardKind === 'objective')
+  assert(preset.title === 'Objective')
+  assert(preset.message === 'I can explain my thinking clearly and use evidence.')
 })
 
 // ── Summary ──

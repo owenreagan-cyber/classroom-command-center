@@ -2,6 +2,7 @@ import type { BoardObjectKind } from './types'
 
 const ADD_ITEMS: ReadonlyArray<{ kind: BoardObjectKind; label: string }> = [
   { kind: 'text', label: 'Text' },
+  { kind: 'messageCard', label: 'Message Card' },
   { kind: 'link', label: 'Link' },
   { kind: 'image', label: 'Image' },
   { kind: 'videoEmbed', label: 'Video' },
