@@ -2,6 +2,7 @@ import { BOARD_OBJECT_KINDS } from '../types'
 import { DEFAULT_BACKGROUND, isBackgroundPresetId, isReadabilityOverlay } from '../backgrounds'
 import { DEFAULT_THEME, getTheme, isBoardThemeId } from '../themes'
 import { sanitizeMessageCardConfig } from '../messageCards'
+import { sanitizeTimerConfig } from '../timerPresets'
 import type {
   BoardBackground,
   BoardObject,
@@ -153,11 +154,7 @@ function sanitizeConfig(kind: BoardObjectKind, raw: unknown): BoardObjectConfig 
         label: isStr(raw.label) ? raw.label : '8:00',
       }
     case 'timer':
-      return {
-        kind,
-        durationMinutes: isNum(raw.durationMinutes) ? raw.durationMinutes : 5,
-        label: isStr(raw.label) ? raw.label : '5:00',
-      }
+      return sanitizeTimerConfig(raw)
     case 'spotifyNowPlayingPlaceholder':
       return { kind, label: isStr(raw.label) ? raw.label : 'Now Playing' }
     case 'messageCard':

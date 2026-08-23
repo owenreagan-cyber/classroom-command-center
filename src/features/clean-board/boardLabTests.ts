@@ -57,6 +57,21 @@ import {
 } from './messageCards'
 import { migrateBoardState } from './storage/boardMigrations'
 import {
+  DEFAULT_TIMER_PRESET_ID,
+  TIMER_MAX_MINUTES,
+  TIMER_PRESET_IDS,
+  TIMER_PRESETS,
+  TIMER_TONES,
+  clampTimerMinutes,
+  defaultTimerConfig,
+  formatTimerDuration,
+  isTimerPresetId,
+  isTimerTone,
+  sanitizeTimerConfig,
+  sanitizeTimerPresetId,
+  timerConfigFromPreset,
+} from './timerPresets'
+import {
   deleteLayout,
   deleteScene,
   layoutFromPage,
@@ -74,6 +89,8 @@ import type {
   BoardScene,
   MessageCardConfig,
   SavedLayout,
+  TimerConfig,
+  TimerPresetId,
 } from './types'
 import {
   describeWakeLockStatus,
@@ -881,28 +898,32 @@ test('getCleanBoardEditLayoutMode breakpoint boundary is exclusive', () => {
 })
 
 test('responsive drawer always exposes Saved Boards and Board Look', () => {
-  const tabs = getCleanBoardEditTabs({ showSpotify: false, showMessageCard: false })
+  const tabs = getCleanBoardEditTabs({ showSpotify: false, showMessageCard: false, showTimer: false })
   assert(tabs.includes('saved'), 'saved boards tab present')
   assert(tabs.includes('look'), 'board look tab present')
   assert(!tabs.includes('spotify'), 'no spotify tab without a selected tile')
   assert(!tabs.includes('messageCard'), 'no message card tab without a selected card')
+  assert(!tabs.includes('timer'), 'no timer tab without a selected timer')
 })
 
-test('responsive drawer adds Spotify and Message Card tabs conditionally', () => {
-  const withSpotify = getCleanBoardEditTabs({ showSpotify: true, showMessageCard: false })
+test('responsive drawer adds Spotify, Message Card, and Timer tabs conditionally', () => {
+  const withSpotify = getCleanBoardEditTabs({ showSpotify: true, showMessageCard: false, showTimer: false })
   assert(withSpotify.includes('spotify'))
-  const withCard = getCleanBoardEditTabs({ showSpotify: false, showMessageCard: true })
+  const withCard = getCleanBoardEditTabs({ showSpotify: false, showMessageCard: true, showTimer: false })
   assert(withCard.includes('messageCard'))
-  const both = getCleanBoardEditTabs({ showSpotify: true, showMessageCard: true })
-  assert(both.includes('spotify') && both.includes('messageCard'))
+  const withTimer = getCleanBoardEditTabs({ showSpotify: false, showMessageCard: false, showTimer: true })
+  assert(withTimer.includes('timer'))
+  const both = getCleanBoardEditTabs({ showSpotify: true, showMessageCard: true, showTimer: true })
+  assert(both.includes('spotify') && both.includes('messageCard') && both.includes('timer'))
 })
 
-test('drawer tab labels cover all four teacher panels', () => {
+test('drawer tab labels cover all five teacher panels', () => {
   const labels = Object.values(EDIT_DRAWER_TAB_LABELS)
   assert(labels.includes('Saved Boards'))
   assert(labels.includes('Board Look'))
   assert(labels.includes('Spotify'))
   assert(labels.includes('Message Card'))
+  assert(labels.includes('Timer'))
 })
 
 test('present mode never renders teacher panels regardless of layout mode', () => {
@@ -910,6 +931,193 @@ test('present mode never renders teacher panels regardless of layout mode', () =
   // showTeacherControls, which already returns false for present.
   assert(showTeacherControls('present') === false)
   assert(showTeacherControls('edit') === true)
+})
+
+// ── DB-4D — classroom timer presets ──
+
+const TIMER_REQUIRED: Record<string, { label: string; durationMinutes: number }> = {
+  morningWork: { label: 'Morning Work', durationMinutes: 10 },
+  mathSprint: { label: 'Math Sprint', durationMinutes: 5 },
+  independentWork: { label: 'Independent Work', durationMinutes: 20 },
+  readingStamina: { label: 'Reading Stamina', durationMinutes: 15 },
+  cleanup: { label: 'Cleanup', durationMinutes: 3 },
+  transition: { label: 'Transition', durationMinutes: 2 },
+  exitTicket: { label: 'Exit Ticket', durationMinutes: 5 },
+  brainBreak: { label: 'Brain Break', durationMinutes: 3 },
+  partnerTalk: { label: 'Partner Talk', durationMinutes: 2 },
+  quietWriting: { label: 'Quiet Writing', durationMinutes: 12 },
+}
+
+function timerObj(id: string, config: Record<string, unknown>): BoardObject {
+  return {
+    id,
+    kind: 'timer',
+    x: 0,
+    y: 0,
+    w: 280,
+    h: 150,
+    rotation: 0,
+    locked: false,
+    visible: true,
+    layer: 1,
+    config: config as unknown as TimerConfig,
+  }
+}
+
+function validTimerRaw(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    kind: 'timer',
+    presetId: 'mathSprint',
+    title: 'Math Sprint',
+    durationMinutes: 5,
+    tone: 'focus',
+    label: '5:00',
+    ...overrides,
+  }
+}
+
+test('timer preset catalog contains all required classroom routines', () => {
+  for (const [id, expected] of Object.entries(TIMER_REQUIRED)) {
+    const preset = TIMER_PRESETS[id as TimerPresetId]
+    assert(preset !== undefined, `preset ${id} exists`)
+    assert(preset.label === expected.label, `${id} label`)
+    assert(preset.durationMinutes === expected.durationMinutes, `${id} duration`)
+  }
+  assert(TIMER_TONES.length === 5, 'five tones defined')
+  assert(TIMER_PRESET_IDS.length === 11, 'ten routines plus custom')
+  assert(isTimerPresetId('morningWork') === true)
+  assert(isTimerTone('urgent') === true)
+  assert(isTimerTone('loud') === false)
+})
+
+test('unknown preset id falls back safely to custom', () => {
+  assert(sanitizeTimerPresetId('bogus') === 'custom')
+  assert(sanitizeTimerPresetId(42) === 'custom')
+  assert(sanitizeTimerPresetId(undefined) === 'custom')
+  assert(sanitizeTimerPresetId('mathSprint') === 'mathSprint')
+  assert(isTimerPresetId('bogus') === false)
+})
+
+test('invalid duration falls back or clamps safely', () => {
+  assert(clampTimerMinutes(-5) === 10, 'negative falls back to default')
+  assert(clampTimerMinutes(0) === 10, 'zero falls back to default')
+  assert(clampTimerMinutes('x' as unknown) === 10, 'non-number falls back to default')
+  assert(clampTimerMinutes(Number.NaN) === 10)
+  assert(clampTimerMinutes(999) === TIMER_MAX_MINUTES, 'over-long clamps to max')
+  assert(clampTimerMinutes(5) === 5)
+})
+
+test('creating timer from preset produces correct title/duration/tone', () => {
+  const cfg = timerConfigFromPreset('mathSprint')
+  assert(cfg.kind === 'timer')
+  assert(cfg.presetId === 'mathSprint')
+  assert(cfg.title === 'Math Sprint')
+  assert(cfg.durationMinutes === 5)
+  assert(cfg.tone === 'focus')
+  assert(cfg.label === '5:00')
+})
+
+test('Add Timer uses the default preset', () => {
+  const cfg = defaultTimerConfig()
+  assert(cfg.presetId === DEFAULT_TIMER_PRESET_ID)
+  assert(cfg.title === 'Morning Work')
+  assert(cfg.durationMinutes === 10)
+  assert(cfg.label === '10:00')
+})
+
+test('applying a preset updates title/duration/tone', () => {
+  const before = defaultTimerConfig()
+  assert(before.title === 'Morning Work' && before.durationMinutes === 10)
+  const after = timerConfigFromPreset('exitTicket')
+  assert(after.title === 'Exit Ticket')
+  assert(after.durationMinutes === 5)
+  assert(after.tone !== before.tone)
+  assert(after.label === '5:00')
+})
+
+test('formatTimerDuration formats whole minutes as M:SS', () => {
+  assert(formatTimerDuration(10) === '10:00')
+  assert(formatTimerDuration(2) === '2:00')
+  assert(formatTimerDuration(12) === '12:00')
+  assert(formatTimerDuration(120) === '120:00')
+})
+
+test('timer preset metadata serializes and parses safely', () => {
+  const cfg = sanitizeTimerConfig(validTimerRaw())
+  assert(cfg.presetId === 'mathSprint')
+  assert(cfg.title === 'Math Sprint')
+  assert(cfg.durationMinutes === 5)
+  assert(cfg.tone === 'focus')
+  assert(cfg.label === '5:00')
+})
+
+test('unknown timer keys are removed by sanitization', () => {
+  const cfg = sanitizeTimerConfig(validTimerRaw({ extra: 'nope', another: 1 }))
+  const keys = Object.keys(cfg).sort()
+  assert(
+    keys.join(',') ===
+      ['durationMinutes', 'kind', 'label', 'presetId', 'title', 'tone'].join(','),
+    `whitelist keys only, got ${keys.join(',')}`,
+  )
+})
+
+test('token/secret-looking timer keys cannot survive sanitization', () => {
+  const cfg = sanitizeTimerConfig(
+    validTimerRaw({ accessToken: 'SECRET', refreshToken: 'SECRET2', email: 'x@y.z' }),
+  )
+  assert(!('accessToken' in cfg), 'drops accessToken')
+  assert(!('refreshToken' in cfg), 'drops refreshToken')
+  assert(!('email' in cfg), 'drops email')
+})
+
+test('saved layout carries timer preset fields through round-trip', () => {
+  let state = createEmptyBoardState()
+  state = saveLayout(state, {
+    ...layoutFixture('Timer Board', 'l1'),
+    objects: [timerObj('t1', validTimerRaw())],
+  })
+  const migrated = migrateBoardState(parseBoardStateJson(serializeBoardState(state)))
+  assert(migrated !== null)
+  const obj = migrated.layouts[0].objects[0]
+  assert(obj.kind === 'timer')
+  const cfg = obj.config as unknown as TimerConfig
+  assert(cfg.presetId === 'mathSprint')
+  assert(cfg.title === 'Math Sprint')
+  assert(cfg.durationMinutes === 5)
+  assert(cfg.tone === 'focus')
+})
+
+test('present mode keeps timer student-safe', () => {
+  const contaminated = timerObj('t1', validTimerRaw({ accessToken: 'SECRET' }))
+  const page: BoardPage = {
+    id: 'p1',
+    title: 'T',
+    background: solidBackground,
+    theme: DEFAULT_THEME,
+    objects: [contaminated],
+  }
+  const safe = toSafeBoardPage(page)
+  const cfg = safe.objects[0].config as Record<string, unknown>
+  assert(!('accessToken' in cfg), 'drops token in present projection')
+  assert(cfg.kind === 'timer')
+  assert(cfg.title === 'Math Sprint')
+  assert(cfg.label === '5:00')
+  assert(safeBoardPageHasNoForbiddenKeys(safe))
+})
+
+test('corrupt saved timer recovers safely', () => {
+  const cfg = sanitizeTimerConfig({
+    kind: 'timer',
+    presetId: 'bogus',
+    durationMinutes: -3,
+    tone: 'loud',
+    title: '',
+  })
+  assert(cfg.presetId === 'custom')
+  assert(cfg.durationMinutes === 10)
+  assert(cfg.tone === 'neutral')
+  assert(cfg.title === 'Custom')
+  assert(cfg.label === '10:00')
 })
 
 // ── Summary ──

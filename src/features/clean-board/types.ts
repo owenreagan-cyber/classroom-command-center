@@ -102,6 +102,39 @@ export type MessageCardConfig = {
   checklistStyle: boolean
 }
 
+// ── DB-4D — Classroom timer presets ──
+
+/** Semantic classroom routine a teacher picks for a timer. */
+export type TimerPresetId =
+  | 'morningWork'
+  | 'mathSprint'
+  | 'independentWork'
+  | 'readingStamina'
+  | 'cleanup'
+  | 'transition'
+  | 'exitTicket'
+  | 'brainBreak'
+  | 'partnerTalk'
+  | 'quietWriting'
+  | 'custom'
+
+/** Visual tone for the timer's accent. */
+export type TimerTone = 'neutral' | 'calm' | 'focus' | 'urgent' | 'success'
+
+/**
+ * Timer widget config. Static (no live countdown) — `label` is the formatted
+ * duration shown to students, `title` is the routine name, and `presetId`/`tone`
+ * carry the last-applied preset for persistence/reuse.
+ */
+export type TimerConfig = {
+  kind: 'timer'
+  presetId: TimerPresetId
+  title: string
+  durationMinutes: number
+  tone: TimerTone
+  label: string
+}
+
 export type BoardObjectConfig =
   | {
       kind: 'text'
@@ -114,7 +147,7 @@ export type BoardObjectConfig =
   | { kind: 'link'; url: string; label: string }
   | { kind: 'videoEmbed'; src: string; label: string }
   | { kind: 'clock'; format: '12h' | '24h'; label: string }
-  | { kind: 'timer'; durationMinutes: number; label: string }
+  | TimerConfig
   | { kind: 'spotifyNowPlayingPlaceholder'; label: string }
   | MessageCardConfig
 

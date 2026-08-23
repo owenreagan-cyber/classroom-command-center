@@ -1,5 +1,6 @@
 import type { BoardMode, BoardObject, BoardObjectConfig, BoardPage } from './types'
 import { sanitizeMessageCardConfig } from './messageCards'
+import { sanitizeTimerConfig } from './timerPresets'
 
 /**
  * DB-1 — Clean Board student-safety projection.
@@ -31,6 +32,11 @@ function sanitizeConfig(config: BoardObjectConfig): BoardObjectConfig {
     // Message cards are student-facing: re-whitelist to strip any extra keys and
     // neutralize HTML/URL content before it reaches present mode.
     return sanitizeMessageCardConfig(config)
+  }
+  if (config.kind === 'timer') {
+    // Timers are student-facing (title + remaining time). Re-whitelist to strip
+    // any unknown/private keys before the config reaches present mode.
+    return sanitizeTimerConfig(config)
   }
   return config
 }

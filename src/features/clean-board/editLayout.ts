@@ -15,13 +15,14 @@ export type CleanBoardEditLayoutMode = 'sidePanels' | 'responsivePanels'
  */
 export const CLEAN_BOARD_EDIT_BREAKPOINT = 1280
 
-export type EditDrawerTab = 'saved' | 'look' | 'spotify' | 'messageCard'
+export type EditDrawerTab = 'saved' | 'look' | 'spotify' | 'messageCard' | 'timer'
 
 export const EDIT_DRAWER_TAB_LABELS: Record<EditDrawerTab, string> = {
   saved: 'Saved Boards',
   look: 'Board Look',
   spotify: 'Spotify',
   messageCard: 'Message Card',
+  timer: 'Timer',
 }
 
 export function getCleanBoardEditLayoutMode(width: number): CleanBoardEditLayoutMode {
@@ -32,9 +33,11 @@ export function getCleanBoardEditLayoutMode(width: number): CleanBoardEditLayout
 export function getCleanBoardEditTabs(opts: {
   showSpotify: boolean
   showMessageCard: boolean
+  showTimer: boolean
 }): EditDrawerTab[] {
   const tabs: EditDrawerTab[] = ['saved', 'look']
   if (opts.showSpotify) tabs.push('spotify')
   if (opts.showMessageCard) tabs.push('messageCard')
+  if (opts.showTimer) tabs.push('timer')
   return tabs
 }

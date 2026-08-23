@@ -5,6 +5,7 @@ import { BoardToolbar } from './BoardToolbar'
 import { KeepAwakeToggle } from './KeepAwakeToggle'
 import { MessageCardTeacherPanel } from './MessageCardTeacherPanel'
 import { SavedBoardsPanel } from './SavedBoardsPanel'
+import { TimerTeacherPanel } from './TimerTeacherPanel'
 import { DEFAULT_BACKGROUND } from './backgrounds'
 import { pageHasKind, toSafeBoardPage } from './boardSafety'
 import { DEFAULT_MESSAGE_CARD_KIND, getMessageCardPreset } from './messageCards'
@@ -15,6 +16,7 @@ import { toSafeNowPlaying } from './spotify/spotifySafety'
 import { useSpotifyStore } from './spotify/spotifyStore'
 import { layoutFromPage, loadAutosaveLayout, saveAutosaveLayout } from './storage/boardStorage'
 import { DEFAULT_THEME } from './themes'
+import { defaultTimerConfig } from './timerPresets'
 import { EDIT_DRAWER_TAB_LABELS, getCleanBoardEditTabs } from './editLayout'
 import type { EditDrawerTab } from './editLayout'
 import { useCleanBoardEditLayoutMode } from './useCleanBoardEditLayoutMode'
@@ -28,6 +30,7 @@ import type {
   BoardTheme,
   MessageCardConfig,
   SavedLayout,
+  TimerConfig,
 } from './types'
 
 const segBtn = 'rounded-md px-3 py-1.5 text-xs font-semibold transition'
@@ -128,7 +131,7 @@ function createDefaultObject(kind: BoardObjectKind, id: string): BoardObject {
         y: 470,
         w: 280,
         h: 150,
-        config: { kind, durationMinutes: 5, label: '5:00' },
+        config: defaultTimerConfig(),
       }
     case 'spotifyNowPlayingPlaceholder':
       return {
@@ -219,6 +222,7 @@ export function BoardLabPage() {
     mode === 'edit' && selectedObject?.kind === 'spotifyNowPlayingPlaceholder'
   const showMessageCardPanel =
     mode === 'edit' && selectedObject?.kind === 'messageCard'
+  const showTimerPanel = mode === 'edit' && selectedObject?.kind === 'timer'
 
   const editLayoutMode = useCleanBoardEditLayoutMode()
   const responsive = mode === 'edit' && editLayoutMode === 'responsivePanels'
@@ -248,6 +252,7 @@ export function BoardLabPage() {
     const kind = id ? hintKind ?? activePage.objects.find((o) => o.id === id)?.kind : undefined
     if (kind === 'messageCard') setDrawerTab('messageCard')
     else if (kind === 'spotifyNowPlayingPlaceholder') setDrawerTab('spotify')
+    else if (kind === 'timer') setDrawerTab('timer')
   }
 
   const handleAddObject = (kind: BoardObjectKind) => {
@@ -428,6 +433,7 @@ export function BoardLabPage() {
               {getCleanBoardEditTabs({
                 showSpotify: showSpotifyPanel,
                 showMessageCard: showMessageCardPanel,
+                showTimer: showTimerPanel,
               }).map((tab) => (
                 <button
                   key={tab}
@@ -469,6 +475,15 @@ export function BoardLabPage() {
                     onChange={(next) => handleUpdateObjectConfig(selectedObject.id, next)}
                   />
                 )}
+              {drawerTab === 'timer' &&
+                showTimerPanel &&
+                selectedObject?.kind === 'timer' && (
+                  <TimerTeacherPanel
+                    fullWidth
+                    config={selectedObject.config as TimerConfig}
+                    onChange={(next) => handleUpdateObjectConfig(selectedObject.id, next)}
+                  />
+                )}
             </div>
           </div>
         </div>
@@ -495,6 +510,12 @@ export function BoardLabPage() {
           {showMessageCardPanel && selectedObject?.kind === 'messageCard' && (
             <MessageCardTeacherPanel
               config={selectedObject.config as MessageCardConfig}
+              onChange={(next) => handleUpdateObjectConfig(selectedObject.id, next)}
+            />
+          )}
+          {showTimerPanel && selectedObject?.kind === 'timer' && (
+            <TimerTeacherPanel
+              config={selectedObject.config as TimerConfig}
               onChange={(next) => handleUpdateObjectConfig(selectedObject.id, next)}
             />
           )}
