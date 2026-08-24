@@ -9,13 +9,15 @@ import type {
   MessageCardKind,
   SavedLayout,
   SceneType,
+  TimerConfig,
   TimerPresetId,
+  TimerTone,
 } from './types'
 import { BOARD_SCHEMA_VERSION } from './storage/boardSerialization'
 import { getBackgroundPreset } from './backgrounds'
 import { getTheme } from './themes'
 import { getMessageCardPreset } from './messageCards'
-import { timerConfigFromPreset, getTimerPreset } from './timerPresets'
+import { clampTimerMinutes, formatTimerDuration, getTimerPreset, timerConfigFromPreset } from './timerPresets'
 import { getDisplayModeConfig } from './displayModes'
 
 /**
@@ -41,6 +43,7 @@ export type ClassroomTemplateId =
   | 'assessmentMode'
   | 'cleanup'
   | 'dismissal'
+  | 'morningArrivalNewClassroom'
 
 export type ClassroomTemplateCategory = 'daily' | 'instruction' | 'transition' | 'assessment'
 
@@ -52,6 +55,18 @@ export type TemplateVisualTone =
   | 'writing'
   | 'assessment'
   | 'transition'
+
+/**
+ * A single entry in a template's optional multi-timer routine. Each entry
+ * becomes a normal `timer` board object (existing timer architecture — static,
+ * no auto-advancing sequence engine).
+ */
+export interface ClassroomTemplateTimer {
+  presetId: TimerPresetId
+  title: string
+  durationMinutes: number
+  tone: TimerTone
+}
 
 export interface ClassroomTemplatePack {
   id: ClassroomTemplateId
@@ -74,8 +89,16 @@ export interface ClassroomTemplatePack {
   messageTitle: string
   messageBody: string
   timerPresetId: TimerPresetId
+  /** Optional multi-timer routine; each entry becomes a normal timer object. */
+  timerSequence?: ClassroomTemplateTimer[]
   /** Include a Spotify now-playing placeholder (projected per the display mode). */
   includeSpotify: boolean
+  /** Optional Spotify playlist recipe reference (teacher-started, no auth). */
+  spotifyRecipeId?: string
+  /** Optional message-card geometry override (long welcome cards need more room). */
+  messageCardRect?: { x: number; y: number; w: number; h: number }
+  /** Optional Spotify placeholder geometry override. */
+  spotifyRect?: { x: number; y: number; w: number; h: number }
   keepAwakeRecommended: boolean
 }
 
@@ -95,6 +118,7 @@ export const TEMPLATE_CATEGORY_LABELS: Record<ClassroomTemplateCategory, string>
 
 export const TEMPLATE_PACK_IDS: readonly ClassroomTemplateId[] = [
   'morningArrival',
+  'morningArrivalNewClassroom',
   'mathWorkshop',
   'readingBlock',
   'writingBlock',
@@ -123,6 +147,39 @@ export const TEMPLATE_PACKS: Record<ClassroomTemplateId, ClassroomTemplatePack> 
     messageBody: '1. Unpack your bag.\n2. Turn in homework.\n3. Begin the Do Now quietly.',
     timerPresetId: 'morningWork',
     includeSpotify: true,
+    keepAwakeRecommended: true,
+  },
+  morningArrivalNewClassroom: {
+    id: 'morningArrivalNewClassroom',
+    name: 'Morning Arrival — New Classroom',
+    heading: 'Good Morning',
+    category: 'daily',
+    description: 'Teacher welcome screen for the first minutes of the school day.',
+    shortLabel: 'Welcome + morning routine',
+    teacherUseCase: 'Greet a new class and set the morning routine on the first days of school.',
+    previewBullets: [
+      'Welcome message card',
+      'Quiet Morning Work timer (25 min)',
+      'Morning music (optional)',
+    ],
+    visualTone: 'calm',
+    displayModeId: 'morningArrival',
+    backgroundPresetId: 'morning-glow',
+    themeId: 'minimal-light',
+    messageCardKind: 'welcome',
+    messageTitle: 'Welcome to the New Classroom!',
+    messageBody:
+      'Good Morning!\nPlease complete your morning routines:\n✓ Return your Friday Folder to the back bin.\n✓ Morning Work:\nHandwriting — pages _______\n✓ Stay seated and work quietly.\n✓ Sharpen pencils and use the bathroom before we begin.\nBe ready for our first lesson!',
+    timerPresetId: 'custom',
+    timerSequence: [
+      { presetId: 'custom', title: 'Quiet Morning Work', durationMinutes: 25, tone: 'calm' },
+      { presetId: 'custom', title: 'Morning Pledges', durationMinutes: 3, tone: 'calm' },
+      { presetId: 'custom', title: 'Transition to Math', durationMinutes: 1, tone: 'focus' },
+    ],
+    includeSpotify: true,
+    spotifyRecipeId: 'morning-arrival-calm',
+    messageCardRect: { x: 320, y: 300, w: 1280, h: 600 },
+    spotifyRect: { x: 320, y: 920, w: 520, h: 130 },
     keepAwakeRecommended: true,
   },
   mathWorkshop: {
@@ -311,7 +368,10 @@ export interface TemplatePreviewSummary {
 
 export function getTemplatePreviewSummary(template: ClassroomTemplatePack): TemplatePreviewSummary {
   const background = getBackgroundPreset(template.backgroundPresetId)
-  const timer = getTimerPreset(template.timerPresetId)
+  const firstTimer = template.timerSequence?.[0]
+  const timer = firstTimer
+    ? { label: formatTimerDuration(clampTimerMinutes(firstTimer.durationMinutes)), durationMinutes: clampTimerMinutes(firstTimer.durationMinutes) }
+    : getTimerPreset(template.timerPresetId)
   const displayMode = getDisplayModeConfig(template.displayModeId)
   return {
     id: template.id,
@@ -370,12 +430,68 @@ function messageCardConfig(template: ClassroomTemplatePack): MessageCardConfig {
   }
 }
 
+/** Build a timer config from an explicit routine spec (custom title/duration). */
+function customTimerConfig(spec: ClassroomTemplateTimer): TimerConfig {
+  const durationMinutes = clampTimerMinutes(spec.durationMinutes)
+  return {
+    kind: 'timer',
+    presetId: spec.presetId,
+    title: spec.title,
+    durationMinutes,
+    tone: spec.tone,
+    label: formatTimerDuration(durationMinutes),
+  }
+}
+
 /**
- * Build the object list for a template. Produces a heading, a message card, a
- * timer, and (when requested) a Spotify placeholder — all normal typed objects
- * on the fixed 1920×1080 canvas with non-overlapping default placement.
+ * Build the timer objects for a template. A template with `timerSequence`
+ * yields one normal timer object per routine step (a static routine, not an
+ * auto-advancing sequence engine); otherwise it falls back to the single
+ * `timerPresetId` behavior.
+ */
+function timerObjectsFor(template: ClassroomTemplatePack): BoardObject[] {
+  const seq = template.timerSequence
+  if (seq && seq.length > 0) {
+    return seq.map((spec, i) => ({
+      id: i === 0 ? `${template.id}-timer` : `${template.id}-timer-${i + 1}`,
+      kind: 'timer' as const,
+      x: 1600,
+      y: 90 + i * 170,
+      w: 280,
+      h: 150,
+      rotation: 0,
+      locked: false,
+      visible: true,
+      layer: 2,
+      config: customTimerConfig(spec),
+    }))
+  }
+  return [
+    {
+      id: `${template.id}-timer`,
+      kind: 'timer' as const,
+      x: 1600,
+      y: 90,
+      w: 280,
+      h: 150,
+      rotation: 0,
+      locked: false,
+      visible: true,
+      layer: 2,
+      config: timerConfigFromPreset(template.timerPresetId),
+    },
+  ]
+}
+
+/**
+ * Build the object list for a template. Produces a heading, a message card, one
+ * or more timers, and (when requested) a Spotify placeholder — all normal typed
+ * objects on the fixed 1920×1080 canvas with non-overlapping default placement.
  */
 export function createTemplateObjects(template: ClassroomTemplatePack): BoardObject[] {
+  const messageRect = template.messageCardRect ?? { x: 560, y: 360, w: 800, h: 340 }
+  const spotifyRect = template.spotifyRect ?? { x: 80, y: 880, w: 520, h: 130 }
+
   const objects: BoardObject[] = [
     {
       id: `${template.id}-heading`,
@@ -399,38 +515,26 @@ export function createTemplateObjects(template: ClassroomTemplatePack): BoardObj
     {
       id: `${template.id}-message`,
       kind: 'messageCard',
-      x: 560,
-      y: 360,
-      w: 800,
-      h: 340,
+      x: messageRect.x,
+      y: messageRect.y,
+      w: messageRect.w,
+      h: messageRect.h,
       rotation: 0,
       locked: false,
       visible: true,
       layer: 2,
       config: messageCardConfig(template),
     },
-    {
-      id: `${template.id}-timer`,
-      kind: 'timer',
-      x: 1600,
-      y: 90,
-      w: 280,
-      h: 150,
-      rotation: 0,
-      locked: false,
-      visible: true,
-      layer: 2,
-      config: timerConfigFromPreset(template.timerPresetId),
-    },
+    ...timerObjectsFor(template),
   ]
   if (template.includeSpotify) {
     objects.push({
       id: `${template.id}-spotify`,
       kind: 'spotifyNowPlayingPlaceholder',
-      x: 80,
-      y: 880,
-      w: 520,
-      h: 130,
+      x: spotifyRect.x,
+      y: spotifyRect.y,
+      w: spotifyRect.w,
+      h: spotifyRect.h,
       rotation: 0,
       locked: false,
       visible: true,
@@ -490,7 +594,8 @@ export function templateToScene(template: ClassroomTemplatePack): BoardScene {
     type: sceneType,
     layoutId: templateToSavedLayout(template).id,
     displayModeId: template.displayModeId,
-    timerPresetRef: template.timerPresetId,
+    timerPresetRef: template.timerSequence?.[0]?.presetId ?? template.timerPresetId,
+    ...(template.spotifyRecipeId ? { spotifyPresetRef: template.spotifyRecipeId } : {}),
     backgroundPresetId: template.backgroundPresetId,
     keepAwake: template.keepAwakeRecommended,
     studentSafe: true,

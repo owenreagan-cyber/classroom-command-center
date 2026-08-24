@@ -771,7 +771,7 @@ function validMessageCardRaw(overrides: Record<string, unknown> = {}): Record<st
 }
 
 test('message card preset catalog is complete and valid', () => {
-  assert(MESSAGE_CARD_KINDS.length === 7, 'seven card kinds defined')
+  assert(MESSAGE_CARD_KINDS.length === 8, 'eight card kinds defined')
   assert(MESSAGE_CARD_TONES.length === 5, 'five tones defined')
   assert(MESSAGE_CARD_TEXT_SIZES.length === 3, 'three text sizes defined')
   const seen = new Set<string>()
@@ -1648,6 +1648,7 @@ function rectsOverlap(a: BoardObject, b: BoardObject): boolean {
 
 const REQUIRED_TEMPLATE_IDS: ClassroomTemplateId[] = [
   'morningArrival',
+  'morningArrivalNewClassroom',
   'mathWorkshop',
   'readingBlock',
   'writingBlock',
@@ -1658,7 +1659,7 @@ const REQUIRED_TEMPLATE_IDS: ClassroomTemplateId[] = [
 ]
 
 test('all required templates exist with complete, coherent config', () => {
-  assert(TEMPLATE_PACK_IDS.length === 8, 'eight templates defined')
+  assert(TEMPLATE_PACK_IDS.length === 9, 'nine templates defined')
   for (const id of REQUIRED_TEMPLATE_IDS) {
     assert((TEMPLATE_PACK_IDS as readonly string[]).includes(id), `catalog includes ${id}`)
     const t = TEMPLATE_PACKS[id]
@@ -1772,8 +1773,8 @@ test('template state serializes and parses through boardSerialization', () => {
   }
   const migrated = migrateBoardState(parseBoardStateJson(serializeBoardState(state)))
   assert(migrated !== null)
-  assert(migrated.layouts.length === 8)
-  assert(migrated.scenes.length === 8)
+  assert(migrated.layouts.length === 9)
+  assert(migrated.scenes.length === 9)
   assert(boardStateHasNoForbiddenKeys(migrated), 'template state has no forbidden keys')
 })
 
@@ -1883,7 +1884,7 @@ test('preview data contains no remote URLs, file paths, tokens, or secrets', () 
   }
 })
 
-test('template categories group the 8 templates correctly', () => {
+test('template categories group the 9 templates correctly', () => {
   const groups = getTemplatesByCategory()
   assert(groups.length === 4, 'four categories')
   const labels = groups.map((g) => g.label)
@@ -1892,12 +1893,12 @@ test('template categories group the 8 templates correctly', () => {
     `expected category labels, got ${labels.join(',')}`,
   )
   const byCategory = new Map(groups.map((g) => [g.category, g.templates.map((t) => t.id)]))
-  assert(byCategory.get('daily')!.join(',') === 'morningArrival')
+  assert(byCategory.get('daily')!.join(',') === 'morningArrival,morningArrivalNewClassroom')
   assert(byCategory.get('instruction')!.join(',') === 'mathWorkshop,readingBlock,writingBlock,independentWork')
   assert(byCategory.get('assessment')!.join(',') === 'assessmentMode')
   assert(byCategory.get('transition')!.join(',') === 'cleanup,dismissal')
   const total = groups.reduce((n, g) => n + g.templates.length, 0)
-  assert(total === 8, 'all 8 templates present across groups')
+  assert(total === 9, 'all 9 templates present across groups')
 })
 
 test('applying a template still creates normal BoardPage state', () => {
@@ -1921,7 +1922,7 @@ test('template-generated board still serializes and parses', () => {
   }
   const migrated = migrateBoardState(parseBoardStateJson(serializeBoardState(state)))
   assert(migrated !== null)
-  assert(migrated.layouts.length === 8)
+  assert(migrated.layouts.length === 9)
   assert(boardStateHasNoForbiddenKeys(migrated))
 })
 
@@ -1940,6 +1941,80 @@ test('template picker is edit-only and iPad layout keeps Saved Boards accessible
   assert(getCleanBoardEditLayoutMode(1180) === 'responsivePanels')
   const tabs = getCleanBoardEditTabs({ showSpotify: false, showMessageCard: false, showTimer: false })
   assert(tabs.includes('saved'), 'Saved Boards (with template cards) tab present')
+})
+
+// ── Morning Arrival — New Classroom classroom preset ──
+
+test('welcome message card kind exists with calm tone and large size', () => {
+  assert(isMessageCardKind('welcome'), 'welcome is a valid kind')
+  const preset = getMessageCardPreset('welcome')
+  assert(preset.cardKind === 'welcome')
+  assert(preset.tone === 'calm')
+  assert(preset.textSize === 'large')
+  assert(preset.checklistStyle === false)
+})
+
+test('Morning Arrival — New Classroom applies correct mode, background, theme, and message', () => {
+  const t = getTemplatePack('morningArrivalNewClassroom')
+  const layout = templateToSavedLayout(t)
+  assert(layout.displayModeId === 'morningArrival')
+  assert(layout.background.type === 'preset' && layout.background.presetId === 'morning-glow')
+  assert(layout.theme.id === 'minimal-light')
+  assert(t.keepAwakeRecommended === true)
+  assert(t.includeSpotify === true)
+
+  const card = layout.objects.find((o) => o.kind === 'messageCard')!
+  const cfg = card.config as MessageCardConfig
+  assert(cfg.cardKind === 'welcome')
+  assert(cfg.title === 'Welcome to the New Classroom!')
+  assert(cfg.tone === 'calm')
+  assert(cfg.textSize === 'large')
+  assert(cfg.message.includes('Return your Friday Folder'))
+  assert(cfg.message.includes('Be ready for our first lesson'))
+})
+
+test('Morning Arrival — New Classroom produces a three-timer routine with correct metadata', () => {
+  const t = getTemplatePack('morningArrivalNewClassroom')
+  const timers = createTemplateObjects(t).filter((o) => o.kind === 'timer')
+  assert(timers.length === 3, 'three timer objects')
+  const byTitle = new Map(timers.map((o) => [(o.config as TimerConfig).title, o.config as TimerConfig]))
+  assert(byTitle.get('Quiet Morning Work')!.durationMinutes === 25)
+  assert(byTitle.get('Quiet Morning Work')!.label === '25:00')
+  assert(byTitle.get('Morning Pledges')!.durationMinutes === 3)
+  assert(byTitle.get('Transition to Math')!.durationMinutes === 1)
+})
+
+test('Morning Arrival — New Classroom timer metadata survives save/load round-trip', () => {
+  const t = getTemplatePack('morningArrivalNewClassroom')
+  let state = createEmptyBoardState()
+  state = saveLayout(state, templateToSavedLayout(t))
+  state = saveScene(state, templateToScene(t))
+  const migrated = migrateBoardState(parseBoardStateJson(serializeBoardState(state)))
+  assert(migrated !== null)
+  const timers = migrated.layouts[0].objects.filter((o) => o.kind === 'timer')
+  assert(timers.length === 3, 'all three timers persist')
+  const titles = timers.map((o) => (o.config as TimerConfig).title).sort()
+  assert(titles.join(',') === 'Morning Pledges,Quiet Morning Work,Transition to Math')
+})
+
+test('Morning Arrival — New Classroom scene restores settings and Spotify recipe reference', () => {
+  const t = getTemplatePack('morningArrivalNewClassroom')
+  const scene = templateToScene(t)
+  assert(scene.displayModeId === 'morningArrival')
+  assert(scene.keepAwake === true)
+  assert(scene.studentSafe === true)
+  assert(scene.backgroundPresetId === 'morning-glow')
+  assert(scene.spotifyPresetRef === 'morning-arrival-calm')
+  assert(scene.timerPresetRef === 'custom')
+})
+
+test('Morning Arrival — New Classroom present projection is student-safe and teacher-control-free', () => {
+  const page = templateToBoardPage(getTemplatePack('morningArrivalNewClassroom'))
+  const safe = toSafeBoardPage(page)
+  assert(safeBoardPageHasNoForbiddenKeys(safe))
+  assert(!('teacherNotes' in safe))
+  assert(showTeacherControls('present') === false)
+  assert(showTeacherControls('edit') === true)
 })
 
 // ── Summary ──
