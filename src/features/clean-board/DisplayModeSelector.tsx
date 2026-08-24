@@ -22,7 +22,7 @@ export function DisplayModeSelector({
       data-display-mode-selector
       title={DISPLAY_MODES[value].description}
     >
-      <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Mode</span>
+      <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Display Mode</span>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value as DisplayModeId)}
