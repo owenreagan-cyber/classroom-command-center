@@ -32,6 +32,16 @@ const inputCls =
 
 const SCENE_TYPES: SceneType[] = ['arrival', 'math', 'reading', 'transition', 'packUp', 'custom']
 
+/** Teacher-facing labels so the scene-type picker reads naturally (not raw ids). */
+const SCENE_TYPE_LABELS: Record<SceneType, string> = {
+  arrival: 'Arrival',
+  math: 'Math',
+  reading: 'Reading',
+  transition: 'Transition',
+  packUp: 'Pack Up',
+  custom: 'Custom',
+}
+
 export function SavedBoardsPanel({
   activePage,
   displayModeId,
@@ -152,7 +162,7 @@ export function SavedBoardsPanel({
           >
             {SCENE_TYPES.map((t) => (
               <option key={t} value={t}>
-                {t}
+                {SCENE_TYPE_LABELS[t]}
               </option>
             ))}
           </select>
@@ -243,7 +253,7 @@ export function SavedBoardsPanel({
                       title={`Load "${s.name}"`}
                     >
                       {s.name}
-                      <span className="ml-1.5 text-[10px] font-normal uppercase text-slate-500">{s.type}</span>
+                      <span className="ml-1.5 text-[10px] font-normal uppercase text-slate-500">{SCENE_TYPE_LABELS[s.type]}</span>
                     </button>
                     <button
                       type="button"
