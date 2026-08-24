@@ -15,7 +15,7 @@ import { BOARD_SCHEMA_VERSION } from './storage/boardSerialization'
 import { getBackgroundPreset } from './backgrounds'
 import { getTheme } from './themes'
 import { getMessageCardPreset } from './messageCards'
-import { timerConfigFromPreset } from './timerPresets'
+import { timerConfigFromPreset, getTimerPreset } from './timerPresets'
 import { getDisplayModeConfig } from './displayModes'
 
 /**
@@ -44,6 +44,15 @@ export type ClassroomTemplateId =
 
 export type ClassroomTemplateCategory = 'daily' | 'instruction' | 'transition' | 'assessment'
 
+/** Visual mood of a template, used to style preview accents (no new assets). */
+export type TemplateVisualTone =
+  | 'calm'
+  | 'focus'
+  | 'reading'
+  | 'writing'
+  | 'assessment'
+  | 'transition'
+
 export interface ClassroomTemplatePack {
   id: ClassroomTemplateId
   name: string
@@ -51,6 +60,13 @@ export interface ClassroomTemplatePack {
   heading: string
   category: ClassroomTemplateCategory
   description: string
+  /** Short, scannable preview label shown on the card (e.g. "Welcome + Do Now"). */
+  shortLabel: string
+  /** Teacher-facing guidance for when to reach for this template. */
+  teacherUseCase: string
+  /** Compact bullet list of what the board includes (plain, classroom-safe). */
+  previewBullets: string[]
+  visualTone: TemplateVisualTone
   displayModeId: DisplayModeId
   backgroundPresetId: BackgroundPresetId
   themeId: BoardThemeId
@@ -66,13 +82,13 @@ export interface ClassroomTemplatePack {
 export const TEMPLATE_CATEGORIES: readonly ClassroomTemplateCategory[] = [
   'daily',
   'instruction',
-  'transition',
   'assessment',
+  'transition',
 ]
 
 export const TEMPLATE_CATEGORY_LABELS: Record<ClassroomTemplateCategory, string> = {
   daily: 'Daily Routines',
-  instruction: 'Instruction',
+  instruction: 'Instruction Blocks',
   transition: 'Transitions',
   assessment: 'Assessment',
 }
@@ -95,6 +111,10 @@ export const TEMPLATE_PACKS: Record<ClassroomTemplateId, ClassroomTemplatePack> 
     heading: 'Good Morning',
     category: 'daily',
     description: 'Calm welcome, morning timer, and optional music to start the day.',
+    shortLabel: 'Welcome + Do Now',
+    teacherUseCase: 'Start the day with a calm welcome and a predictable routine.',
+    previewBullets: ['Welcome message card', 'Morning Work timer (10 min)', 'Morning music (optional)'],
+    visualTone: 'calm',
     displayModeId: 'morningArrival',
     backgroundPresetId: 'morning-glow',
     themeId: 'minimal-light',
@@ -111,6 +131,10 @@ export const TEMPLATE_PACKS: Record<ClassroomTemplateId, ClassroomTemplatePack> 
     heading: 'Math Workshop',
     category: 'instruction',
     description: 'Focused board with an objective and a math sprint timer.',
+    shortLabel: 'Objective + sprint',
+    teacherUseCase: 'Set a focused objective and pace a short math sprint.',
+    previewBullets: ['Objective card', 'Math Sprint timer (5 min)', 'Minimal distractions'],
+    visualTone: 'focus',
     displayModeId: 'focus',
     backgroundPresetId: 'slate-focus',
     themeId: 'minimal-dark',
@@ -127,6 +151,10 @@ export const TEMPLATE_PACKS: Record<ClassroomTemplateId, ClassroomTemplatePack> 
     heading: 'Reading Block',
     category: 'instruction',
     description: 'Soft, calm board for sustained independent reading.',
+    shortLabel: 'Reading goal + stamina',
+    teacherUseCase: 'Sustain independent reading with a clear goal.',
+    previewBullets: ['Reading goal card', 'Reading Stamina timer (15 min)', 'Calm reading background'],
+    visualTone: 'reading',
     displayModeId: 'reading',
     backgroundPresetId: 'reading-cream',
     themeId: 'minimal-light',
@@ -143,6 +171,10 @@ export const TEMPLATE_PACKS: Record<ClassroomTemplateId, ClassroomTemplatePack> 
     heading: 'Writing Block',
     category: 'instruction',
     description: 'Focused board with writing directions and a quiet writing timer.',
+    shortLabel: 'Directions + quiet writing',
+    teacherUseCase: 'Guide quiet writing with clear directions.',
+    previewBullets: ['Writing directions', 'Quiet Writing timer (12 min)', 'Calm music (optional)'],
+    visualTone: 'writing',
     displayModeId: 'focus',
     backgroundPresetId: 'slate-focus',
     themeId: 'minimal-dark',
@@ -159,6 +191,10 @@ export const TEMPLATE_PACKS: Record<ClassroomTemplateId, ClassroomTemplatePack> 
     heading: 'Independent Work',
     category: 'instruction',
     description: 'Minimal board with a reminder and an independent work timer.',
+    shortLabel: 'Reminder + independent work',
+    teacherUseCase: 'Keep students on task during independent work.',
+    previewBullets: ['Reminder card', 'Independent Work timer (20 min)', 'Music (optional)'],
+    visualTone: 'focus',
     displayModeId: 'focus',
     backgroundPresetId: 'slate-focus',
     themeId: 'minimal-dark',
@@ -175,6 +211,10 @@ export const TEMPLATE_PACKS: Record<ClassroomTemplateId, ClassroomTemplatePack> 
     heading: 'Assessment',
     category: 'assessment',
     description: 'Quiet, distraction-free board for assessments.',
+    shortLabel: 'Quiet expectations',
+    teacherUseCase: 'Run a distraction-free assessment.',
+    previewBullets: ['Expectations card', 'Exit Ticket timer (5 min)', 'No music or images'],
+    visualTone: 'assessment',
     displayModeId: 'assessment',
     backgroundPresetId: 'clean-white',
     themeId: 'minimal-light',
@@ -191,6 +231,10 @@ export const TEMPLATE_PACKS: Record<ClassroomTemplateId, ClassroomTemplatePack> 
     heading: 'Cleanup Time',
     category: 'transition',
     description: 'Cleanup steps and a short timer to wrap up work time.',
+    shortLabel: 'Cleanup steps',
+    teacherUseCase: 'Wrap up work time with cleanup steps and a short timer.',
+    previewBullets: ['Cleanup steps card', 'Cleanup timer (3 min)', 'Upbeat music (optional)'],
+    visualTone: 'transition',
     displayModeId: 'cleanup',
     backgroundPresetId: 'warm-neutral',
     themeId: 'minimal-light',
@@ -207,6 +251,10 @@ export const TEMPLATE_PACKS: Record<ClassroomTemplateId, ClassroomTemplatePack> 
     heading: 'Dismissal',
     category: 'transition',
     description: 'Dismissal directions and a short transition timer.',
+    shortLabel: 'Dismissal directions',
+    teacherUseCase: 'End the day with clear dismissal directions.',
+    previewBullets: ['Dismissal directions', 'Transition timer (2 min)', 'Music (optional)'],
+    visualTone: 'transition',
     displayModeId: 'transition',
     backgroundPresetId: 'transition-dark',
     themeId: 'minimal-dark',
@@ -232,6 +280,76 @@ export function sanitizeTemplateId(v: unknown): ClassroomTemplateId {
 
 export function getTemplatePack(id: ClassroomTemplateId): ClassroomTemplatePack {
   return TEMPLATE_PACKS[id] ?? TEMPLATE_PACKS[DEFAULT_TEMPLATE_ID]
+}
+
+/**
+ * Pure, deterministic preview data derived from existing background / theme /
+ * timer / display-mode catalogs. Used to render the CSS-only thumbnail and the
+ * preview card without any new assets, remote URLs, or uploaded data.
+ */
+export interface TemplatePreviewSummary {
+  id: ClassroomTemplateId
+  name: string
+  shortLabel: string
+  category: ClassroomTemplateCategory
+  categoryLabel: string
+  visualTone: TemplateVisualTone
+  description: string
+  teacherUseCase: string
+  previewBullets: string[]
+  displayModeName: string
+  backgroundName: string
+  /** A single self-contained CSS `background` value (no URLs). */
+  backgroundCss: string
+  backgroundTextTone: 'dark' | 'light'
+  timerLabel: string
+  timerDurationMinutes: number
+  messageTitle: string
+  includeSpotify: boolean
+  keepAwakeRecommended: boolean
+}
+
+export function getTemplatePreviewSummary(template: ClassroomTemplatePack): TemplatePreviewSummary {
+  const background = getBackgroundPreset(template.backgroundPresetId)
+  const timer = getTimerPreset(template.timerPresetId)
+  const displayMode = getDisplayModeConfig(template.displayModeId)
+  return {
+    id: template.id,
+    name: template.name,
+    shortLabel: template.shortLabel,
+    category: template.category,
+    categoryLabel: TEMPLATE_CATEGORY_LABELS[template.category],
+    visualTone: template.visualTone,
+    description: template.description,
+    teacherUseCase: template.teacherUseCase,
+    previewBullets: template.previewBullets,
+    displayModeName: displayMode.name,
+    backgroundName: background.name,
+    backgroundCss: background.css,
+    backgroundTextTone: background.textTone,
+    timerLabel: timer.label,
+    timerDurationMinutes: timer.durationMinutes,
+    messageTitle: template.messageTitle,
+    includeSpotify: template.includeSpotify,
+    keepAwakeRecommended: template.keepAwakeRecommended,
+  }
+}
+
+export interface TemplateCategoryGroup {
+  category: ClassroomTemplateCategory
+  label: string
+  templates: ClassroomTemplatePack[]
+}
+
+/** Templates grouped by category, in display order (daily → instruction → assessment → transition). */
+export function getTemplatesByCategory(): TemplateCategoryGroup[] {
+  return TEMPLATE_CATEGORIES.map((category) => ({
+    category,
+    label: TEMPLATE_CATEGORY_LABELS[category],
+    templates: TEMPLATE_PACK_IDS.filter((id) => TEMPLATE_PACKS[id].category === category).map(
+      (id) => TEMPLATE_PACKS[id],
+    ),
+  }))
 }
 
 /** Heading text color, chosen for readability on the template's background. */
