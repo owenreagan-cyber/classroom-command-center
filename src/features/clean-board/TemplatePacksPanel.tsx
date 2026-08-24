@@ -147,7 +147,7 @@ function TemplateCard({
           <button
             type="button"
             onClick={onApply}
-            className="w-full rounded-md border border-emerald-600/60 bg-emerald-900/40 px-2 py-1.5 text-xs font-semibold text-emerald-200 transition hover:bg-emerald-900/60"
+            className="min-h-[44px] w-full rounded-md border border-emerald-600/60 bg-emerald-900/40 px-2 py-2 text-xs font-semibold text-emerald-200 transition hover:bg-emerald-900/60"
             data-apply-template-button
           >
             Apply Template
