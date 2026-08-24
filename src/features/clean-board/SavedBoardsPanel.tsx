@@ -26,9 +26,9 @@ import { BOARD_SCHEMA_VERSION, createEmptyBoardState } from './storage/boardSeri
  */
 
 const btn =
-  'rounded-md border border-slate-700 bg-slate-800/60 px-2 py-1 text-xs font-semibold text-slate-200 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40'
+  'min-h-[44px] rounded-md border border-slate-700 bg-slate-800/60 px-2.5 py-2 text-xs font-semibold text-slate-200 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40'
 const inputCls =
-  'w-full rounded-md border border-slate-700 bg-slate-900/60 px-2 py-1.5 text-xs text-slate-200 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none'
+  'min-h-[44px] w-full rounded-md border border-slate-700 bg-slate-900/60 px-2 py-2 text-xs text-slate-200 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none'
 
 const SCENE_TYPES: SceneType[] = ['arrival', 'math', 'reading', 'transition', 'packUp', 'custom']
 
@@ -147,7 +147,7 @@ export function SavedBoardsPanel({
           <select
             value={sceneType}
             onChange={(e) => setSceneType(e.target.value as SceneType)}
-            className="min-w-0 flex-1 rounded-md border border-slate-700 bg-slate-900/60 px-1.5 py-1 text-xs text-slate-200"
+            className="min-h-[44px] min-w-0 flex-1 rounded-md border border-slate-700 bg-slate-900/60 px-1.5 py-2 text-xs text-slate-200"
             data-scene-type-select
           >
             {SCENE_TYPES.map((t) => (
@@ -195,7 +195,7 @@ export function SavedBoardsPanel({
                       <div className="flex items-center gap-1">
                         <button
                           type="button"
-                          className="min-w-0 flex-1 truncate rounded-md px-2 py-1 text-left text-xs font-semibold text-slate-200 hover:bg-slate-800"
+                          className="min-h-[44px] min-w-0 flex-1 truncate rounded-md px-2 py-2 text-left text-xs font-semibold text-slate-200 hover:bg-slate-800"
                           onClick={() => handleLoad(l)}
                           title={`Load "${l.name}"`}
                         >
@@ -214,7 +214,7 @@ export function SavedBoardsPanel({
                         </button>
                         <button
                           type="button"
-                          className={btn}
+                          className={`${btn} min-w-[44px]`}
                           onClick={() => commit(deleteLayout(state, l.id))}
                           title="Delete"
                         >
@@ -238,7 +238,7 @@ export function SavedBoardsPanel({
                   <li key={s.id} className="flex items-center gap-1 rounded-md border border-slate-800 bg-slate-900/40 p-1.5" data-saved-scene={s.id}>
                     <button
                       type="button"
-                      className="min-w-0 flex-1 truncate rounded-md px-2 py-1 text-left text-xs font-semibold text-slate-200 hover:bg-slate-800"
+                      className="min-h-[44px] min-w-0 flex-1 truncate rounded-md px-2 py-2 text-left text-xs font-semibold text-slate-200 hover:bg-slate-800"
                       onClick={() => handleLoadScene(s)}
                       title={`Load "${s.name}"`}
                     >
@@ -247,7 +247,7 @@ export function SavedBoardsPanel({
                     </button>
                     <button
                       type="button"
-                      className={btn}
+                      className={`${btn} min-w-[44px]`}
                       onClick={() => commit(deleteScene(state, s.id))}
                       title="Delete"
                     >
