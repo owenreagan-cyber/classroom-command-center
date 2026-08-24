@@ -139,13 +139,15 @@ import {
   TEMPLATE_PACKS,
   createTemplateObjects,
   getTemplatePack,
+  getTemplatePreviewSummary,
+  getTemplatesByCategory,
   isTemplateId,
   sanitizeTemplateId,
   templateToBoardPage,
   templateToSavedLayout,
   templateToScene,
 } from './templatePacks'
-import type { ClassroomTemplateId } from './templatePacks'
+import type { ClassroomTemplateId, TemplatePreviewSummary } from './templatePacks'
 
 let passed = 0
 let failed = 0
@@ -1830,6 +1832,114 @@ test('iPad responsive layout keeps templates accessible via the Saved Boards tab
   const tabs = getCleanBoardEditTabs({ showSpotify: false, showMessageCard: false, showTimer: false })
   assert(tabs.includes('saved'), 'Saved Boards (with templates) tab always present')
   assert(TEMPLATE_CATEGORY_LABELS.daily.length > 0)
+})
+
+// ── DB-5B — template visual polish metadata + preview helpers ──
+
+test('every required template has complete visual metadata', () => {
+  for (const id of REQUIRED_TEMPLATE_IDS) {
+    const t = TEMPLATE_PACKS[id]
+    assert(t.visualTone !== undefined, `${id} has visualTone`)
+    assert(t.shortLabel.length > 0, `${id} has shortLabel`)
+    assert(t.teacherUseCase.length > 0, `${id} has teacherUseCase`)
+    assert(t.previewBullets.length >= 2, `${id} has preview bullets`)
+    for (const b of t.previewBullets) {
+      assert(b.length > 0, `${id} bullet non-empty`)
+    }
+  }
+})
+
+test('getTemplatePreviewSummary returns safe, deterministic data', () => {
+  for (const id of REQUIRED_TEMPLATE_IDS) {
+    const t = getTemplatePack(id)
+    const a = getTemplatePreviewSummary(t)
+    const b = getTemplatePreviewSummary(t)
+    assert(JSON.stringify(a) === JSON.stringify(b), `${id} preview is deterministic`)
+    assert(a.id === id)
+    assert(a.name === t.name && a.shortLabel === t.shortLabel)
+    assert(a.category === t.category)
+    assert(a.categoryLabel === TEMPLATE_CATEGORY_LABELS[t.category])
+    assert(a.displayModeName.length > 0)
+    assert(a.backgroundName.length > 0)
+    assert(a.backgroundCss.length > 0)
+    assert(a.backgroundTextTone === 'dark' || a.backgroundTextTone === 'light')
+    assert(a.timerLabel.length > 0 && a.timerDurationMinutes > 0)
+    assert(a.messageTitle.length > 0)
+    assert(typeof a.includeSpotify === 'boolean')
+    assert(typeof a.keepAwakeRecommended === 'boolean')
+  }
+})
+
+test('preview data contains no remote URLs, file paths, tokens, or secrets', () => {
+  const forbidden = /https?:\/\/|file:\/\/|data:image\/|\bwww\.|accessToken|refreshToken|clientSecret|deviceId|accountId|url\(/i
+  for (const id of REQUIRED_TEMPLATE_IDS) {
+    const summary: TemplatePreviewSummary = getTemplatePreviewSummary(getTemplatePack(id))
+    const strings: string[] = []
+    collectStrings(summary, strings)
+    for (const s of strings) {
+      assert(!forbidden.test(s), `${id}: no forbidden content in "${s.slice(0, 60)}"`)
+    }
+    assert(!strings.some((s) => s.startsWith('/') || s.includes('\\')), `${id}: no file paths`)
+  }
+})
+
+test('template categories group the 8 templates correctly', () => {
+  const groups = getTemplatesByCategory()
+  assert(groups.length === 4, 'four categories')
+  const labels = groups.map((g) => g.label)
+  assert(
+    labels.join(',') === 'Daily Routines,Instruction Blocks,Assessment,Transitions',
+    `expected category labels, got ${labels.join(',')}`,
+  )
+  const byCategory = new Map(groups.map((g) => [g.category, g.templates.map((t) => t.id)]))
+  assert(byCategory.get('daily')!.join(',') === 'morningArrival')
+  assert(byCategory.get('instruction')!.join(',') === 'mathWorkshop,readingBlock,writingBlock,independentWork')
+  assert(byCategory.get('assessment')!.join(',') === 'assessmentMode')
+  assert(byCategory.get('transition')!.join(',') === 'cleanup,dismissal')
+  const total = groups.reduce((n, g) => n + g.templates.length, 0)
+  assert(total === 8, 'all 8 templates present across groups')
+})
+
+test('applying a template still creates normal BoardPage state', () => {
+  for (const id of REQUIRED_TEMPLATE_IDS) {
+    const page = templateToBoardPage(getTemplatePack(id))
+    assert(page.id.length > 0 && page.title.length > 0)
+    assert(page.background.type === 'preset')
+    assert(page.objects.length >= 3)
+    assert(!('teacherNotes' in page))
+    assert(!('visualTone' in page), 'visual metadata does not leak into board state')
+    assert(!('shortLabel' in page))
+  }
+})
+
+test('template-generated board still serializes and parses', () => {
+  let state = createEmptyBoardState()
+  for (const id of REQUIRED_TEMPLATE_IDS) {
+    const t = getTemplatePack(id)
+    state = saveLayout(state, templateToSavedLayout(t))
+    state = saveScene(state, templateToScene(t))
+  }
+  const migrated = migrateBoardState(parseBoardStateJson(serializeBoardState(state)))
+  assert(migrated !== null)
+  assert(migrated.layouts.length === 8)
+  assert(boardStateHasNoForbiddenKeys(migrated))
+})
+
+test('present projection of a template board remains student-safe', () => {
+  for (const id of REQUIRED_TEMPLATE_IDS) {
+    const safe = toSafeBoardPage(templateToBoardPage(getTemplatePack(id)))
+    assert(safeBoardPageHasNoForbiddenKeys(safe), `${id} safe projection clean`)
+    assert(!('teacherNotes' in safe))
+  }
+})
+
+test('template picker is edit-only and iPad layout keeps Saved Boards accessible', () => {
+  assert(showTeacherControls('present') === false)
+  assert(showTeacherControls('edit') === true)
+  assert(getCleanBoardEditLayoutMode(820) === 'responsivePanels')
+  assert(getCleanBoardEditLayoutMode(1180) === 'responsivePanels')
+  const tabs = getCleanBoardEditTabs({ showSpotify: false, showMessageCard: false, showTimer: false })
+  assert(tabs.includes('saved'), 'Saved Boards (with template cards) tab present')
 })
 
 // ── Summary ──
