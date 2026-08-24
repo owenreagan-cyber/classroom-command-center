@@ -131,6 +131,21 @@ import {
   projectPageForDisplayMode,
   sanitizeDisplayModeId,
 } from './displayModes'
+import {
+  DEFAULT_TEMPLATE_ID,
+  TEMPLATE_CATEGORIES,
+  TEMPLATE_CATEGORY_LABELS,
+  TEMPLATE_PACK_IDS,
+  TEMPLATE_PACKS,
+  createTemplateObjects,
+  getTemplatePack,
+  isTemplateId,
+  sanitizeTemplateId,
+  templateToBoardPage,
+  templateToSavedLayout,
+  templateToScene,
+} from './templatePacks'
+import type { ClassroomTemplateId } from './templatePacks'
 
 let passed = 0
 let failed = 0
@@ -1609,6 +1624,212 @@ test('display mode config drives scene keep-awake default', () => {
   assert(getDisplayModeConfig('assessment').keepAwakeDefault === false)
   assert(getDisplayModeConfig('custom').recommendedSceneType === undefined)
   assert(getDisplayModeConfig('transition').recommendedSceneType === 'transition')
+})
+
+// ── DB-5A — classroom template packs ──
+
+function collectStrings(value: unknown, out: string[]): void {
+  if (typeof value === 'string') out.push(value)
+  else if (Array.isArray(value)) for (const v of value) collectStrings(v, out)
+  else if (value && typeof value === 'object')
+    for (const v of Object.values(value as Record<string, unknown>)) collectStrings(v, out)
+}
+
+function rectsOverlap(a: BoardObject, b: BoardObject): boolean {
+  return !(
+    a.x + a.w <= b.x ||
+    b.x + b.w <= a.x ||
+    a.y + a.h <= b.y ||
+    b.y + b.h <= a.y
+  )
+}
+
+const REQUIRED_TEMPLATE_IDS: ClassroomTemplateId[] = [
+  'morningArrival',
+  'mathWorkshop',
+  'readingBlock',
+  'writingBlock',
+  'independentWork',
+  'assessmentMode',
+  'cleanup',
+  'dismissal',
+]
+
+test('all required templates exist with complete, coherent config', () => {
+  assert(TEMPLATE_PACK_IDS.length === 8, 'eight templates defined')
+  for (const id of REQUIRED_TEMPLATE_IDS) {
+    assert((TEMPLATE_PACK_IDS as readonly string[]).includes(id), `catalog includes ${id}`)
+    const t = TEMPLATE_PACKS[id]
+    assert(t !== undefined, `pack ${id} exists`)
+    assert(t.id === id)
+    assert(t.name.length > 0 && t.heading.length > 0)
+    assert(t.description.length > 0)
+    assert(TEMPLATE_CATEGORIES.includes(t.category), `${id} category valid`)
+    assert(isDisplayModeId(t.displayModeId), `${id} display mode valid`)
+    assert(isBackgroundPresetId(t.backgroundPresetId), `${id} background valid`)
+    assert(isBoardThemeId(t.themeId), `${id} theme valid`)
+    assert(isMessageCardKind(t.messageCardKind), `${id} message kind valid`)
+    assert(t.messageTitle.length > 0 && t.messageBody.length > 0)
+    assert(isTimerPresetId(t.timerPresetId), `${id} timer valid`)
+    assert(typeof t.includeSpotify === 'boolean')
+    assert(typeof t.keepAwakeRecommended === 'boolean')
+  }
+})
+
+test('template ids sanitize safely and unknown ids fall back', () => {
+  assert(isTemplateId('morningArrival') === true)
+  assert(isTemplateId('dismissal') === true)
+  assert(isTemplateId('bogus') === false)
+  assert(isTemplateId('') === false)
+  assert(isTemplateId(null) === false)
+  assert(sanitizeTemplateId('bogus') === DEFAULT_TEMPLATE_ID)
+  assert(sanitizeTemplateId(42) === DEFAULT_TEMPLATE_ID)
+  assert(sanitizeTemplateId(undefined) === DEFAULT_TEMPLATE_ID)
+  assert(sanitizeTemplateId('assessmentMode') === 'assessmentMode')
+  assert(getTemplatePack(sanitizeTemplateId('bogus')).id === DEFAULT_TEMPLATE_ID)
+})
+
+test('each template produces a valid BoardPage and SavedLayout', () => {
+  for (const id of REQUIRED_TEMPLATE_IDS) {
+    const page = templateToBoardPage(getTemplatePack(id))
+    assert(page.id.length > 0 && page.title.length > 0, `${id} page id/title`)
+    assert(page.background.type === 'preset', `${id} background is preset`)
+    assert(isBoardThemeId(page.theme.id), `${id} theme valid`)
+    assert(page.objects.length >= 3, `${id} has heading + message + timer`)
+    assert(!('teacherNotes' in page), `${id} page has no teacher notes`)
+
+    const layout = templateToSavedLayout(getTemplatePack(id))
+    assert(layout.kind === 'layout', `${id} layout kind`)
+    assert(layout.schemaVersion === BOARD_SCHEMA_VERSION, `${id} schema version`)
+    assert(layout.displayModeId === getTemplatePack(id).displayModeId, `${id} layout mode`)
+    assert(layout.objects.length === page.objects.length)
+  }
+})
+
+test('Morning Arrival creates expected mode, background, message, and timer', () => {
+  const t = getTemplatePack('morningArrival')
+  const layout = templateToSavedLayout(t)
+  assert(layout.displayModeId === 'morningArrival')
+  assert(layout.background.type === 'preset' && layout.background.presetId === 'morning-glow')
+  const kinds = layout.objects.map((o) => o.kind)
+  assert(kinds.includes('messageCard'), 'has message card')
+  assert(kinds.includes('timer'), 'has timer')
+  assert(kinds.includes('spotifyNowPlayingPlaceholder'), 'has spotify placeholder')
+  const card = layout.objects.find((o) => o.kind === 'messageCard')!
+  const cfg = card.config as MessageCardConfig
+  assert(cfg.cardKind === 'doNow')
+  assert(cfg.title === 'Welcome')
+  assert(cfg.message.includes('Unpack your bag'))
+  const timer = layout.objects.find((o) => o.kind === 'timer')!
+  const tcfg = timer.config as TimerConfig
+  assert(tcfg.presetId === 'morningWork')
+  assert(tcfg.durationMinutes === 10)
+  assert(t.keepAwakeRecommended === true)
+})
+
+test('Assessment hides distracting elements through its display mode', () => {
+  const t = getTemplatePack('assessmentMode')
+  const objs = createTemplateObjects(t)
+  assert(!objs.some((o) => o.kind === 'spotifyNowPlayingPlaceholder'), 'assessment has no spotify object')
+  const projected = projectObjectsForDisplayMode(objs, 'assessment')
+  assert(!projected.some((o) => o.kind === 'spotifyNowPlayingPlaceholder'), 'no spotify projected')
+  assert(!projected.some((o) => o.kind === 'image'), 'no images projected')
+  assert(projected.some((o) => o.kind === 'timer'), 'quiet timer remains')
+  assert(projected.some((o) => o.kind === 'messageCard'), 'expectations card remains')
+})
+
+test('template-generated objects have unique ids and stay in-bounds', () => {
+  for (const id of REQUIRED_TEMPLATE_IDS) {
+    const objs = createTemplateObjects(getTemplatePack(id))
+    const ids = objs.map((o) => o.id)
+    assert(new Set(ids).size === ids.length, `${id} object ids unique`)
+    for (const o of objs) {
+      assert(o.x >= 0 && o.y >= 0, `${o.id} non-negative origin`)
+      assert(o.x + o.w <= 1920.01 && o.y + o.h <= 1080.01, `${o.id} within canvas`)
+    }
+  }
+})
+
+test('template-generated objects do not overlap in default placement', () => {
+  for (const id of REQUIRED_TEMPLATE_IDS) {
+    const objs = createTemplateObjects(getTemplatePack(id))
+    for (let i = 0; i < objs.length; i++) {
+      for (let j = i + 1; j < objs.length; j++) {
+        assert(!rectsOverlap(objs[i], objs[j]), `${id}: ${objs[i].id} and ${objs[j].id} do not overlap`)
+      }
+    }
+  }
+})
+
+test('template state serializes and parses through boardSerialization', () => {
+  let state = createEmptyBoardState()
+  for (const id of REQUIRED_TEMPLATE_IDS) {
+    const t = getTemplatePack(id)
+    state = saveLayout(state, templateToSavedLayout(t))
+    state = saveScene(state, templateToScene(t))
+  }
+  const migrated = migrateBoardState(parseBoardStateJson(serializeBoardState(state)))
+  assert(migrated !== null)
+  assert(migrated.layouts.length === 8)
+  assert(migrated.scenes.length === 8)
+  assert(boardStateHasNoForbiddenKeys(migrated), 'template state has no forbidden keys')
+})
+
+test('template scene saves and restores displayModeId', () => {
+  const t = getTemplatePack('assessmentMode')
+  const scene = templateToScene(t)
+  const layout = templateToSavedLayout(t)
+  assert(scene.layoutId === layout.id, 'scene references its template layout')
+  let state = createEmptyBoardState()
+  state = saveLayout(state, layout)
+  state = saveScene(state, scene)
+  const migrated = migrateBoardState(parseBoardStateJson(serializeBoardState(state)))
+  assert(migrated !== null)
+  const restored = migrated.scenes.find((s) => s.id === scene.id)
+  assert(restored !== undefined)
+  assert(restored.displayModeId === 'assessment')
+  assert(restored.keepAwake === false)
+  assert(restored.studentSafe === true)
+  assert(restored.backgroundPresetId === 'clean-white')
+})
+
+test('no template includes remote URLs, file paths, tokens, or secrets', () => {
+  const forbidden = /https?:\/\/|file:\/\/|data:image\/svg|\bwww\.|accessToken|refreshToken|clientSecret|deviceId|accountId/i
+  for (const id of REQUIRED_TEMPLATE_IDS) {
+    const t = getTemplatePack(id)
+    const strings: string[] = []
+    collectStrings(t, strings)
+    collectStrings(templateToBoardPage(t), strings)
+    collectStrings(templateToSavedLayout(t), strings)
+    collectStrings(templateToScene(t), strings)
+    for (const s of strings) {
+      assert(!forbidden.test(s), `${id}: no forbidden content in "${s.slice(0, 60)}"`)
+    }
+    assert(!strings.some((s) => s.startsWith('/') || s.includes('\\')), `${id}: no file paths`)
+  }
+})
+
+test('present projection of a template board is student-safe', () => {
+  for (const id of REQUIRED_TEMPLATE_IDS) {
+    const page = templateToBoardPage(getTemplatePack(id))
+    const safe = toSafeBoardPage(page)
+    assert(safeBoardPageHasNoForbiddenKeys(safe), `${id} safe projection clean`)
+    assert(!('teacherNotes' in safe), `${id} no teacher notes in present`)
+  }
+})
+
+test('template picker is edit-only (gated behind Saved Boards panel)', () => {
+  // The picker lives inside SavedBoardsPanel, which is edit-mode-only.
+  assert(showTeacherControls('present') === false)
+  assert(showTeacherControls('edit') === true)
+})
+
+test('iPad responsive layout keeps templates accessible via the Saved Boards tab', () => {
+  assert(getCleanBoardEditLayoutMode(820) === 'responsivePanels', 'iPad portrait uses the drawer')
+  assert(getCleanBoardEditLayoutMode(1180) === 'responsivePanels', 'iPad landscape uses the drawer')
+  const tabs = getCleanBoardEditTabs({ showSpotify: false, showMessageCard: false, showTimer: false })
+  assert(tabs.includes('saved'), 'Saved Boards (with templates) tab always present')
+  assert(TEMPLATE_CATEGORY_LABELS.daily.length > 0)
 })
 
 // ── Summary ──

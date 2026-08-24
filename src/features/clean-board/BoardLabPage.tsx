@@ -20,6 +20,8 @@ import { useSpotifyStore } from './spotify/spotifyStore'
 import { layoutFromPage, loadAutosaveLayout, saveAutosaveLayout } from './storage/boardStorage'
 import { DEFAULT_THEME } from './themes'
 import { defaultTimerConfig } from './timerPresets'
+import { templateToBoardPage } from './templatePacks'
+import type { ClassroomTemplatePack } from './templatePacks'
 import { EDIT_DRAWER_TAB_LABELS, getCleanBoardEditTabs } from './editLayout'
 import type { EditDrawerTab } from './editLayout'
 import { useCleanBoardEditLayoutMode } from './useCleanBoardEditLayoutMode'
@@ -364,6 +366,17 @@ export function BoardLabPage() {
     }))
   }
 
+  const applyTemplate = (template: ClassroomTemplatePack) => {
+    const newPage = templateToBoardPage(template, activePage)
+    setDisplayModeId(template.displayModeId)
+    setSelectedObjectId(null)
+    setDeck((prev) => ({
+      ...prev,
+      updatedAt: Date.now(),
+      pages: prev.pages.map((p) => (p.id === activePage.id ? newPage : p)),
+    }))
+  }
+
   const handleSetBackground = (background: BoardBackground) => {
     const pageId = activePage.id
     setDeck((prev) => ({
@@ -516,6 +529,7 @@ export function BoardLabPage() {
                   activePage={activePage}
                   displayModeId={displayModeId}
                   onLoadLayout={handleLoadLayout}
+                  onApplyTemplate={applyTemplate}
                 />
               )}
               {drawerTab === 'look' && (
@@ -557,6 +571,7 @@ export function BoardLabPage() {
               activePage={activePage}
               displayModeId={displayModeId}
               onLoadLayout={handleLoadLayout}
+              onApplyTemplate={applyTemplate}
             />
           )}
           <main className="min-h-0 flex-1">{boardCanvas}</main>
