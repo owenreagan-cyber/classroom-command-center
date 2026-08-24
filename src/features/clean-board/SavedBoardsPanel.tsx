@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import type { BoardPage, BoardScene, BoardState, DisplayModeId, SavedLayout, SceneType } from './types'
 import { getDisplayModeConfig } from './displayModes'
+import { TemplatePacksPanel } from './TemplatePacksPanel'
+import type { ClassroomTemplatePack } from './templatePacks'
 import {
   deleteLayout,
   deleteScene,
@@ -34,11 +36,14 @@ export function SavedBoardsPanel({
   activePage,
   displayModeId,
   onLoadLayout,
+  onApplyTemplate,
   fullWidth = false,
 }: {
   activePage: BoardPage
   displayModeId: DisplayModeId
   onLoadLayout: (layout: SavedLayout, displayModeId: DisplayModeId) => void
+  /** Apply a classroom template pack to the active page. */
+  onApplyTemplate?: (template: ClassroomTemplatePack) => void
   /** Fill the parent drawer width instead of a fixed 256px side panel. */
   fullWidth?: boolean
 }) {
@@ -121,6 +126,8 @@ export function SavedBoardsPanel({
           Saved Boards
         </h2>
       </div>
+
+      {onApplyTemplate && <TemplatePacksPanel onApply={onApplyTemplate} />}
 
       <div className="space-y-2">
         <input
