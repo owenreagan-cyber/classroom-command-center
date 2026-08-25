@@ -22,6 +22,7 @@ export const MESSAGE_CARD_KINDS: readonly MessageCardKind[] = [
   'transition',
   'exitTicket',
   'announcement',
+  'welcome',
 ]
 
 export const MESSAGE_CARD_TONES: readonly MessageCardTone[] = [
@@ -46,6 +47,7 @@ export const MESSAGE_CARD_KIND_LABELS: Record<MessageCardKind, string> = {
   transition: 'Transition',
   exitTicket: 'Exit Ticket',
   announcement: 'Announcement',
+  welcome: 'Welcome',
 }
 
 export interface MessageCardPreset {
@@ -110,6 +112,14 @@ export const MESSAGE_CARD_PRESETS: Record<MessageCardKind, MessageCardPreset> = 
     cardKind: 'announcement',
     title: 'Announcement',
     message: "Check the board for today's important update.",
+    tone: 'calm',
+    textSize: 'large',
+    checklistStyle: false,
+  },
+  welcome: {
+    cardKind: 'welcome',
+    title: 'Welcome',
+    message: 'Good morning! Please complete your morning routines quietly.',
     tone: 'calm',
     textSize: 'large',
     checklistStyle: false,

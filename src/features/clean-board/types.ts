@@ -117,6 +117,7 @@ export type MessageCardKind =
   | 'transition'
   | 'exitTicket'
   | 'announcement'
+  | 'welcome'
 
 /** Visual tone for the card's accent. */
 export type MessageCardTone = 'neutral' | 'calm' | 'focus' | 'warning' | 'success'

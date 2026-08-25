@@ -26,7 +26,7 @@ export function DisplayModeSelector({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value as DisplayModeId)}
-        className="rounded-lg border border-slate-700 bg-slate-900/60 px-2 py-1.5 text-xs font-semibold text-slate-200 focus:border-emerald-500 focus:outline-none"
+        className="h-11 rounded-lg border border-slate-700 bg-slate-900/60 px-2 text-xs font-semibold text-slate-200 focus:border-emerald-500 focus:outline-none"
         data-display-mode-select
       >
         {DISPLAY_MODE_IDS.map((id) => (
