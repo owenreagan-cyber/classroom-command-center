@@ -148,6 +148,11 @@ import {
   templateToScene,
 } from './templatePacks'
 import type { ClassroomTemplateId, TemplatePreviewSummary } from './templatePacks'
+import {
+  defaultHostDisplayPage,
+  projectHostDisplayPage,
+  resolveHostDisplayPage,
+} from './displayHost'
 
 let passed = 0
 let failed = 0
@@ -2015,6 +2020,90 @@ test('Morning Arrival — New Classroom present projection is student-safe and t
   assert(!('teacherNotes' in safe))
   assert(showTeacherControls('present') === false)
   assert(showTeacherControls('edit') === true)
+})
+
+// ── DB-7A — Clean Board host display route ──
+
+test('defaultHostDisplayPage returns Morning Arrival — New Classroom', () => {
+  const page = defaultHostDisplayPage()
+  assert(page.title === 'Morning Arrival — New Classroom')
+  assert(page.background.type === 'preset' && page.background.presetId === 'morning-glow')
+  assert(page.theme.id === 'minimal-light')
+  const card = page.objects.find((o) => o.kind === 'messageCard')!
+  assert((card.config as MessageCardConfig).title === 'Welcome to the New Classroom!')
+  assert(page.objects.filter((o) => o.kind === 'timer').length === 3, 'three-timer routine')
+})
+
+test('host display resolves to default when no saved state or autosave exists', () => {
+  const r = resolveHostDisplayPage(null, null)
+  assert(r.source === 'default')
+  assert(r.displayModeId === 'morningArrival')
+  assert(r.page.title === 'Morning Arrival — New Classroom')
+  const safe = projectHostDisplayPage(r)
+  assert(safeBoardPageHasNoForbiddenKeys(safe))
+})
+
+test('host display restores the active scene and its display mode', () => {
+  const t = getTemplatePack('mathWorkshop')
+  let state = createEmptyBoardState()
+  state = saveLayout(state, templateToSavedLayout(t))
+  state = saveScene(state, templateToScene(t))
+  state = setActiveScene(state, templateToScene(t).id)
+  const r = resolveHostDisplayPage(state, null)
+  assert(r.source === 'scene')
+  assert(r.page.title === 'Math Workshop', `scene name becomes the display title, got "${r.page.title}"`)
+  assert(r.displayModeId === 'focus')
+})
+
+test('host display restores the active layout when no scene is active', () => {
+  const t = getTemplatePack('readingBlock')
+  let state = createEmptyBoardState()
+  state = saveLayout(state, templateToSavedLayout(t))
+  state = setActiveLayout(state, templateToSavedLayout(t).id)
+  const r = resolveHostDisplayPage(state, null)
+  assert(r.source === 'layout')
+  assert(r.page.title === 'Reading Block')
+  assert(r.displayModeId === 'reading')
+})
+
+test('host display falls back to autosave when no active scene/layout exists', () => {
+  const autosave = templateToSavedLayout(getTemplatePack('cleanup'))
+  const r = resolveHostDisplayPage(createEmptyBoardState(), autosave)
+  assert(r.source === 'autosave')
+  assert(r.page.title === 'Cleanup')
+  assert(r.displayModeId === 'cleanup')
+})
+
+test('host display does not crash on unknown active ids and falls back to default', () => {
+  let state = createEmptyBoardState()
+  state = setActiveScene(state, 'missing-scene')
+  state = setActiveLayout(state, 'missing-layout')
+  const r = resolveHostDisplayPage(state, null)
+  assert(r.source === 'default')
+  assert(r.page.title === 'Morning Arrival — New Classroom')
+})
+
+test('host display projection includes message/timer content and excludes teacher chrome', () => {
+  const r = resolveHostDisplayPage(null, null)
+  const projected = projectHostDisplayPage(r)
+  assert(projected.objects.some((o) => o.kind === 'messageCard'), 'message card present')
+  assert(projected.objects.some((o) => o.kind === 'timer'), 'timer present')
+  assert(!('teacherNotes' in projected), 'no teacher notes in projection')
+  assert(showTeacherControls('present') === false, 'present mode hides teacher controls')
+  const card = projected.objects.find((o) => o.kind === 'messageCard')!
+  const cfg = card.config as MessageCardConfig
+  assert(cfg.message.includes('Return your Friday Folder'), 'welcome body intact')
+})
+
+test('host display scene projection drops Spotify in assessment mode', () => {
+  const t = getTemplatePack('assessmentMode')
+  let state = createEmptyBoardState()
+  state = saveLayout(state, templateToSavedLayout(t))
+  state = saveScene(state, templateToScene(t))
+  state = setActiveScene(state, templateToScene(t).id)
+  const projected = projectHostDisplayPage(resolveHostDisplayPage(state, null))
+  assert(projected.objects.some((o) => o.kind === 'messageCard'), 'message card present')
+  assert(!projected.objects.some((o) => o.kind === 'spotifyNowPlayingPlaceholder'), 'spotify hidden')
 })
 
 // ── Summary ──

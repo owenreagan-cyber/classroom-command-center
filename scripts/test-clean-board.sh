@@ -50,6 +50,7 @@ echo "PASS: clean-board has no old shell or spotify embed imports"
   "$ROOT/src/features/clean-board/storage/boardSerialization.ts" \
   "$ROOT/src/features/clean-board/storage/boardMigrations.ts" \
   "$ROOT/src/features/clean-board/storage/boardStorage.ts" \
+  "$ROOT/src/features/clean-board/displayHost.ts" \
   "$ROOT/src/features/clean-board/boardLabTests.ts"
 
 printf '{"type":"commonjs"}\n' > "$OUT/package.json"

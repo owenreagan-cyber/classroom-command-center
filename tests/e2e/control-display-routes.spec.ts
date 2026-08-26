@@ -28,7 +28,7 @@ test.describe('Control / Display route split', () => {
     await expect(page.locator('[data-teacher-command-dock]')).toBeVisible()
 
     await page.goto('/display')
-    await expect(page.locator('.board-screen-title')).toBeVisible()
+    await expect(page.locator('[data-clean-board-host-display]')).toBeVisible()
     await expect(page.locator('[data-teacher-command-dock]')).toHaveCount(0)
     await expect(page.getByRole('complementary', { name: 'Teacher controls' })).toHaveCount(0)
     await expect(page.getByText('Mystery Star')).toHaveCount(0)
@@ -41,8 +41,8 @@ test.describe('Control / Display route split', () => {
 
   test('/display still renders active classroom content', async ({ page }) => {
     await page.goto('/display')
-    await expect(page.locator('.board-screen-title')).toBeVisible()
-    await expect(page.locator('.board-canvas')).toBeVisible()
+    await expect(page.locator('[data-clean-board-host-display]')).toBeVisible()
+    await expect(page.locator('[data-board-canvas]')).toBeVisible()
   })
 
   test('root path redirects to /control', async ({ page }) => {
@@ -116,7 +116,7 @@ test.describe('Display launch controls', () => {
 
     await popup.waitForLoadState('domcontentloaded')
     expect(popup.url()).toContain('/display')
-    await expect(popup.locator('.board-screen-title')).toBeVisible()
+    await expect(popup.locator('[data-clean-board-host-display]')).toBeVisible()
     await popup.close()
     expect(page.url()).toContain('/control')
   })
