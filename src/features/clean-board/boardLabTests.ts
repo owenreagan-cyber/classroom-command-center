@@ -153,6 +153,15 @@ import {
   projectHostDisplayPage,
   resolveHostDisplayPage,
 } from './displayHost'
+import {
+  buildRoutineMessage,
+  displayModeIdForRoutine,
+  parseRoutinePrompt,
+  routinePlanToBoardPage,
+  routinePlanToSavedLayout,
+  routinePlanToScene,
+} from './routinePromptPlanner'
+import type { RoutinePlan } from './routinePromptPlanner'
 
 let passed = 0
 let failed = 0
@@ -2104,6 +2113,160 @@ test('host display scene projection drops Spotify in assessment mode', () => {
   const projected = projectHostDisplayPage(resolveHostDisplayPage(state, null))
   assert(projected.objects.some((o) => o.kind === 'messageCard'), 'message card present')
   assert(!projected.objects.some((o) => o.kind === 'spotifyNowPlayingPlaceholder'), 'spotify hidden')
+})
+
+// ── DB-7C — prompt routine planner ──
+
+const TODAYS_PROMPT = `Set up morning arrival for August 27th, 2026.
+Please complete your morning routines:
+- Complete and turn in your History Chapter 2 and 3 worksheet
+- Complete the Shurley review worksheet
+- Stay seated and work quietly
+- Sharpen pencils and use the bathroom before we begin
+Be ready for math!
+Use a 25-minute Quiet Morning Work timer.
+Use a calm, premium, readable classroom morning background.
+Add a small sensible school sticker or graphic like a pencil, notebook, sun, or good-morning accent.
+Use calm instrumental, acoustic, or piano music.`
+
+test('routine planner parses August 27th, 2026 title', () => {
+  const plan = parseRoutinePrompt(TODAYS_PROMPT)
+  assert(plan.title === 'August 27th, 2026', `title "${plan.title}"`)
+  assert(plan.sceneName === 'Morning Arrival — Aug 27', `scene "${plan.sceneName}"`)
+  assert(plan.kind === 'morningArrival')
+})
+
+test('routine planner extracts checklist items from bullet list', () => {
+  const plan = parseRoutinePrompt(TODAYS_PROMPT)
+  assert(plan.checklistItems.length === 4, `expected 4 items, got ${plan.checklistItems.length}`)
+  assert(plan.checklistItems[0].includes('History Chapter 2 and 3 worksheet'))
+  assert(plan.checklistItems[1].includes('Shurley review worksheet'))
+  assert(plan.checklistItems[2].includes('Stay seated and work quietly'))
+  assert(plan.checklistItems[3].includes('Sharpen pencils and use the bathroom'))
+  assert(plan.closing === 'Be ready for math!', `closing "${plan.closing}"`)
+})
+
+test('routine planner detects 25-minute timer', () => {
+  const plan = parseRoutinePrompt(TODAYS_PROMPT)
+  assert(plan.timers.length === 1)
+  assert(plan.timers[0].minutes === 25)
+  assert(plan.timers[0].title === 'Quiet Morning Work', `timer title "${plan.timers[0].title}"`)
+})
+
+test('routine planner detects calm morning visual style', () => {
+  const plan = parseRoutinePrompt(TODAYS_PROMPT)
+  assert(plan.visualStyle.backgroundPresetId === 'morning-glow')
+  assert(plan.visualStyle.themeId === 'minimal-light')
+  assert(plan.visualStyle.mood === 'calm')
+  assert(plan.visualStyle.accentGraphicSuggestion, 'sticker/graphic suggestion present')
+  assert(
+    plan.visualStyle.accentGraphicSuggestion!.toLowerCase().includes('pencil'),
+    'suggestion mentions pencil',
+  )
+})
+
+test('routine planner detects music/playlist intent', () => {
+  const plan = parseRoutinePrompt(TODAYS_PROMPT)
+  assert(plan.music.enabled === true)
+  assert(plan.music.suggestedPlaylistName === 'Morning Arrival Calm')
+  assert(plan.music.recipeId === 'morning-arrival-calm')
+  const terms = plan.music.searchTerms.join(',')
+  assert(terms.includes('calm'), 'calm term')
+  assert(terms.includes('instrumental'), 'instrumental term')
+  assert(terms.includes('acoustic'), 'acoustic term')
+  assert(terms.includes('piano'), 'piano term')
+})
+
+test('routine planner creates valid BoardPage/SavedLayout without throwing', () => {
+  const plan = parseRoutinePrompt(TODAYS_PROMPT)
+  const page = routinePlanToBoardPage(plan)
+  assert(page.title === 'Morning Arrival — Aug 27')
+  assert(page.background.type === 'preset' && page.background.presetId === 'morning-glow')
+  assert(page.objects.some((o) => o.kind === 'messageCard'))
+  assert(page.objects.some((o) => o.kind === 'timer'))
+  assert(page.objects.some((o) => o.kind === 'spotifyNowPlayingPlaceholder'), 'spotify included')
+
+  const layout = routinePlanToSavedLayout(plan)
+  assert(layout.displayModeId === 'morningArrival')
+  assert(layout.name === 'Morning Arrival — Aug 27')
+
+  const scene = routinePlanToScene(plan, layout)
+  assert(scene.layoutId === layout.id)
+  assert(scene.displayModeId === 'morningArrival')
+  assert(scene.spotifyPresetRef === 'morning-arrival-calm')
+  assert(scene.studentSafe === true)
+})
+
+test('routine planner missing/empty prompt produces safe default plan', () => {
+  const plan = parseRoutinePrompt('')
+  assert(plan.kind === 'morningArrival')
+  assert(plan.title === 'Morning Arrival')
+  assert(plan.checklistItems.length >= 3)
+  assert(plan.timers.length === 1)
+  assert(plan.timers[0].minutes === 25)
+  assert(plan.music.enabled === false)
+  const page = routinePlanToBoardPage(plan)
+  assert(page.objects.length >= 3)
+  // No forbidden content in the generated page.
+  assert(safeBoardPageHasNoForbiddenKeys(toSafeBoardPage(page)))
+})
+
+test('routine planner maps routine kinds to display modes', () => {
+  assert(displayModeIdForRoutine('morningArrival') === 'morningArrival')
+  assert(displayModeIdForRoutine('math') === 'focus')
+  assert(displayModeIdForRoutine('assessment') === 'assessment')
+  assert(displayModeIdForRoutine('cleanup') === 'cleanup')
+})
+
+test('routine planner detects alternate routines and clamps timers', () => {
+  const math = parseRoutinePrompt('Set up math. Take out materials. Use a 200 minute timer. Focus background.')
+  assert(math.kind === 'math')
+  assert(math.timers[0].minutes === 120, 'timer clamped to 120')
+  const assess = parseRoutinePrompt('Assessment. Work silently for a 5 minute quiz.')
+  assert(assess.kind === 'assessment')
+  const cleanup = parseRoutinePrompt('Cleanup. Pack up and tidy for 3 minutes.')
+  assert(cleanup.kind === 'cleanup')
+})
+
+test('routine planner today prompt uses local date', () => {
+  const now = new Date(2026, 7, 27) // Aug 27, 2026
+  const plan = parseRoutinePrompt('Set up morning arrival for today. Students should work quietly.', { now })
+  assert(plan.title === 'August 27, 2026')
+})
+
+test('display projection shows generated message/timer', () => {
+  const plan = parseRoutinePrompt(TODAYS_PROMPT)
+  const page = toSafeBoardPage(routinePlanToBoardPage(plan))
+  const card = page.objects.find((o) => o.kind === 'messageCard')!
+  const cfg = card.config as MessageCardConfig
+  assert(cfg.message.includes('History Chapter 2 and 3 worksheet'))
+  assert(cfg.message.includes('Shurley review worksheet'))
+  assert(cfg.message.includes('Be ready for math!'))
+  const timer = page.objects.find((o) => o.kind === 'timer')!
+  const tcfg = timer.config as TimerConfig
+  assert(tcfg.title === 'Quiet Morning Work')
+  assert(tcfg.label === '25:00')
+})
+
+test('today\'s target prompt passes end-to-end', () => {
+  const plan: RoutinePlan = parseRoutinePrompt(TODAYS_PROMPT)
+  assert(plan.title === 'August 27th, 2026')
+  assert(plan.checklistItems.some((i) => i.includes('History Chapter 2 and 3 worksheet')))
+  assert(plan.checklistItems.some((i) => i.includes('Shurley review worksheet')))
+  assert(plan.checklistItems.some((i) => i.includes('Stay seated and work quietly')))
+  assert(plan.checklistItems.some((i) => i.includes('Sharpen pencils')))
+  assert(plan.closing === 'Be ready for math!')
+  assert(plan.timers[0].title === 'Quiet Morning Work' && plan.timers[0].minutes === 25)
+  assert(plan.music.enabled === true)
+  assert(plan.music.suggestedPlaylistName === 'Morning Arrival Calm')
+  const terms = plan.music.searchTerms.join(',')
+  assert(terms.includes('calm') && terms.includes('instrumental') && terms.includes('acoustic') && terms.includes('piano'))
+  assert(plan.visualStyle.mood === 'calm')
+  assert(plan.visualStyle.accentGraphicSuggestion !== undefined)
+  // buildRoutineMessage is deterministic and student-safe.
+  const message = buildRoutineMessage(plan)
+  assert(message.includes('History Chapter 2 and 3 worksheet'))
+  assert(message.includes('Be ready for math!'))
 })
 
 // ── Summary ──
