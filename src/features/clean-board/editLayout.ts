@@ -18,7 +18,7 @@ export const CLEAN_BOARD_EDIT_BREAKPOINT = 1280
 export type EditDrawerTab = 'prompt' | 'saved' | 'look' | 'spotify' | 'messageCard' | 'timer'
 
 export const EDIT_DRAWER_TAB_LABELS: Record<EditDrawerTab, string> = {
-  prompt: 'Routine Builder',
+  prompt: 'Board Assistant',
   saved: 'Saved Boards',
   look: 'Board Look',
   spotify: 'Spotify',

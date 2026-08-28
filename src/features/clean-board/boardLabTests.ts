@@ -154,9 +154,11 @@ import {
   resolveHostDisplayPage,
 } from './displayHost'
 import {
+  ASSISTANT_EXAMPLE_PROMPTS,
   buildRoutineMessage,
   displayModeIdForRoutine,
   parseRoutinePrompt,
+  reviseRoutinePlan,
   routinePlanToBoardPage,
   routinePlanToSavedLayout,
   routinePlanToScene,
@@ -2267,6 +2269,146 @@ test('today\'s target prompt passes end-to-end', () => {
   const message = buildRoutineMessage(plan)
   assert(message.includes('History Chapter 2 and 3 worksheet'))
   assert(message.includes('Be ready for math!'))
+})
+
+// ── DB-7F — assistant revision + examples ──
+
+test('assistant revision make it shorter trims the message', () => {
+  const plan = parseRoutinePrompt(TODAYS_PROMPT) // 4 checklist items + closing
+  const res = reviseRoutinePlan(plan, 'make it shorter')
+  assert(res.applied === true)
+  assert(res.plan.checklistItems.length === 3, `expected 3 items, got ${res.plan.checklistItems.length}`)
+  assert(res.plan.closing === '', `closing cleared, got "${res.plan.closing}"`)
+  assert(res.plan !== plan, 'returns a new plan object')
+})
+
+test('assistant revision add turn in folders appends a checklist item', () => {
+  const plan = parseRoutinePrompt(TODAYS_PROMPT)
+  const res = reviseRoutinePlan(plan, 'add turn in folders')
+  assert(res.applied === true)
+  assert(res.plan.checklistItems.some((i) => i.toLowerCase().includes('turn in folders')))
+})
+
+test('assistant revision change timer to 20 minutes', () => {
+  const plan = parseRoutinePrompt(TODAYS_PROMPT)
+  const res = reviseRoutinePlan(plan, 'change timer to 20 minutes')
+  assert(res.applied === true)
+  assert(res.plan.timers[0].minutes === 20)
+})
+
+test('assistant revision make it more serious sets a focus tone', () => {
+  const plan = parseRoutinePrompt(TODAYS_PROMPT)
+  const res = reviseRoutinePlan(plan, 'make it more serious')
+  assert(res.applied === true)
+  assert(res.plan.tone === 'focus')
+})
+
+test('assistant revision make it friendlier sets a calm tone', () => {
+  const plan = parseRoutinePrompt(TODAYS_PROMPT)
+  const res = reviseRoutinePlan(plan, 'make it friendlier')
+  assert(res.applied === true)
+  assert(res.plan.tone === 'calm')
+})
+
+test('assistant revision no music disables music', () => {
+  const plan = parseRoutinePrompt(TODAYS_PROMPT)
+  assert(plan.music.enabled === true)
+  const res = reviseRoutinePlan(plan, 'no music')
+  assert(res.applied === true)
+  assert(res.plan.music.enabled === false)
+})
+
+test('assistant revision use piano / acoustic music updates search terms', () => {
+  const plan = parseRoutinePrompt(TODAYS_PROMPT)
+  const piano = reviseRoutinePlan(plan, 'use piano music')
+  assert(piano.applied === true)
+  assert(piano.plan.music.enabled === true)
+  assert(piano.plan.music.searchTerms.includes('piano'))
+  const acoustic = reviseRoutinePlan(plan, 'use acoustic music')
+  assert(acoustic.applied === true)
+  assert(acoustic.plan.music.searchTerms.includes('acoustic'))
+})
+
+test('assistant revision change title and background calmer', () => {
+  const plan = parseRoutinePrompt(TODAYS_PROMPT)
+  const title = reviseRoutinePlan(plan, 'change title to Welcome Back!')
+  assert(title.applied === true)
+  assert(title.plan.title === 'Welcome Back!')
+  const calmer = reviseRoutinePlan(plan, 'make the background calmer')
+  assert(calmer.applied === true)
+  assert(calmer.plan.visualStyle.backgroundPresetId === 'morning-glow')
+  assert(calmer.plan.visualStyle.mood === 'calm')
+  const brighter = reviseRoutinePlan(plan, 'make it brighter')
+  assert(brighter.applied === true)
+  assert(brighter.plan.visualStyle.mood === 'bright')
+})
+
+test('assistant revision remove removes a matching checklist item', () => {
+  const plan = parseRoutinePrompt(TODAYS_PROMPT)
+  const res = reviseRoutinePlan(plan, 'remove stay seated')
+  assert(res.applied === true)
+  assert(!res.plan.checklistItems.some((i) => i.toLowerCase().includes('stay seated')))
+  assert(res.plan.checklistItems.length === 3)
+})
+
+test('assistant revision add be ready for math sets the closing line', () => {
+  const plan = parseRoutinePrompt(TODAYS_PROMPT)
+  const res = reviseRoutinePlan(plan, 'add be ready for math')
+  assert(res.applied === true)
+  assert(res.plan.closing === 'Be ready for math!', `closing "${res.plan.closing}"`)
+  // Closing is added, not duplicated as a checklist item.
+  assert(!res.plan.checklistItems.some((i) => i.toLowerCase().includes('be ready for math')))
+})
+
+test('assistant unknown revision preserves plan safely', () => {
+  const before = parseRoutinePrompt(TODAYS_PROMPT)
+  const res = reviseRoutinePlan(before, 'make the vibe purple and holographic')
+  assert(res.applied === false)
+  assert(res.plan === before, 'returns the same reference when nothing matched')
+  assert(res.note !== undefined)
+  assert(res.note!.includes('could not confidently apply'))
+})
+
+test('assistant example chips produce valid plans', () => {
+  assert(ASSISTANT_EXAMPLE_PROMPTS.length === 6)
+  for (const chip of ASSISTANT_EXAMPLE_PROMPTS) {
+    const plan = parseRoutinePrompt(chip.prompt)
+    const page = routinePlanToBoardPage(plan)
+    assert(page.objects.some((o) => o.kind === 'messageCard'), `${chip.label} has a message card`)
+    assert(page.objects.some((o) => o.kind === 'timer'), `${chip.label} has a timer`)
+  }
+  const dismissal = ASSISTANT_EXAMPLE_PROMPTS.find((c) => c.id === 'dismissal')!
+  const dismissalPlan = parseRoutinePrompt(dismissal.prompt)
+  assert(dismissalPlan.kind === 'cleanup', 'dismissal maps to cleanup')
+  const assessment = ASSISTANT_EXAMPLE_PROMPTS.find((c) => c.id === 'assessment-mode')!
+  const assessmentPlan = parseRoutinePrompt(assessment.prompt)
+  assert(assessmentPlan.kind === 'assessment')
+  assert(assessmentPlan.music.enabled === false, 'assessment chip disables music')
+})
+
+test('assistant apply path still creates normal board state', () => {
+  const plan = parseRoutinePrompt(TODAYS_PROMPT)
+  const revised = reviseRoutinePlan(plan, 'change timer to 20 minutes').plan
+  const page = toSafeBoardPage(routinePlanToBoardPage(revised))
+  const timer = page.objects.find((o) => o.kind === 'timer')!
+  const tcfg = timer.config as TimerConfig
+  assert(tcfg.label === '20:00', `timer label "${tcfg.label}"`)
+  assert(safeBoardPageHasNoForbiddenKeys(page))
+})
+
+test('/display projection shows assistant-applied message/timer', () => {
+  const plan = parseRoutinePrompt(TODAYS_PROMPT)
+  const revised = reviseRoutinePlan(plan, 'add turn in folders').plan
+  const page = projectPageForDisplayMode(
+    toSafeBoardPage(routinePlanToBoardPage(revised)),
+    displayModeIdForRoutine(revised.kind),
+  )
+  const card = page.objects.find((o) => o.kind === 'messageCard')!
+  const cfg = card.config as MessageCardConfig
+  assert(cfg.message.includes('Turn in folders'))
+  assert(cfg.message.includes('History Chapter 2 and 3 worksheet'))
+  const timer = page.objects.find((o) => o.kind === 'timer')!
+  assert((timer.config as TimerConfig).label === '25:00')
 })
 
 // ── Summary ──

@@ -4,8 +4,10 @@ import { BACKGROUND_PRESETS, isBackgroundPresetId } from './backgrounds'
 import { BOARD_THEME_IDS, BOARD_THEMES, isBoardThemeId } from './themes'
 import { clampTimerMinutes } from './timerPresets'
 import {
+  ASSISTANT_EXAMPLE_PROMPTS,
   displayModeIdForRoutine,
   parseRoutinePrompt,
+  reviseRoutinePlan,
   routinePlanToBoardPage,
   routinePlanToSavedLayout,
   routinePlanToScene,
@@ -40,6 +42,15 @@ const primaryBtn =
   'min-h-[44px] rounded-md bg-emerald-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-40'
 const ghostBtn =
   'min-h-[44px] rounded-md border border-slate-700 bg-slate-800/60 px-2.5 py-2 text-xs font-semibold text-slate-200 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40'
+const chipCls =
+  'min-h-[36px] rounded-full border border-slate-700 bg-slate-800/60 px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:bg-slate-700 hover:text-slate-100'
+
+const QUICK_REVISIONS = [
+  'Make it shorter',
+  'Add turn in folders',
+  'Change timer to 20 minutes',
+  'No music',
+]
 
 interface RoutinePromptPanelProps {
   onApply: (page: BoardPage, displayModeId: DisplayModeId) => void
@@ -50,6 +61,8 @@ export function RoutinePromptPanel({ onApply, fullWidth = false }: RoutinePrompt
   const [promptText, setPromptText] = useState('')
   const [plan, setPlan] = useState<RoutinePlan | null>(null)
   const [status, setStatus] = useState<{ kind: 'error' | 'ok'; message: string } | null>(null)
+  const [revisionText, setRevisionText] = useState('')
+  const [revisionNote, setRevisionNote] = useState<{ kind: 'error' | 'ok'; message: string } | null>(null)
 
   const patchPlan = (patch: Partial<RoutinePlan>) =>
     setPlan((p) => (p ? { ...p, ...patch } : p))
@@ -63,12 +76,41 @@ export function RoutinePromptPanel({ onApply, fullWidth = false }: RoutinePrompt
     const next = parseRoutinePrompt(trimmed)
     setPlan(next)
     setStatus(null)
+    setRevisionNote(null)
+    setRevisionText('')
   }
 
   const handleClear = () => {
     setPromptText('')
     setPlan(null)
     setStatus(null)
+    setRevisionNote(null)
+    setRevisionText('')
+  }
+
+  const handleRevise = () => {
+    if (!plan) return
+    const instruction = revisionText.trim()
+    if (!instruction) return
+    const res = reviseRoutinePlan(plan, instruction)
+    setPlan(res.plan)
+    setRevisionNote(
+      res.applied
+        ? { kind: 'ok', message: res.note ?? 'Revision applied.' }
+        : { kind: 'error', message: res.note ?? 'Could not apply that revision.' },
+    )
+    setRevisionText('')
+  }
+
+  const applyQuickRevision = (instruction: string) => {
+    if (!plan) return
+    const res = reviseRoutinePlan(plan, instruction)
+    setPlan(res.plan)
+    setRevisionNote(
+      res.applied
+        ? { kind: 'ok', message: res.note ?? 'Revision applied.' }
+        : { kind: 'error', message: res.note ?? 'Could not apply that revision.' },
+    )
   }
 
   const handleApply = () => {
@@ -146,13 +188,32 @@ export function RoutinePromptPanel({ onApply, fullWidth = false }: RoutinePrompt
     >
       <div className="flex items-center justify-between">
         <h2 className="m-0 text-xs font-bold uppercase tracking-wider text-slate-200">
-          Routine Builder
+          ✨ Board Assistant
         </h2>
       </div>
 
       <p className="m-0 text-xs leading-relaxed text-slate-400">
         Describe the classroom routine and Clean Board will set it up for you.
       </p>
+
+      <div className="flex flex-wrap gap-1.5" data-assistant-example-chips>
+        {ASSISTANT_EXAMPLE_PROMPTS.map((chip) => (
+          <button
+            key={chip.id}
+            type="button"
+            className={chipCls}
+            onClick={() => {
+              setPromptText(chip.prompt)
+              setPlan(null)
+              setStatus(null)
+              setRevisionNote(null)
+            }}
+            data-assistant-chip={chip.id}
+          >
+            {chip.label}
+          </button>
+        ))}
+      </div>
 
       <label className={labelCls} htmlFor="routine-prompt-input">
         Tell Clean Board what to set up
@@ -167,7 +228,7 @@ export function RoutinePromptPanel({ onApply, fullWidth = false }: RoutinePrompt
       />
       <div className="flex gap-2">
         <button type="button" className={primaryBtn} onClick={handleGenerate} data-routine-generate>
-          Generate Preview
+          Generate Setup
         </button>
         <button type="button" className={ghostBtn} onClick={handleClear} data-routine-clear>
           Clear
@@ -400,6 +461,54 @@ export function RoutinePromptPanel({ onApply, fullWidth = false }: RoutinePrompt
                   Playlist suggestions only — live Spotify playback still requires the host session.
                 </p>
               </div>
+            )}
+          </div>
+
+          <div className="rounded-lg border border-slate-800 bg-slate-950/40 p-3">
+            <label className={labelCls}>Need changes?</label>
+            <div className="mt-2 flex gap-2">
+              <input
+                className={inputCls}
+                value={revisionText}
+                onChange={(e) => setRevisionText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleRevise()
+                }}
+                placeholder='e.g. "make it shorter", "add turn in folders", "change timer to 20 minutes"'
+                data-routine-revision-input
+              />
+              <button
+                type="button"
+                className={ghostBtn}
+                onClick={handleRevise}
+                disabled={!revisionText.trim()}
+                data-routine-revise
+              >
+                Revise
+              </button>
+            </div>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {QUICK_REVISIONS.map((r) => (
+                <button
+                  key={r}
+                  type="button"
+                  className={chipCls}
+                  onClick={() => applyQuickRevision(r)}
+                >
+                  {r}
+                </button>
+              ))}
+            </div>
+            {revisionNote && (
+              <p
+                className={`m-0 mt-2 text-xs font-medium ${
+                  revisionNote.kind === 'error' ? 'text-amber-400' : 'text-emerald-400'
+                }`}
+                role="status"
+                data-routine-revision-note
+              >
+                {revisionNote.message}
+              </p>
             )}
           </div>
 
