@@ -5,6 +5,7 @@ import { BoardToolbar } from './BoardToolbar'
 import { KeepAwakeToggle } from './KeepAwakeToggle'
 import { MessageCardTeacherPanel } from './MessageCardTeacherPanel'
 import { SavedBoardsPanel } from './SavedBoardsPanel'
+import { RoutinePromptPanel } from './RoutinePromptPanel'
 import { TimerTeacherPanel } from './TimerTeacherPanel'
 import { DEFAULT_BACKGROUND } from './backgrounds'
 import { pageHasKind, toSafeBoardPage } from './boardSafety'
@@ -32,6 +33,7 @@ import type {
   BoardObject,
   BoardObjectConfig,
   BoardObjectKind,
+  BoardPage,
   BoardTheme,
   DisplayModeId,
   MessageCardConfig,
@@ -231,6 +233,7 @@ export function BoardLabPage() {
   const editLayoutMode = useCleanBoardEditLayoutMode()
   const responsive = mode === 'edit' && editLayoutMode === 'responsivePanels'
   const [drawerTab, setDrawerTab] = useState<EditDrawerTab>('saved')
+  const [leftTab, setLeftTab] = useState<'prompt' | 'saved'>('prompt')
 
   const imageInputRef = useRef<HTMLInputElement>(null)
   const [imageStatus, setImageStatus] = useState<{ kind: 'error' | 'ok'; message: string } | null>(
@@ -374,6 +377,16 @@ export function BoardLabPage() {
       ...prev,
       updatedAt: Date.now(),
       pages: prev.pages.map((p) => (p.id === activePage.id ? newPage : p)),
+    }))
+  }
+
+  const applyRoutinePage = (page: BoardPage, nextModeId: DisplayModeId) => {
+    setDisplayModeId(nextModeId)
+    setSelectedObjectId(null)
+    setDeck((prev) => ({
+      ...prev,
+      updatedAt: Date.now(),
+      pages: prev.pages.map((p) => (p.id === activePage.id ? { ...page, id: p.id } : p)),
     }))
   }
 
@@ -523,6 +536,9 @@ export function BoardLabPage() {
               ))}
             </div>
             <div className="min-h-0 flex-1 overflow-hidden">
+              {drawerTab === 'prompt' && (
+                <RoutinePromptPanel fullWidth onApply={applyRoutinePage} />
+              )}
               {drawerTab === 'saved' && (
                 <SavedBoardsPanel
                   fullWidth
@@ -567,12 +583,49 @@ export function BoardLabPage() {
       ) : (
         <div className="flex min-h-0 flex-1">
           {mode === 'edit' && (
-            <SavedBoardsPanel
-              activePage={activePage}
-              displayModeId={displayModeId}
-              onLoadLayout={handleLoadLayout}
-              onApplyTemplate={applyTemplate}
-            />
+            <div className="flex w-80 shrink-0 flex-col border-r border-slate-800 bg-slate-900/40">
+              <div className="flex shrink-0 gap-1 border-b border-slate-800 p-2">
+                <button
+                  type="button"
+                  onClick={() => setLeftTab('prompt')}
+                  data-left-tab="prompt"
+                  data-active={leftTab === 'prompt' || undefined}
+                  className={`rounded-md px-2.5 py-1.5 text-xs font-semibold transition ${
+                    leftTab === 'prompt'
+                      ? 'bg-slate-700 text-white'
+                      : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'
+                  }`}
+                >
+                  Routine Builder
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLeftTab('saved')}
+                  data-left-tab="saved"
+                  data-active={leftTab === 'saved' || undefined}
+                  className={`rounded-md px-2.5 py-1.5 text-xs font-semibold transition ${
+                    leftTab === 'saved'
+                      ? 'bg-slate-700 text-white'
+                      : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'
+                  }`}
+                >
+                  Saved Boards
+                </button>
+              </div>
+              <div className="min-h-0 flex-1 overflow-hidden">
+                {leftTab === 'prompt' ? (
+                  <RoutinePromptPanel fullWidth onApply={applyRoutinePage} />
+                ) : (
+                  <SavedBoardsPanel
+                    fullWidth
+                    activePage={activePage}
+                    displayModeId={displayModeId}
+                    onLoadLayout={handleLoadLayout}
+                    onApplyTemplate={applyTemplate}
+                  />
+                )}
+              </div>
+            </div>
           )}
           <main className="min-h-0 flex-1">{boardCanvas}</main>
           {mode === 'edit' && (

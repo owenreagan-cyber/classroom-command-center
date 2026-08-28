@@ -32,11 +32,31 @@ export function dockToolWorkspace(page: Page, toolTitle: string) {
 }
 
 export async function enterEditMode(page: Page) {
+  const dock = page.locator('[data-teacher-command-dock]')
+
+  // Already in the editor workspace.
+  if (await dock.isVisible().catch(() => false)) return
+
+  // /control now opens in Teach Mode by default. Its "Dashboard" button is the
+  // single exit to the editor workspace (edit mode). In legacy display mode
+  // there is no Dashboard button — the "Enter edit mode" button is used instead.
+  const dashboard = page.getByRole('button', { name: 'Dashboard', exact: true })
+  const inTeachMode = await dashboard
+    .waitFor({ state: 'visible', timeout: 2000 })
+    .then(() => true)
+    .catch(() => false)
+
+  if (inTeachMode) {
+    await dashboard.click()
+    await expect(dock).toBeVisible()
+    return
+  }
+
   await page.evaluate(() => {
     const btn = document.querySelector('[aria-label="Enter edit mode"]') as HTMLButtonElement | null
     btn?.click()
   })
-  await expect(page.locator('[data-teacher-command-dock]')).toBeVisible()
+  await expect(dock).toBeVisible()
 }
 
 export async function expandDockLauncher(page: Page) {
