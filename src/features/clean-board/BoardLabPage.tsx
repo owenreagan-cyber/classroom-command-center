@@ -390,6 +390,11 @@ export function BoardLabPage() {
     }))
   }
 
+  const openAssistant = () => {
+    setDrawerTab('prompt')
+    setLeftTab('prompt')
+  }
+
   const handleSetBackground = (background: BoardBackground) => {
     const pageId = activePage.id
     setDeck((prev) => ({
@@ -480,6 +485,14 @@ export function BoardLabPage() {
 
       {mode === 'edit' && (
         <div className="flex shrink-0 items-center gap-3 border-b border-slate-800 px-5 py-2">
+          <button
+            type="button"
+            onClick={openAssistant}
+            className="min-h-[44px] rounded-md bg-emerald-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-emerald-500"
+            data-set-up-board
+          >
+            ✨ Set Up Board
+          </button>
           <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Add</span>
           <BoardToolbar onAdd={handleAddObject} onPickImage={pickImage} />
           <input
@@ -596,7 +609,7 @@ export function BoardLabPage() {
                       : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'
                   }`}
                 >
-                  Routine Builder
+                  ✨ Board Assistant
                 </button>
                 <button
                   type="button"

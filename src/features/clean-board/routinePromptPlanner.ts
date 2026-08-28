@@ -83,6 +83,8 @@ export interface RoutinePlan {
   timers: RoutineTimerStep[]
   visualStyle: RoutineVisualStyle
   music: RoutineMusic
+  /** Optional message-card tone override (defaults to the kind's tone). */
+  tone?: MessageCardTone
 }
 
 export interface RoutinePromptOptions {
@@ -244,7 +246,7 @@ const MUSIC_TERMS = [
 function detectRoutineKind(lower: string): RoutineKind {
   if (/(morning|arrival|good morning|homeroom)/.test(lower)) return 'morningArrival'
   if (/(assessment|test|quiz|exam)/.test(lower)) return 'assessment'
-  if (/(cleanup|clean up|pack up|tidy)/.test(lower)) return 'cleanup'
+  if (/(cleanup|clean up|pack up|tidy|dismissal|dismiss|end of (?:the )?day)/.test(lower)) return 'cleanup'
   if (/(reading|read aloud|stamina)/.test(lower)) return 'reading'
   if (/(writing|journal)/.test(lower)) return 'writing'
   if (/(math|numeracy)/.test(lower)) return 'math'
@@ -364,6 +366,7 @@ function detectIntro(input: string, kind: RoutineKind): string {
 function cleanClosing(s: string): string {
   let out = s.replace(/\s+/g, ' ').trim()
   out = out.replace(/[.;]+$/, '')
+  if (out) out = out.charAt(0).toUpperCase() + out.slice(1)
   if (out && !/[!?]$/.test(out)) out += '!'
   return out
 }
@@ -466,7 +469,8 @@ function detectGraphicSuggestion(input: string): string | undefined {
 
 function detectMusic(input: string, kind: RoutineKind): RoutineMusic {
   const lower = input.toLowerCase()
-  const enabled = MUSIC_KEYWORDS.some((k) => lower.includes(k))
+  const disabled = /(\bno\b|without|don'?t|do not|stop)\s+(?:the\s+)?(music|audio|sound|spotify)/.test(lower)
+  const enabled = !disabled && MUSIC_KEYWORDS.some((k) => lower.includes(k))
   const searchTerms = MUSIC_TERMS.filter((t) => lower.includes(t))
   const mood = /(calm|soft|relax)/.test(lower)
     ? 'calm'
@@ -537,7 +541,7 @@ function routinePlanToMessageConfig(plan: RoutinePlan): MessageCardConfig {
     title: plan.greeting,
     message: buildRoutineMessage(plan),
     cardKind: ROUTINE_MESSAGE_KINDS[plan.kind],
-    tone: ROUTINE_MESSAGE_TONES[plan.kind],
+    tone: plan.tone ?? ROUTINE_MESSAGE_TONES[plan.kind],
     textSize: 'large',
     checklistStyle: false,
   }
@@ -675,4 +679,215 @@ export function routinePlanToScene(
     createdAt: now,
     updatedAt: now,
   }
+}
+
+// ── DB-7F — local assistant revision + examples ──
+
+export const ASSISTANT_NOT_UNDERSTOOD_NOTE =
+  'I could not confidently apply that revision. Try "add…", "remove…", or "change timer to…"'
+
+export interface RevisionResult {
+  plan: RoutinePlan
+  applied: boolean
+  note?: string
+}
+
+export interface AssistantExamplePrompt {
+  id: string
+  label: string
+  prompt: string
+}
+
+/**
+ * Example prompt chips. Clicking a chip seeds the prompt box (never applies to
+ * the board directly). "Morning Arrival" uses the "today" form.
+ */
+export const ASSISTANT_EXAMPLE_PROMPTS: AssistantExamplePrompt[] = [
+  {
+    id: 'morning-arrival',
+    label: 'Morning Arrival',
+    prompt:
+      'Set up morning arrival for today. Students should complete morning work, turn in folders, stay seated, sharpen pencils, and be ready for math. Use a 25-minute quiet work timer and calm instrumental music.',
+  },
+  {
+    id: 'math-workshop',
+    label: 'Math Workshop',
+    prompt:
+      'Set up math workshop. Students should take out their materials, begin the warm-up, and work quietly. Use a 20-minute timer and focus instrumental music.',
+  },
+  {
+    id: 'reading-block',
+    label: 'Reading Block',
+    prompt:
+      'Set up reading block. Students should choose a book, read quietly, and build stamina. Use a 15-minute timer and calm acoustic music.',
+  },
+  {
+    id: 'assessment-mode',
+    label: 'Assessment Mode',
+    prompt:
+      'Set up assessment mode. Students should work silently, keep eyes on their own work, and raise their hand for help. Use a 45-minute timer. No music.',
+  },
+  {
+    id: 'cleanup',
+    label: 'Cleanup',
+    prompt:
+      'Set up cleanup. Students should put materials away, tidy their area, and wait quietly. Use a 3-minute timer and upbeat transition music.',
+  },
+  {
+    id: 'dismissal',
+    label: 'Dismissal',
+    prompt:
+      'Set up dismissal. Students should pack up, gather their belongings, and wait quietly for the bell. Use a 5-minute timer.',
+  },
+]
+
+function titleCaseFirst(s: string): string {
+  const t = s.trim()
+  if (!t) return t
+  return t.charAt(0).toUpperCase() + t.slice(1)
+}
+
+/**
+ * Revise an existing plan with a follow-up instruction. Pure and deterministic:
+ * returns a new plan (or the same reference when nothing matched) plus whether a
+ * rule applied and an optional teacher-facing note.
+ */
+export function reviseRoutinePlan(plan: RoutinePlan, instruction: string): RevisionResult {
+  const lower = instruction.toLowerCase().trim()
+  const unchanged = (note?: string): RevisionResult => ({ plan, applied: false, note })
+  let m: RegExpExecArray | null
+
+  // "change title to X"
+  m = /(?:change|set)\s+(?:the\s+)?title\s+to\s+(.+)$/i.exec(instruction)
+  if (m) {
+    const title = m[1].trim().replace(/["']/g, '')
+    if (!title) return unchanged()
+    return { plan: { ...plan, title }, applied: true, note: `Title changed to "${title}".` }
+  }
+
+  // "change timer to X (minutes)"
+  m = /(?:change|set)\s+(?:the\s+)?timer\s+to\s+(\d{1,3})\s*(?:minutes?)?/i.exec(instruction)
+  if (m) {
+    const minutes = clampTimerMinutes(parseInt(m[1], 10))
+    const timers = plan.timers.map((t, i) => (i === 0 ? { ...t, minutes } : t))
+    return { plan: { ...plan, timers }, applied: true, note: `Timer changed to ${minutes} minutes.` }
+  }
+
+  // "make it shorter"
+  if (/(make|keep)\s+(it\s+)?(more\s+)?(short|shorter|concise|brief)/.test(lower)) {
+    return {
+      plan: { ...plan, checklistItems: plan.checklistItems.slice(0, 3), closing: '' },
+      applied: true,
+      note: 'Trimmed the message to the most important steps.',
+    }
+  }
+
+  // "make it more serious"
+  if (/(more\s+)?(serious|formal|strict|firm)/.test(lower)) {
+    return {
+      plan: { ...plan, tone: 'focus', closing: plan.closing.replace(/!+$/, '.') },
+      applied: true,
+      note: 'Made the tone more serious.',
+    }
+  }
+
+  // "make it friendlier"
+  if (/(more\s+)?(friendl|warm|welcom|encourag)/.test(lower)) {
+    return { plan: { ...plan, tone: 'calm' }, applied: true, note: 'Made the tone friendlier.' }
+  }
+
+  // "make the background calmer"
+  if (/calmer|more calm/.test(lower)) {
+    return {
+      plan: {
+        ...plan,
+        visualStyle: {
+          ...plan.visualStyle,
+          backgroundPresetId: 'morning-glow',
+          themeId: 'minimal-light',
+          mood: 'calm',
+        },
+      },
+      applied: true,
+      note: 'Background is now calmer.',
+    }
+  }
+
+  // "make it brighter"
+  if (/brighter|more bright/.test(lower)) {
+    return {
+      plan: {
+        ...plan,
+        visualStyle: {
+          ...plan.visualStyle,
+          backgroundPresetId: 'warm-neutral',
+          themeId: 'minimal-light',
+          mood: 'bright',
+        },
+      },
+      applied: true,
+      note: 'Background is now brighter.',
+    }
+  }
+
+  // "no music"
+  if (/(\bno\b|without|remove|turn off|stop)\s+(?:the\s+)?(music|audio|sound|spotify)/.test(lower)) {
+    return {
+      plan: { ...plan, music: { ...plan.music, enabled: false } },
+      applied: true,
+      note: 'Music suggestion removed.',
+    }
+  }
+
+  // "use piano music"
+  if (/(use|play|add)\s+(?:soft\s+)?piano(?:\s+music)?/.test(lower)) {
+    return {
+      plan: {
+        ...plan,
+        music: { ...plan.music, enabled: true, mood: 'calm', searchTerms: ['piano', 'calm', 'instrumental'] },
+      },
+      applied: true,
+      note: 'Using calm piano music.',
+    }
+  }
+
+  // "use acoustic music"
+  if (/(use|play|add)\s+(?:soft\s+)?acoustic(?:\s+music)?/.test(lower)) {
+    return {
+      plan: {
+        ...plan,
+        music: { ...plan.music, enabled: true, mood: 'calm', searchTerms: ['acoustic', 'calm', 'instrumental'] },
+      },
+      applied: true,
+      note: 'Using calm acoustic music.',
+    }
+  }
+
+  // "remove X"
+  m = /^remove\s+(.+)$/i.exec(instruction)
+  if (m) {
+    const target = m[1].trim().toLowerCase()
+    const before = plan.checklistItems.length
+    const checklistItems = plan.checklistItems.filter((it) => !it.toLowerCase().includes(target))
+    if (checklistItems.length === before) return unchanged()
+    return { plan: { ...plan, checklistItems }, applied: true, note: `Removed "${m[1].trim()}".` }
+  }
+
+  // "add X" (closing line if it looks like a sign-off, otherwise a checklist item)
+  m = /^add\s+(.+)$/i.exec(instruction)
+  if (m) {
+    const raw = m[1].trim().replace(/[.;]+$/, '')
+    if (/^(be|get)\s+ready\b|be prepared|prepare for/i.test(raw)) {
+      const closing = cleanClosing(raw)
+      return { plan: { ...plan, closing }, applied: true, note: `Added closing "${closing}".` }
+    }
+    const item = titleCaseFirst(raw)
+    return {
+      plan: { ...plan, checklistItems: [...plan.checklistItems, item] },
+      applied: true,
+      note: `Added "${item}".`,
+    }
+  }
+
+  return unchanged(ASSISTANT_NOT_UNDERSTOOD_NOTE)
 }
