@@ -51,12 +51,16 @@
     "test:clean-board-spotify": "bash scripts/test-clean-board-spotify.sh",
     "test:synthesizer": "bash scripts/test-synthesizer.sh",
     "test:stamps": "bash scripts/test-stamps.sh",
+    "test:ai-prompt-engine": "bash scripts/test-ai-prompt-engine.sh",
     "smoke:classroom": "bash scripts/run-classroom-smoke.sh"
   },
   "dependencies": {
+    "ai": "^7.0.84",
+    "ollama-ai-provider-v2": "^4.0.1",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "tldraw": "^5.3.0",
+    "zod": "^4.5.2",
     "zustand": "^5.0.14"
   },
   "devDependencies": {

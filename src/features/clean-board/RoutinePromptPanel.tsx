@@ -13,6 +13,7 @@ import {
   routinePlanToScene,
 } from './routinePromptPlanner'
 import type { RoutinePlan } from './routinePromptPlanner'
+import { generateRoutinePlanWithOllama } from '../../lib/ai/localPromptEngine'
 import {
   createEmptyBoardState,
 } from './storage/boardSerialization'
@@ -63,19 +64,33 @@ export function RoutinePromptPanel({ onApply, fullWidth = false }: RoutinePrompt
   const [status, setStatus] = useState<{ kind: 'error' | 'ok'; message: string } | null>(null)
   const [revisionText, setRevisionText] = useState('')
   const [revisionNote, setRevisionNote] = useState<{ kind: 'error' | 'ok'; message: string } | null>(null)
+  const [generating, setGenerating] = useState(false)
 
   const patchPlan = (patch: Partial<RoutinePlan>) =>
     setPlan((p) => (p ? { ...p, ...patch } : p))
 
-  const handleGenerate = () => {
+  // DB-AI — try the local Ollama instance first (structured, schema-validated
+  // output); if it's offline, times out, or returns something that fails
+  // validation, `generateRoutinePlanWithOllama` reports `{ ok: false }`
+  // rather than throwing, and we fall back to the deterministic parser so
+  // "Generate Setup" always produces a usable plan either way.
+  const handleGenerate = async () => {
     const trimmed = promptText.trim()
     if (!trimmed) {
       setStatus({ kind: 'error', message: 'Type what you want to set up first.' })
       return
     }
-    const next = parseRoutinePrompt(trimmed)
-    setPlan(next)
+    setGenerating(true)
     setStatus(null)
+    const aiResult = await generateRoutinePlanWithOllama(trimmed)
+    setGenerating(false)
+    if (aiResult.ok) {
+      setPlan(aiResult.plan)
+      setStatus({ kind: 'ok', message: 'Generated with local AI (Ollama).' })
+    } else {
+      setPlan(parseRoutinePrompt(trimmed))
+      setStatus({ kind: 'ok', message: 'Local AI unavailable — used the built-in quick setup instead.' })
+    }
     setRevisionNote(null)
     setRevisionText('')
   }
@@ -227,10 +242,22 @@ export function RoutinePromptPanel({ onApply, fullWidth = false }: RoutinePrompt
         data-routine-prompt-textarea
       />
       <div className="flex gap-2">
-        <button type="button" className={primaryBtn} onClick={handleGenerate} data-routine-generate>
-          Generate Setup
+        <button
+          type="button"
+          className={primaryBtn}
+          onClick={() => void handleGenerate()}
+          disabled={generating}
+          data-routine-generate
+        >
+          {generating ? 'Thinking locally…' : 'Generate Setup'}
         </button>
-        <button type="button" className={ghostBtn} onClick={handleClear} data-routine-clear>
+        <button
+          type="button"
+          className={ghostBtn}
+          onClick={handleClear}
+          disabled={generating}
+          data-routine-clear
+        >
           Clear
         </button>
       </div>

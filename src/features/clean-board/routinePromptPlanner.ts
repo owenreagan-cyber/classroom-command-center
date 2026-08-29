@@ -94,7 +94,10 @@ export interface RoutinePromptOptions {
 
 // ── catalog maps ──
 
-const ROUTINE_NAMES: Record<RoutineKind, string> = {
+/** Exported so callers (e.g. the local AI prompt engine) can derive a
+ * guaranteed-exhaustive `RoutineKind` list from this `Record`'s keys rather
+ * than hand-duplicating the union. */
+export const ROUTINE_NAMES: Record<RoutineKind, string> = {
   morningArrival: 'Morning Arrival',
   math: 'Math Workshop',
   reading: 'Reading Block',
