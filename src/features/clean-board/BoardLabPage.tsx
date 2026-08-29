@@ -23,9 +23,11 @@ import { DEFAULT_THEME } from './themes'
 import { defaultTimerConfig } from './timerPresets'
 import { templateToBoardPage } from './templatePacks'
 import type { ClassroomTemplatePack } from './templatePacks'
-import { EDIT_DRAWER_TAB_LABELS, getCleanBoardEditTabs } from './editLayout'
+import { getCleanBoardEditTabs } from './editLayout'
 import type { EditDrawerTab } from './editLayout'
 import { useCleanBoardEditLayoutMode } from './useCleanBoardEditLayoutMode'
+import { StampManagerWidget } from './StampManagerWidget'
+import { TeacherDockDrawer } from './TeacherDockDrawer'
 import type {
   BoardBackground,
   BoardDeck,
@@ -158,8 +160,13 @@ function createDefaultObject(kind: Exclude<BoardObjectKind, 'image'>, id: string
  *
  * A single isolated /board-lab route with a dominant 16:9 board canvas, a
  * minimal top bar (title + Present/Edit toggle + page title), page dots, and
- * an edit-only add toolbar. No dock, no tool grid, no status wall, no old
- * Command Center UI.
+ * an edit-only add toolbar. No status wall, no old Command Center UI.
+ *
+ * DB-Dock (Phase 2) — teacher configuration panels (Board Assistant, Saved
+ * Boards, Board Look, Stamps, and the contextual Spotify/Message
+ * Card/Timer panels) no longer occupy permanent screen space. They live in
+ * a single hidden-by-default `TeacherDockDrawer`, toggled by the edit-mode
+ * FAB, so the board canvas stays full-bleed until a teacher opens it.
  */
 export function BoardLabPage() {
   const [deck, setDeck] = useState<BoardDeck>(() => hydrateSeed())
@@ -231,9 +238,8 @@ export function BoardLabPage() {
   const showTimerPanel = mode === 'edit' && selectedObject?.kind === 'timer'
 
   const editLayoutMode = useCleanBoardEditLayoutMode()
-  const responsive = mode === 'edit' && editLayoutMode === 'responsivePanels'
   const [drawerTab, setDrawerTab] = useState<EditDrawerTab>('saved')
-  const [leftTab, setLeftTab] = useState<'prompt' | 'saved'>('prompt')
+  const [dockOpen, setDockOpen] = useState(false)
 
   const imageInputRef = useRef<HTMLInputElement>(null)
   const [imageStatus, setImageStatus] = useState<{ kind: 'error' | 'ok'; message: string } | null>(
@@ -260,14 +266,23 @@ export function BoardLabPage() {
     }
   }
 
-  // Select an object and, on narrow screens, surface its teacher panel in the
-  // drawer (Spotify tile → Spotify tab, message card → Message Card tab).
+  // Select an object and surface its teacher panel in the Teacher Dock
+  // (Spotify tile → Spotify tab, message card → Message Card tab), opening
+  // the dock automatically so picking a tile on canvas still reaches its
+  // editor in one tap, even though the dock is hidden by default otherwise.
   const selectObject = (id: string | null, hintKind?: BoardObjectKind) => {
     setSelectedObjectId(id)
     const kind = id ? hintKind ?? activePage.objects.find((o) => o.id === id)?.kind : undefined
-    if (kind === 'messageCard') setDrawerTab('messageCard')
-    else if (kind === 'spotifyNowPlayingPlaceholder') setDrawerTab('spotify')
-    else if (kind === 'timer') setDrawerTab('timer')
+    if (kind === 'messageCard') {
+      setDrawerTab('messageCard')
+      setDockOpen(true)
+    } else if (kind === 'spotifyNowPlayingPlaceholder') {
+      setDrawerTab('spotify')
+      setDockOpen(true)
+    } else if (kind === 'timer') {
+      setDrawerTab('timer')
+      setDockOpen(true)
+    }
   }
 
   const pickImage = () => {
@@ -392,7 +407,7 @@ export function BoardLabPage() {
 
   const openAssistant = () => {
     setDrawerTab('prompt')
-    setLeftTab('prompt')
+    setDockOpen(true)
   }
 
   const handleSetBackground = (background: BoardBackground) => {
@@ -519,36 +534,34 @@ export function BoardLabPage() {
         </div>
       )}
 
-      {responsive ? (
-        <div className="flex min-h-0 flex-1 flex-col">
-          <main className="min-h-0 flex-1">{boardCanvas}</main>
-          <div
-            className="flex h-64 shrink-0 flex-col border-t border-slate-800 bg-slate-900/40"
-            data-responsive-edit-panels
-          >
-            <div className="flex shrink-0 flex-wrap items-center gap-1 border-b border-slate-800 px-3 py-2">
-              {getCleanBoardEditTabs({
+      <div className="relative flex min-h-0 flex-1">
+        <main className="min-h-0 flex-1">{boardCanvas}</main>
+
+        {mode === 'edit' && (
+          <>
+            <button
+              type="button"
+              onClick={() => setDockOpen((v) => !v)}
+              aria-label={dockOpen ? 'Close Teacher Dock' : 'Open Teacher Dock'}
+              aria-expanded={dockOpen}
+              className="absolute bottom-4 right-4 z-50 flex min-h-[56px] min-w-[56px] items-center justify-center rounded-full bg-cyan-500 text-2xl text-slate-950 shadow-lg shadow-cyan-500/30 transition hover:bg-cyan-400"
+              data-teacher-dock-fab
+            >
+              {dockOpen ? '✕' : '🧰'}
+            </button>
+
+            <TeacherDockDrawer
+              open={dockOpen}
+              onClose={() => setDockOpen(false)}
+              layoutMode={editLayoutMode}
+              tabs={getCleanBoardEditTabs({
                 showSpotify: showSpotifyPanel,
                 showMessageCard: showMessageCardPanel,
                 showTimer: showTimerPanel,
-              }).map((tab) => (
-                <button
-                  key={tab}
-                  type="button"
-                  onClick={() => setDrawerTab(tab)}
-                  data-edit-drawer-tab={tab}
-                  data-active={drawerTab === tab || undefined}
-                  className={`rounded-md px-2.5 py-1 text-xs font-semibold transition ${
-                    drawerTab === tab
-                      ? 'bg-slate-700 text-white'
-                      : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'
-                  }`}
-                >
-                  {EDIT_DRAWER_TAB_LABELS[tab]}
-                </button>
-              ))}
-            </div>
-            <div className="min-h-0 flex-1 overflow-hidden">
+              })}
+              activeTab={drawerTab}
+              onSelectTab={setDrawerTab}
+            >
               {drawerTab === 'prompt' && (
                 <RoutinePromptPanel fullWidth onApply={applyRoutinePage} />
               )}
@@ -571,6 +584,7 @@ export function BoardLabPage() {
                   onReset={handleResetLook}
                 />
               )}
+              {drawerTab === 'stamps' && <StampManagerWidget fullWidth />}
               {drawerTab === 'spotify' && showSpotifyPanel && <SpotifyTeacherPanel />}
               {drawerTab === 'messageCard' &&
                 showMessageCardPanel &&
@@ -590,85 +604,10 @@ export function BoardLabPage() {
                     onChange={(next) => handleUpdateObjectConfig(selectedObject.id, next)}
                   />
                 )}
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className="flex min-h-0 flex-1">
-          {mode === 'edit' && (
-            <div className="flex w-80 shrink-0 flex-col border-r border-slate-800 bg-slate-900/40">
-              <div className="flex shrink-0 gap-1 border-b border-slate-800 p-2">
-                <button
-                  type="button"
-                  onClick={() => setLeftTab('prompt')}
-                  data-left-tab="prompt"
-                  data-active={leftTab === 'prompt' || undefined}
-                  className={`rounded-md px-2.5 py-1.5 text-xs font-semibold transition ${
-                    leftTab === 'prompt'
-                      ? 'bg-slate-700 text-white'
-                      : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'
-                  }`}
-                >
-                  ✨ Board Assistant
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setLeftTab('saved')}
-                  data-left-tab="saved"
-                  data-active={leftTab === 'saved' || undefined}
-                  className={`rounded-md px-2.5 py-1.5 text-xs font-semibold transition ${
-                    leftTab === 'saved'
-                      ? 'bg-slate-700 text-white'
-                      : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'
-                  }`}
-                >
-                  Saved Boards
-                </button>
-              </div>
-              <div className="min-h-0 flex-1 overflow-hidden">
-                {leftTab === 'prompt' ? (
-                  <RoutinePromptPanel fullWidth onApply={applyRoutinePage} />
-                ) : (
-                  <SavedBoardsPanel
-                    fullWidth
-                    activePage={activePage}
-                    displayModeId={displayModeId}
-                    onLoadLayout={handleLoadLayout}
-                    onApplyTemplate={applyTemplate}
-                  />
-                )}
-              </div>
-            </div>
-          )}
-          <main className="min-h-0 flex-1">{boardCanvas}</main>
-          {mode === 'edit' && (
-            <BoardLookPanel
-              background={activePage.background}
-              theme={activePage.theme}
-              onSetBackground={handleSetBackground}
-              onSetTheme={handleSetTheme}
-              onReset={handleResetLook}
-            />
-          )}
-          {showSpotifyPanel && (
-            <div className="w-80 shrink-0" data-board-lab-spotify-panel>
-              <SpotifyTeacherPanel />
-            </div>
-          )}
-          {showMessageCardPanel && selectedObject?.kind === 'messageCard' && (
-            <MessageCardTeacherPanel
-              config={selectedObject.config as MessageCardConfig}
-              onChange={(next) => handleUpdateObjectConfig(selectedObject.id, next)}
-            />
-          )}
-          {showTimerPanel && selectedObject?.kind === 'timer' && (
-            <TimerTeacherPanel
-              config={selectedObject.config as TimerConfig}
-              onChange={(next) => handleUpdateObjectConfig(selectedObject.id, next)}
-            />
-          )}
-        </div>
-      )}
+            </TeacherDockDrawer>
+          </>
+        )}
+      </div>
 
       <footer
         className="flex shrink-0 items-center justify-center gap-2 border-t border-slate-800 py-2.5"

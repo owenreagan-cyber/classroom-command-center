@@ -14,12 +14,21 @@ export const STAMP_BALANCE_MAX = 100
 
 export interface StudentStampRecord {
   studentId: string
+  displayName: string
   balance: number
   redeemedMilestones: StampMilestoneTier[]
 }
 
-export function createEmptyStampRecord(studentId: string): StudentStampRecord {
-  return { studentId, balance: 0, redeemedMilestones: [] }
+/**
+ * `displayName` defaults to `studentId` when omitted so existing call sites
+ * (and any already-persisted Phase 1 records) still resolve to something
+ * displayable rather than an empty label.
+ */
+export function createEmptyStampRecord(
+  studentId: string,
+  displayName: string = studentId,
+): StudentStampRecord {
+  return { studentId, displayName, balance: 0, redeemedMilestones: [] }
 }
 
 /** Adds stamps to a student's balance, clamped to the 0–100 range. */

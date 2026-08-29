@@ -29,6 +29,10 @@ interface StampStoreState {
 }
 
 interface StampStore extends StampStoreState {
+  /** Registers a student if not already present; a no-op (never overwrites
+   * balance/redemptions) if the student already exists — safe to call from
+   * an "Add Student" UI action without risk of resetting real progress. */
+  addStudent: (studentId: string, displayName: string) => void
   addStamps: (studentId: string, amount: StampAddAmount) => void
   redeemMilestone: (studentId: string, tier: StampMilestoneTier) => RedeemMilestoneResult
   setActiveProjection: (projection: StampProjection | null) => void
@@ -40,6 +44,17 @@ export const useStampStore = create<StampStore>()(
     (set, get) => ({
       students: {},
       activeProjection: null,
+
+      addStudent: (studentId, displayName) =>
+        set((state) => {
+          if (state.students[studentId]) return state
+          return {
+            students: {
+              ...state.students,
+              [studentId]: createEmptyStampRecord(studentId, displayName),
+            },
+          }
+        }),
 
       addStamps: (studentId, amount) =>
         set((state) => {

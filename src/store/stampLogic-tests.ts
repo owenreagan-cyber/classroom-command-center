@@ -15,6 +15,11 @@ function assert(condition: boolean, message: string): void {
 const fresh = createEmptyStampRecord('student-1')
 assert(fresh.balance === 0, 'a fresh record starts at 0 stamps')
 assert(fresh.redeemedMilestones.length === 0, 'a fresh record has no redeemed milestones')
+assert(fresh.displayName === 'student-1', 'displayName defaults to studentId when omitted')
+
+const named = createEmptyStampRecord('student-1b', 'Alex')
+assert(named.displayName === 'Alex', 'an explicit displayName is preserved')
+assert(named.studentId === 'student-1b', 'studentId is independent of displayName')
 
 // --- applyAddStamps ---
 
