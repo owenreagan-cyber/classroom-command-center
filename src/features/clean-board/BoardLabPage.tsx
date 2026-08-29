@@ -27,6 +27,7 @@ import { getCleanBoardEditTabs } from './editLayout'
 import type { EditDrawerTab } from './editLayout'
 import { useCleanBoardEditLayoutMode } from './useCleanBoardEditLayoutMode'
 import { StampManagerWidget } from './StampManagerWidget'
+import { QRCastTeacherPanel } from './QRCastTeacherPanel'
 import { TeacherDockDrawer } from './TeacherDockDrawer'
 import type {
   BoardBackground,
@@ -585,6 +586,7 @@ export function BoardLabPage() {
                 />
               )}
               {drawerTab === 'stamps' && <StampManagerWidget fullWidth />}
+              {drawerTab === 'qrCode' && <QRCastTeacherPanel fullWidth />}
               {drawerTab === 'spotify' && showSpotifyPanel && <SpotifyTeacherPanel />}
               {drawerTab === 'messageCard' &&
                 showMessageCardPanel &&

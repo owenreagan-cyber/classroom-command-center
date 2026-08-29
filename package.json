@@ -52,13 +52,16 @@
     "test:synthesizer": "bash scripts/test-synthesizer.sh",
     "test:stamps": "bash scripts/test-stamps.sh",
     "test:ai-prompt-engine": "bash scripts/test-ai-prompt-engine.sh",
+    "test:qr-code": "bash scripts/test-qr-code.sh",
     "smoke:classroom": "bash scripts/run-classroom-smoke.sh"
   },
   "dependencies": {
     "ai": "^7.0.84",
+    "motion": "^13.1.1",
     "ollama-ai-provider-v2": "^4.0.1",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
+    "react-qr-code": "^2.2.0",
     "tldraw": "^5.3.0",
     "zod": "^4.5.2",
     "zustand": "^5.0.14"

@@ -1,18 +1,9 @@
 import { useMemo, useState } from 'react'
-import { playTierUnlock, playVictoryFanfare } from '../../lib/audio/synthesizer'
 import { useStampStore } from '../../store/stampStore'
 import { STAMP_MILESTONE_TIERS } from '../../store/stampLogic'
 import type { StampAddAmount, StampMilestoneTier } from '../../store/stampLogic'
 
 const ADD_AMOUNTS: StampAddAmount[] = [1, 5, 10]
-
-// Tier 100 gets the full victory fanfare; 25/50/75 escalate through the
-// tier-unlock chirp levels so the sound builds as a student climbs the card.
-const TIER_UNLOCK_LEVEL: Record<25 | 50 | 75, 1 | 2 | 3> = {
-  25: 1,
-  50: 2,
-  75: 3,
-}
 
 function slugifyStudentId(name: string): string {
   const base = name
@@ -35,6 +26,10 @@ const addAmountBtn =
   'min-h-[44px] min-w-[44px] rounded-md border border-emerald-600/60 bg-emerald-900/40 px-3 py-2 text-sm font-bold text-emerald-200 transition hover:bg-emerald-900/60 disabled:cursor-not-allowed disabled:opacity-40'
 const tierBtn =
   'min-h-[44px] rounded-md border border-amber-500/60 bg-amber-900/30 px-3 py-2 text-xs font-semibold text-amber-200 transition hover:bg-amber-900/50 disabled:cursor-not-allowed disabled:opacity-40'
+const castBtn =
+  'min-h-[44px] rounded-md border px-3 py-2 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-40'
+const castBtnIdle = 'border-cyan-600/60 bg-cyan-900/30 text-cyan-200 hover:bg-cyan-900/50'
+const castBtnActive = 'border-cyan-400 bg-cyan-800/60 text-cyan-50'
 
 interface StampManagerWidgetProps {
   fullWidth?: boolean
@@ -45,12 +40,20 @@ interface StampManagerWidgetProps {
  * never rendered on /display. Keeps its own lightweight local roster (name +
  * stamp record) rather than reaching into the legacy /control roster import
  * system, since that carries real student PII this feature doesn't need.
+ *
+ * Phase 4: milestone sound now plays from `/display` itself (via
+ * `ProjectedStampCard`, wired to `redeemMilestone`'s redemption broadcast),
+ * not from this teacher-facing panel — the classroom hears it through the
+ * projector, not the teacher's laptop. "Cast to Display" is the only thing
+ * that writes `activeProjection`; nothing else here does.
  */
 export function StampManagerWidget({ fullWidth = false }: StampManagerWidgetProps) {
   const students = useStampStore((s) => s.students)
   const addStudent = useStampStore((s) => s.addStudent)
   const addStamps = useStampStore((s) => s.addStamps)
   const redeemMilestone = useStampStore((s) => s.redeemMilestone)
+  const activeProjection = useStampStore((s) => s.activeProjection)
+  const setActiveProjection = useStampStore((s) => s.setActiveProjection)
 
   const roster = useMemo(
     () => Object.values(students).sort((a, b) => a.displayName.localeCompare(b.displayName)),
@@ -90,12 +93,14 @@ export function StampManagerWidget({ fullWidth = false }: StampManagerWidgetProp
       return
     }
     setStatus(`${selected.displayName} redeemed the ${tier}-stamp milestone!`)
-    if (tier === 100) {
-      playVictoryFanfare()
-    } else {
-      playTierUnlock(TIER_UNLOCK_LEVEL[tier])
-    }
   }
+
+  const handleCastToDisplay = () => {
+    if (!selected) return
+    setActiveProjection({ studentId: selected.studentId, displayName: selected.displayName })
+  }
+
+  const handleStopCasting = () => setActiveProjection(null)
 
   return (
     <div
@@ -156,6 +161,39 @@ export function StampManagerWidget({ fullWidth = false }: StampManagerWidgetProp
 
       {selected && (
         <>
+          <div>
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+              Projector
+            </h3>
+            <div className="mt-2 flex items-center gap-2">
+              {activeProjection?.studentId === selected.studentId ? (
+                <>
+                  <span className={`${castBtn} ${castBtnActive} flex-1 text-center`} data-stamp-cast-active>
+                    📽️ Casting {selected.displayName}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleStopCasting}
+                    className={`${castBtn} ${castBtnIdle} min-w-[44px]`}
+                    data-stamp-stop-cast
+                    title="Stop casting"
+                  >
+                    ✕
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleCastToDisplay}
+                  className={`${castBtn} ${castBtnIdle} flex-1`}
+                  data-stamp-cast-to-display
+                >
+                  📽️ Cast to Display
+                </button>
+              )}
+            </div>
+          </div>
+
           <div>
             <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-400">
               Add Stamps — {selected.displayName}

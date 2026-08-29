@@ -20,6 +20,7 @@ export type EditDrawerTab =
   | 'saved'
   | 'look'
   | 'stamps'
+  | 'qrCode'
   | 'spotify'
   | 'messageCard'
   | 'timer'
@@ -29,6 +30,7 @@ export const EDIT_DRAWER_TAB_LABELS: Record<EditDrawerTab, string> = {
   saved: 'Saved Boards',
   look: 'Board Look',
   stamps: 'Stamps',
+  qrCode: 'QR Code',
   spotify: 'Spotify',
   messageCard: 'Message Card',
   timer: 'Timer',
@@ -44,7 +46,7 @@ export function getCleanBoardEditTabs(opts: {
   showMessageCard: boolean
   showTimer: boolean
 }): EditDrawerTab[] {
-  const tabs: EditDrawerTab[] = ['prompt', 'saved', 'look', 'stamps']
+  const tabs: EditDrawerTab[] = ['prompt', 'saved', 'look', 'stamps', 'qrCode']
   if (opts.showSpotify) tabs.push('spotify')
   if (opts.showMessageCard) tabs.push('messageCard')
   if (opts.showTimer) tabs.push('timer')

@@ -65,6 +65,18 @@ function getContext(): AudioContext | null {
   return sharedContext
 }
 
+/**
+ * Call from within a real user-gesture handler (a click/tap) on pages —
+ * like `/display` — where nobody otherwise interacts with the DOM before
+ * the first fanfare needs to play. Browsers only allow an `AudioContext` to
+ * actually produce sound once it's been resumed inside a genuine gesture at
+ * least once; after that, this same shared context stays usable for every
+ * later `playTierUnlock`/`playVictoryFanfare` call, gesture or not.
+ */
+export function unlockSynthesizer(): void {
+  getContext()
+}
+
 /** Builds and schedules one tone, cleaning up its graph once it finishes. */
 function scheduleTone(ctx: AudioContext, note: SynthesizerNote, startAt: number): void {
   const osc = ctx.createOscillator()

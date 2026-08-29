@@ -12,6 +12,19 @@ export const STAMP_MILESTONE_TIERS: readonly StampMilestoneTier[] = [25, 50, 75,
 
 export const STAMP_BALANCE_MAX = 100
 
+/**
+ * Maps a milestone tier to the synthesizer's tier-unlock chirp level (tier
+ * 100 gets the full victory fanfare instead — see
+ * `src/lib/audio/synthesizer.ts`). Single source of truth shared by the
+ * teacher-facing Stamp Manager status text and the `/display` celebration
+ * trigger, so the two can't drift out of sync.
+ */
+export const STAMP_TIER_TO_SYNTH_LEVEL: Record<Exclude<StampMilestoneTier, 100>, 1 | 2 | 3> = {
+  25: 1,
+  50: 2,
+  75: 3,
+}
+
 export interface StudentStampRecord {
   studentId: string
   displayName: string

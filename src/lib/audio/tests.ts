@@ -3,6 +3,7 @@ import {
   getVictoryFanfareMelody,
   playTierUnlock,
   playVictoryFanfare,
+  unlockSynthesizer,
 } from './synthesizer'
 
 function assert(condition: boolean, message: string): void {
@@ -56,6 +57,7 @@ assert(
 // so it doubles as a regression guard against the module crashing during SSR
 // or any non-browser import.
 
+unlockSynthesizer()
 playTierUnlock(1)
 playTierUnlock(2)
 playTierUnlock(3)
