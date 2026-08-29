@@ -1,12 +1,25 @@
 /**
- * Phase 9C.1 — Playwright screenshot baseline snapshots for /display.
+ * Phase 9C.1 (rewritten Phase 5) — Playwright screenshot baseline snapshots
+ * for /display.
+ *
+ * `/display` is rendered by `BoardHostDisplay.tsx` (Clean Board's host
+ * display) — see `src/App.tsx`'s routing, which intercepts the 'display'
+ * route before it can ever reach `AppShell`/`StudentDisplayShell.tsx`. The
+ * original version of this spec drove the legacy `/control` Command Center
+ * (Morning Message Studio, Today Prep "Show on Display") and asserted on
+ * `StudentDisplayShell`-only markup (`.board-screen-title`, the "Enter
+ * fullscreen" button, `.classroom-canvas-frame`) — none of which /display
+ * has rendered since Clean Board became the app's real display route, so
+ * every test here was failing regardless of any actual regression. Rewritten
+ * to drive and assert on the real, currently-reachable pipeline: /board-lab
+ * casting a Stamp Manager milestone card or a QR code to /display via
+ * localStorage + cross-tab sync (see stampStore.ts/qrCastStore.ts).
  *
  * Run: npm run test:display-snapshots
  * Update baselines: npx playwright test tests/e2e/display-snapshots.spec.ts --update-snapshots
  */
 
 import { test, expect, type Page } from '@playwright/test'
-import { enterEditMode, openDockTool, dockToolWorkspace } from './helpers/teacher-dock-e2e'
 
 const DISPLAY_VIEWPORTS = [
   { width: 1920, height: 1080, label: '1920x1080' },
@@ -27,26 +40,24 @@ async function assertNoHorizontalOverflow(page: Page) {
   expect(overflow).toBe(false)
 }
 
+/**
+ * Negative assertions for every teacher-only surface that must never reach
+ * /display — the legacy Command Center dock, Clean Board's own Teacher
+ * Dock and its panels, and the QR/stamp teacher-input components
+ * specifically (see the Phase 2/4 isolation guards these mirror at the
+ * browser level).
+ */
 async function assertDisplayPrivacy(page: Page) {
   await expect(page.getByRole('complementary', { name: 'Teacher controls' })).toHaveCount(0)
   await expect(page.locator('[data-teacher-command-dock]')).toHaveCount(0)
+  await expect(page.locator('[data-teacher-dock]')).toHaveCount(0)
+  await expect(page.locator('[data-teacher-dock-fab]')).toHaveCount(0)
+  await expect(page.locator('[data-stamp-manager-widget]')).toHaveCount(0)
+  await expect(page.locator('[data-qr-cast-teacher-panel]')).toHaveCount(0)
+  await expect(page.locator('[data-qr-url-input]')).toHaveCount(0)
   await expect(page.getByLabel('Studio Canvas toolbar')).toHaveCount(0)
-  await expect(page.getByText('Select a widget to see its position and size.')).toHaveCount(0)
   await expect(page.getByText('Teacher Notes')).toHaveCount(0)
-  await expect(page.getByLabel('Today Prep and Material Launcher')).toHaveCount(0)
-  await expect(page.getByText('Material Launcher')).toHaveCount(0)
-  await expect(page.getByLabel('Open With')).toHaveCount(0)
-  await expect(page.getByRole('button', { name: 'Open With' })).toHaveCount(0)
-  await expect(page.getByRole('button', { name: 'Copy Link' })).toHaveCount(0)
-  await expect(page.getByRole('button', { name: 'Show on Display' })).toHaveCount(0)
-  await expect(page.getByRole('button', { name: 'Clear Now Showing' })).toHaveCount(0)
-  await expect(page.getByRole('heading', { name: 'Morning Message Studio' })).toHaveCount(0)
-  await expect(page.getByLabel('Morning Message Studio')).toHaveCount(0)
-  await expect(page.getByText('Mystery Star & Picker')).toHaveCount(0)
   await expect(page.getByText('Backup / Restore')).toHaveCount(0)
-  await expect(page.getByRole('button', { name: 'Open Student Display' })).toHaveCount(0)
-  await expect(page.getByLabel('Enter edit mode')).toHaveCount(0)
-  await expect(page.getByRole('button', { name: 'Copy Display Link' })).toHaveCount(0)
 }
 
 async function prepareStableDisplay(page: Page) {
@@ -64,8 +75,8 @@ async function prepareStableDisplay(page: Page) {
   await page.evaluate(async () => {
     await document.fonts.ready
   })
-  await expect(page.locator('.board-canvas')).toBeVisible()
-  await expect(page.locator('.classroom-canvas-frame')).toBeVisible()
+  await expect(page.locator('[data-clean-board-host-display]')).toBeVisible()
+  await expect(page.locator('[data-board-canvas]')).toBeVisible()
 }
 
 async function assertDisplayReadyForSnapshot(page: Page) {
@@ -80,8 +91,10 @@ test.describe('Phase 9C.1 /display baseline snapshots', () => {
       await page.setViewportSize({ width: viewport.width, height: viewport.height })
       await page.goto('/display')
 
-      await expect(page.locator('.board-screen-title')).toBeVisible()
-      await expect(page.getByRole('button', { name: 'Enter fullscreen' })).toBeVisible()
+      // Fresh browser context, no board-lab activity yet — falls back to
+      // the "Morning Arrival — New Classroom" default template (see
+      // displayHost.ts), whose heading is "Good Morning".
+      await expect(page.getByText('Good Morning', { exact: true })).toBeVisible()
       await assertDisplayReadyForSnapshot(page)
 
       await expect(page).toHaveScreenshot(`display-default-${viewport.label}.png`, SNAPSHOT_OPTIONS)
@@ -89,48 +102,48 @@ test.describe('Phase 9C.1 /display baseline snapshots', () => {
   }
 })
 
-test.describe('Phase 9C.1 Morning Message display snapshot', () => {
-  test('/display Morning Message at 1920x1080', async ({ page }) => {
+test.describe('Phase 4 Stamp Manager display snapshot', () => {
+  test('/display stamp milestone card at 1920x1080', async ({ page }) => {
     await page.setViewportSize({ width: 1920, height: 1080 })
-    await page.goto('/control')
-    await enterEditMode(page)
-    await openDockTool(page, 'Morning Message')
-    await dockToolWorkspace(page, 'Morning Message')
-      .getByLabel('Morning Message Studio')
-      .getByRole('button', { name: 'Send to Display' })
-      .click()
+    await page.goto('/board-lab?mode=edit')
+
+    await page.locator('[data-teacher-dock-fab]').click()
+    await page.locator('[data-teacher-dock-tab="stamps"]').click()
+
+    await page.locator('[data-stamp-name-input]').fill('Snapshot Student')
+    await page.locator('[data-stamp-add-student]').click()
+    await page.locator('[data-stamp-cast-to-display]').click()
+    // A single +10 gives a stable, non-zero progress bar without redeeming
+    // any milestone — redemption triggers a transient celebration animation
+    // that would make this snapshot flaky.
+    await page.locator('[data-stamp-add-amount="10"]').click()
+
     await page.goto('/display')
 
-    await expect(page.getByTestId('morning-message-display')).toBeVisible()
+    await expect(page.locator('[data-projected-stamp-card]')).toBeVisible()
+    await expect(page.getByText('Snapshot Student')).toBeVisible()
     await assertDisplayReadyForSnapshot(page)
 
-    await expect(page).toHaveScreenshot('display-morning-message-1920x1080.png', SNAPSHOT_OPTIONS)
+    await expect(page).toHaveScreenshot('display-stamp-milestone-1920x1080.png', SNAPSHOT_OPTIONS)
   })
 })
 
-test.describe('Phase 10B Now Showing display snapshot', () => {
-  test('/display Now Showing label at 1920x1080', async ({ page }) => {
+test.describe('Phase 4 QR code display snapshot', () => {
+  test('/display QR code widget at 1920x1080', async ({ page }) => {
     await page.setViewportSize({ width: 1920, height: 1080 })
-    await page.goto('/control')
-    await enterEditMode(page)
-    await openDockTool(page, 'Today Prep')
+    await page.goto('/board-lab?mode=edit')
 
-    const prepPanel = dockToolWorkspace(page, 'Today Prep').getByLabel(
-      'Today Prep and Material Launcher',
-    )
-    await prepPanel.getByLabel('Resource type preset').first().selectOption('google-slides')
-    await prepPanel.getByPlaceholder('Resource label').fill('Chapter 2 Slides')
-    await prepPanel
-      .getByPlaceholder('https://docs.google.com/presentation/d/...')
-      .fill('https://docs.google.com/presentation/d/phase10b-snapshot/edit')
-    await prepPanel.getByRole('button', { name: 'Add resource link' }).click()
-    await prepPanel.getByRole('button', { name: 'Show on Display' }).click()
+    await page.locator('[data-teacher-dock-fab]').click()
+    await page.locator('[data-teacher-dock-tab="qrCode"]').click()
+
+    await page.locator('[data-qr-url-input]').fill('https://example.com/join')
+    await page.locator('[data-qr-cast-button]').click()
 
     await page.goto('/display')
 
-    await expect(page.getByTestId('now-showing-display')).toBeVisible()
+    await expect(page.locator('[data-qr-code-widget]')).toBeVisible()
     await assertDisplayReadyForSnapshot(page)
 
-    await expect(page).toHaveScreenshot('display-now-showing-1920x1080.png', SNAPSHOT_OPTIONS)
+    await expect(page).toHaveScreenshot('display-qr-code-1920x1080.png', SNAPSHOT_OPTIONS)
   })
 })
