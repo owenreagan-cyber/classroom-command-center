@@ -49,6 +49,8 @@
     "test:display-bundle-guard": "bash scripts/test-display-bundle-guard.sh",
     "test:clean-board": "bash scripts/test-clean-board.sh",
     "test:clean-board-spotify": "bash scripts/test-clean-board-spotify.sh",
+    "test:synthesizer": "bash scripts/test-synthesizer.sh",
+    "test:stamps": "bash scripts/test-stamps.sh",
     "smoke:classroom": "bash scripts/run-classroom-smoke.sh"
   },
   "dependencies": {
