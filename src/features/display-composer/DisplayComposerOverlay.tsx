@@ -3,13 +3,14 @@ import { toDisplaySafeScreen } from './displaySafe'
 import { DisplayScreenRenderer } from './DisplayScreenRenderer'
 
 /**
- * Mounted unconditionally on /display (StudentDisplayShell), like the Prize
- * Board / Random Number overlays. Renders nothing unless a teacher has sent a
- * composed screen to the display; falls through to the normal board view
- * otherwise. studentSafe=false screens never render here.
+ * Mounted on /display via `DisplayOverlayHost` (Clean Board host), like the
+ * Prize Board / Random Number overlays. Renders nothing unless a teacher has
+ * sent a composed screen to the display; falls through to the normal board
+ * view otherwise. studentSafe=false screens never render here.
  *
- * The parent (StudentDisplayShell) handles blank/black screen state, so this
- * component only renders when a real screen is active and not blanked.
+ * The parent (`DisplayOverlayHost`) also gates this on blank/black screen
+ * state; the check below is a second, redundant guard so this component is
+ * safe to mount from elsewhere too.
  */
 export function DisplayComposerOverlay() {
   const activeScreenId = useDisplayComposerStore((s) => s.activeScreenId)

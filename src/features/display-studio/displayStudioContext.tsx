@@ -48,13 +48,21 @@ export function DisplayStudioUIProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const toggleWidgetLibrary = useCallback((category?: WidgetCategory) => {
-    setWidgetLibraryOpen((prev) => {
-      const next = !prev
-      if (next && category) setWidgetLibraryCategory(category)
-      if (!next) setWidgetLibraryCategory(null)
-      return next
-    })
-  }, [])
+    if (!widgetLibraryOpen) {
+      // Closed → open on the requested category (defaults to current/first).
+      setWidgetLibraryOpen(true)
+      if (category) setWidgetLibraryCategory(category)
+      return
+    }
+    if (category && category !== widgetLibraryCategory) {
+      // Open + different category → stay open, switch category.
+      setWidgetLibraryCategory(category)
+      return
+    }
+    // Open + same category (or no category) → close.
+    setWidgetLibraryOpen(false)
+    setWidgetLibraryCategory(null)
+  }, [widgetLibraryOpen, widgetLibraryCategory])
 
   const closeWidgetLibrary = useCallback(() => {
     setWidgetLibraryOpen(false)

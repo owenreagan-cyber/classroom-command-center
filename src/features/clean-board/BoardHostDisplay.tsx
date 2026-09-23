@@ -5,6 +5,7 @@ import { useWakeLock } from './useWakeLock'
 import { unlockSynthesizer } from '../../lib/audio/synthesizer'
 import { ProjectedStampCard } from '../../widgets/ProjectedStampCard'
 import { QRCodeWidget } from '../../widgets/QRCodeWidget'
+import { DisplayOverlayHost } from './DisplayOverlayHost'
 
 /**
  * DB-7A — Clean Board host display.
@@ -57,6 +58,10 @@ export function BoardHostDisplay() {
 
       <ProjectedStampCard />
       <QRCodeWidget />
+
+      {/* Cast-to-display overlay pipeline (Prize Board, Random Number,
+          Display Composer, Morning Message, Now Showing). */}
+      <DisplayOverlayHost />
 
       {/* A projector display has nobody physically clicking it in normal
           use, but browsers only allow a milestone fanfare to actually play

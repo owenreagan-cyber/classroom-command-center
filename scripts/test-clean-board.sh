@@ -17,12 +17,41 @@ trap cleanup EXIT
 
 # ── Import guard ──
 echo "== clean-board import guard =="
+
+# DisplayOverlayHost.tsx (DB-7B) is the one deliberate, intentional bridge:
+# it re-composes the cast-to-display overlay pipeline (Prize Board, Random
+# Number, Display Composer, Morning Message, Now Showing) into the Clean
+# Board host display, reusing Display Composer's existing student-safe
+# projection (toDisplaySafeScreen) instead of duplicating it. It is the ONLY
+# file allowed to import display-composer -- it must still fail on every
+# other forbidden import below, and every other clean-board file must still
+# fail on display-composer too. See qa/display-overlay-pipeline-audit.md.
+ALLOWLISTED_BRIDGE_FILE="$ROOT/src/features/clean-board/DisplayOverlayHost.tsx"
+
 FORBIDDEN_IMPORT='classroom-atmosphere|SpotifyEmbedPlayer|SpotifyProvider|presentation-hub|display-studio|display-composer'
-if grep -RInE "$FORBIDDEN_IMPORT" "$ROOT/src/features/clean-board" 2>/dev/null; then
+FORBIDDEN_IMPORT_FOR_BRIDGE='classroom-atmosphere|SpotifyEmbedPlayer|SpotifyProvider|presentation-hub|display-studio'
+
+IMPORT_GUARD_FAILED=0
+
+# Every clean-board file except the one allowlisted bridge: full ban, unchanged.
+if grep -RInE "$FORBIDDEN_IMPORT" "$ROOT/src/features/clean-board" 2>/dev/null \
+  | grep -v "^${ALLOWLISTED_BRIDGE_FILE}:"; then
   echo "FAIL: clean-board imports/references old classroom-atmosphere embed or hub/studio/composer shell"
+  IMPORT_GUARD_FAILED=1
+fi
+
+# The allowlisted bridge file itself: display-composer is the one permitted
+# import; every other forbidden pattern must still fail here too.
+if [ -f "$ALLOWLISTED_BRIDGE_FILE" ] \
+  && grep -InE "$FORBIDDEN_IMPORT_FOR_BRIDGE" "$ALLOWLISTED_BRIDGE_FILE" 2>/dev/null; then
+  echo "FAIL: DisplayOverlayHost.tsx imports something beyond its one allowlisted display-composer bridge"
+  IMPORT_GUARD_FAILED=1
+fi
+
+if [ "$IMPORT_GUARD_FAILED" -eq 1 ]; then
   exit 1
 fi
-echo "PASS: clean-board has no old shell or spotify embed imports"
+echo "PASS: clean-board has no old shell or spotify embed imports (DisplayOverlayHost.tsx's display-composer bridge is the one documented exception)"
 
 # ── Compile + run pure-logic tests ──
 "$ROOT/node_modules/.bin/tsc" \

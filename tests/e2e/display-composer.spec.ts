@@ -106,7 +106,7 @@ test.describe('Display Composer — student-safe /display rendering', () => {
 
     await page.goto('/display')
     await expect(page.locator('[data-display-screen-id]')).toHaveCount(0)
-    await expect(page.locator('.board-screen-title')).toBeVisible()
+    await expect(page.locator('[data-board-canvas]')).toBeVisible()
   })
 
   test('sent screen survives a /display reload (persisted, not just in-memory)', async ({ page }) => {
@@ -312,7 +312,7 @@ test.describe('Phase 14D — Readability warnings (teacher-only)', () => {
 
     await page.goto('/display')
     await expect(page.locator('[data-display-screen-id]')).toHaveCount(0)
-    await expect(page.locator('.board-screen-title')).toBeVisible()
+    await expect(page.locator('[data-board-canvas]')).toBeVisible()
   })
 })
 

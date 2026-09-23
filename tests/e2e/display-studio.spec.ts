@@ -102,7 +102,7 @@ test.describe('Phase 15A — Display Studio shell', () => {
 
     await page.goto('/display')
     await expect(page.locator('[data-display-screen-id]')).toHaveCount(0)
-    await expect(page.locator('.board-screen-title')).toBeVisible()
+    await expect(page.locator('[data-board-canvas]')).toBeVisible()
   })
 })
 
@@ -124,11 +124,11 @@ test.describe('Phase 15A — Widget Library', () => {
     await expect(widgetLib).toBeVisible()
 
     // Category tabs should exist
-    await expect(widgetLib.getByText('Time')).toBeVisible()
-    await expect(widgetLib.getByText('Classroom')).toBeVisible()
-    await expect(widgetLib.getByText('Engagement')).toBeVisible()
-    await expect(widgetLib.getByText('Rewards')).toBeVisible()
-    await expect(widgetLib.getByText('Instruction')).toBeVisible()
+    await expect(widgetLib.getByText('Time', { exact: true })).toBeVisible()
+    await expect(widgetLib.getByText('Classroom', { exact: true })).toBeVisible()
+    await expect(widgetLib.getByText('Engagement', { exact: true })).toBeVisible()
+    await expect(widgetLib.getByText('Rewards', { exact: true })).toBeVisible()
+    await expect(widgetLib.getByText('Instruction', { exact: true })).toBeVisible()
   })
 
   test('placeholder widgets show as coming soon and are not clickable', async ({ page }) => {
@@ -142,10 +142,38 @@ test.describe('Phase 15A — Widget Library', () => {
 
     const widgetLib = page.locator('[data-display-studio-widget-library]')
 
-    // Switch to Classroom category to find Noise Meter (placeholder)
-    await widgetLib.getByText('Classroom').click()
-    await expect(widgetLib.getByText('Noise Meter')).toBeVisible()
+    // Switch to Classroom category to find a placeholder widget (QR Code)
+    await widgetLib.getByText('Classroom', { exact: true }).click()
+    await expect(widgetLib.getByText('QR Code', { exact: true })).toBeVisible()
     await expect(widgetLib.getByText('Coming soon')).toBeVisible()
+  })
+
+  test('category tab switches category while open; same category closes', async ({ page }) => {
+    await page.goto('/control')
+    await enterEditMode(page)
+    await openDockTool(page, 'Display Screens')
+
+    const inspector = page.locator('[data-display-studio-inspector]')
+    await inspector.getByRole('button', { name: /Widgets/ }).click()
+
+    const widgetLib = page.locator('[data-display-studio-widget-library]')
+
+    // Closed -> open: defaults to the first category (Time).
+    await page.getByRole('button', { name: /Browse Widget Library/ }).click()
+    await expect(widgetLib).toBeVisible()
+    await expect(widgetLib.getByText('Clock', { exact: true })).toBeVisible()
+
+    // Open + different category -> switches category, stays open (this is
+    // the bug this test guards against: it used to close the library instead
+    // of switching, making the other category tabs unreachable while open).
+    await widgetLib.getByText('Classroom', { exact: true }).click()
+    await expect(widgetLib).toBeVisible()
+    await expect(widgetLib.getByText('QR Code', { exact: true })).toBeVisible()
+    await expect(widgetLib.getByText('Clock', { exact: true })).toHaveCount(0)
+
+    // Open + same category (clicking the currently-active tab again) -> closes.
+    await widgetLib.getByText('Classroom', { exact: true }).click()
+    await expect(widgetLib).toHaveCount(0)
   })
 })
 
@@ -220,7 +248,7 @@ test.describe('Phase 15A — Student-safe /display', () => {
 
     await page.goto('/display')
     await expect(page.locator('[data-display-screen-id]')).toHaveCount(0)
-    await expect(page.locator('.board-screen-title')).toBeVisible()
+    await expect(page.locator('[data-board-canvas]')).toBeVisible()
   })
 })
 
@@ -271,7 +299,9 @@ test.describe('Phase 15A — Presenter Mode', () => {
     await expect(page.locator('[data-display-studio-presenter]')).toContainText('Presenter View')
 
     // Should show current screen and next screen
-    await expect(page.locator('[data-display-screen-id="arrival-720"]')).toBeVisible()
+    await expect(
+      page.locator('[data-display-studio-presenter] [data-display-screen-id="arrival-720"]').first(),
+    ).toBeVisible()
 
     // Close presenter
     await page.getByRole('button', { name: 'Exit Presenter' }).click()
@@ -309,7 +339,7 @@ test.describe('Phase 15A — Regression: existing features preserved', () => {
 
     await page.goto('/display')
     await expect(page.locator('[data-display-screen-id]')).toHaveCount(0)
-    await expect(page.locator('.board-screen-title')).toBeVisible()
+    await expect(page.locator('[data-board-canvas]')).toBeVisible()
   })
 
   test('seeded screens still load correctly from the studio', async ({ page }) => {
