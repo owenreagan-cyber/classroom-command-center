@@ -107,7 +107,7 @@ test.describe('Interrupted spin recovery', () => {
 
     await page.goto('/display')
     await expect(page.locator('[data-projector-mode="prize-board"]')).toHaveCount(0)
-    await expect(page.locator('.board-canvas')).toBeVisible()
+    await expect(page.locator('[data-board-canvas]')).toBeVisible()
   })
 })
 

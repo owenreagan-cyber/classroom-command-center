@@ -6,6 +6,7 @@
 
 import { test, expect } from '@playwright/test'
 import { enterEditMode, openDockTool } from './helpers/teacher-dock-e2e'
+import { expectDisplayHostReady } from './helpers/route-contracts'
 
 const DISPLAY_PRIVACY_PATTERNS = [
   /teacher notes/i,
@@ -65,7 +66,7 @@ async function assertDisplayBodyPrivacy(page: import('@playwright/test').Page) {
 test.describe('Display privacy regression', () => {
   test('/display page text excludes teacher-only content', async ({ page }) => {
     await page.goto('/display')
-    await expect(page.locator('.board-screen-title')).toBeVisible()
+    await expectDisplayHostReady(page)
     await assertDisplayBodyPrivacy(page)
   })
 

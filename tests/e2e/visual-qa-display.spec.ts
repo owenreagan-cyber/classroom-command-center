@@ -8,6 +8,7 @@ import { mkdirSync } from 'node:fs'
 import path from 'node:path'
 import { test, expect, type Page } from '@playwright/test'
 import { enterEditMode, openDockTool, dockToolWorkspace } from './helpers/teacher-dock-e2e'
+import { expectDisplayHostReady } from './helpers/route-contracts'
 
 const ARTIFACT_DIR = path.join(process.cwd(), '.local/visual-qa/phase-9c')
 
@@ -65,10 +66,7 @@ test.describe('Phase 9C /display visual QA', () => {
       await page.setViewportSize({ width: viewport.width, height: viewport.height })
       await page.goto('/display')
 
-      await expect(page.locator('.board-screen-title')).toBeVisible()
-      await expect(page.locator('.board-canvas')).toBeVisible()
-      await expect(page.locator('.classroom-canvas-frame')).toBeVisible()
-      await expect(page.getByRole('button', { name: 'Enter fullscreen' })).toBeVisible()
+      await expectDisplayHostReady(page)
 
       await assertNoHorizontalOverflow(page)
       await assertDisplayPrivacy(page)

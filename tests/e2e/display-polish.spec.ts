@@ -5,25 +5,21 @@
 
 import { test, expect } from '@playwright/test'
 import { enterEditMode, openDockTool, dockToolWorkspace } from './helpers/teacher-dock-e2e'
+import { expectDisplayHostReady, enterBoardEditorMode } from './helpers/route-contracts'
 
 test.describe('Phase 9A display polish', () => {
   test('/display excludes page navigation and teacher controls', async ({ page }) => {
     await page.goto('/display')
-    await expect(page.locator('.board-screen-title')).toBeVisible()
+    await expectDisplayHostReady(page)
     await expect(page.getByRole('navigation', { name: 'Page navigation' })).toHaveCount(0)
     await expect(page.getByRole('complementary', { name: 'Teacher controls' })).toHaveCount(0)
   })
 
   test('/control retains page navigation on homeroom', async ({ page }) => {
     await page.goto('/control')
-    await enterEditMode(page)
+    await enterBoardEditorMode(page)
     await expect(page.getByRole('navigation', { name: 'Page navigation' })).toBeVisible()
     await expect(page.getByRole('navigation', { name: 'Page navigation' }).getByText('1 of 5')).toBeVisible()
-  })
-
-  test('/display shows student-safe fullscreen control', async ({ page }) => {
-    await page.goto('/display')
-    await expect(page.getByRole('button', { name: 'Enter fullscreen' })).toBeVisible()
   })
 
   test('/control shows open display for fullscreen workflow', async ({ page }) => {
@@ -53,10 +49,5 @@ test.describe('Phase 9A display polish', () => {
       return doc.scrollWidth > doc.clientWidth + 2
     })
     expect(overflow).toBe(false)
-  })
-
-  test('ClassroomCanvas frame renders on display', async ({ page }) => {
-    await page.goto('/display')
-    await expect(page.locator('.classroom-canvas-frame')).toBeVisible()
   })
 })

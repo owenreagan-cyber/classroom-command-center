@@ -6,18 +6,17 @@
 
 import { test, expect } from '@playwright/test'
 import { enterEditMode, openDockTool, dockToolWorkspace } from './helpers/teacher-dock-e2e'
+import { expectTeachModeReady, expectDisplayHostReady } from './helpers/route-contracts'
 
 test.describe('Launch readiness — route smoke', () => {
   test('/control loads without crashing', async ({ page }) => {
     await page.goto('/control')
-    await expect(page.locator('.board-screen-title')).toBeVisible()
-    await expect(page.locator('.board-canvas')).toBeVisible()
+    await expectTeachModeReady(page)
   })
 
   test('/display loads without crashing', async ({ page }) => {
     await page.goto('/display')
-    await expect(page.locator('.board-screen-title')).toBeVisible()
-    await expect(page.locator('.board-canvas')).toBeVisible()
+    await expectDisplayHostReady(page)
   })
 
   test('index.html references favicon and manifest', async ({ page }) => {

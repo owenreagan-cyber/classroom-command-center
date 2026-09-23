@@ -9,15 +9,17 @@
  */
 
 import { test, expect } from '@playwright/test'
-import { enterEditMode, openDockTool, dockToolWorkspace } from './helpers/teacher-dock-e2e'
+import { openDockTool, dockToolWorkspace } from './helpers/teacher-dock-e2e'
+import { enterBoardEditorMode, expectStudioCanvasReady } from './helpers/route-contracts'
 
 const APP_URL = 'http://localhost:5173/control'
 
 async function openMorningArrival(page: import('@playwright/test').Page) {
   await page.goto(APP_URL)
-  await enterEditMode(page)
-  // Homeroom > Morning Arrival is the default active page after load.
-  await expect(page.locator('[data-widget-type="do-now"]').first()).toBeVisible({ timeout: 10000 })
+  // /control defaults to Teach Mode; the board editor (Studio Canvas) is behind
+  // the Presentation Hub's "Board" tab in edit mode.
+  await enterBoardEditorMode(page)
+  await expectStudioCanvasReady(page)
 }
 
 test.describe('Studio Canvas', () => {
@@ -206,7 +208,7 @@ test.describe('Studio Canvas', () => {
 
   test('classroom mode hides studio toolbar', async ({ page }) => {
     await page.goto('/control')
-    await enterEditMode(page)
+    await enterBoardEditorMode(page)
     await openDockTool(page, 'Board Control')
     await dockToolWorkspace(page, 'Board Control')
       .getByRole('button', { name: /^Display$/ })

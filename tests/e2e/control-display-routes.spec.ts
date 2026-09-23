@@ -6,11 +6,12 @@
 
 import { test, expect } from '@playwright/test'
 import { enterEditMode, openDockTool, expandDockLauncher, dockToolWorkspace } from './helpers/teacher-dock-e2e'
+import { expectTeachModeReady } from './helpers/route-contracts'
 
 test.describe('Control / Display route split', () => {
   test('/control shows teacher workspace', async ({ page }) => {
     await page.goto('/control')
-    await expect(page.locator('.board-screen-title')).toBeVisible()
+    await expectTeachModeReady(page)
     await enterEditMode(page)
     await expect(page.locator('[data-teacher-command-dock]')).toBeVisible()
     await expect(page.getByRole('complementary', { name: 'Teacher controls' })).toBeVisible()
@@ -48,13 +49,13 @@ test.describe('Control / Display route split', () => {
   test('root path redirects to /control', async ({ page }) => {
     await page.goto('/')
     await page.waitForFunction(() => window.location.pathname === '/control')
-    await expect(page.locator('.board-screen-title')).toBeVisible()
+    await expectTeachModeReady(page)
   })
 
   test('unknown path redirects to /control', async ({ page }) => {
     await page.goto('/not-a-real-route')
     await page.waitForFunction(() => window.location.pathname === '/control')
-    await expect(page.locator('.board-screen-title')).toBeVisible()
+    await expectTeachModeReady(page)
   })
 
   test('route change preserves persisted edit mode on control', async ({ page }) => {
