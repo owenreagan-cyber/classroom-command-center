@@ -8,6 +8,9 @@ import { PresentationHub } from '../features/presentation-hub/PresentationHub'
 import { DisplayStudio } from '../features/display-studio/DisplayStudio'
 import { DisplayStudioUIProvider } from '../features/display-studio/displayStudioContext'
 import { TeachModeShell } from './TeachModeShell'
+import { useControlSyncClient } from '../lib/sync/controlSyncClient'
+import { PairingGate } from '../lib/sync/PairingGate'
+import { UnpairControl } from '../lib/sync/UnpairControl'
 import {
   getEffectiveBoardMode,
   shouldAllowStudioEditActions,
@@ -17,11 +20,24 @@ import {
 export function TeacherControlShell() {
   const mode = useBoardStore((state) => state.mode)
 
-  if (mode === 'teach') {
-    return <TeachModeShell />
+  // Cross-device sync (docs/architecture/cross-device-control.md):
+  // best-effort, no-ops entirely if no classroom sync server is reachable.
+  const sync = useControlSyncClient()
+
+  // Stage 3 pairing gate: only enforced once we actually know (a real
+  // server told us) that this device isn't paired. `!sync.connected` covers
+  // plain `npm run dev` / no server at all, where nothing about Stage 3
+  // should change existing behavior — see ControlSyncState.connected's doc.
+  if (sync.connected && sync.authStatus === 'unauthenticated') {
+    return <PairingGate sync={sync} />
   }
 
-  return <EditorModeShell />
+  return (
+    <>
+      {mode === 'teach' ? <TeachModeShell /> : <EditorModeShell />}
+      <UnpairControl sync={sync} />
+    </>
+  )
 }
 
 /** Full editor/dashboard workspace — dock sidebar, board, and display studio. */

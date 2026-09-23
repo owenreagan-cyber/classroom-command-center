@@ -1,12 +1,26 @@
 # Cross-Device Control — Stage 1 (Investigation + Design)
 
 **Date:** 2026-09-23
-**Status:** Read-only investigation and design. No application code changed.
+**Status:** Stage 1 (this document's investigation and design) is complete. Stage 2 (sync server core) and Stage 3 (pairing/security) are now implemented — see "Implementation status" below. The rest of this document is kept as originally written, as the design record; it is no longer a description of unbuilt work.
 **Scope:** Command Center only.
 
 **Target setup:** MacBook Air M1 runs Command Center + a local sync server, shows `/display` on the classroom TV (extended display). iPad runs `/control` in Safari over Wi-Fi as a walk-around remote. M5 Pro is development only.
 
 ---
+
+## Implementation status (2026-09-23, added after Stage 1)
+
+**Stage 2 — sync server core.** `server/classroomSyncServer.ts`: one Node process, one port, serving the production build and a WebSocket endpoint (`ws`, path `/__classroom-sync`). Canonical state (`composer`: Blank + active Display Composer screen, which is also how a screen's timer widget reaches `/display`; `randomNumber`) lives in memory and is mirrored to a JSON file for restart survival. `src/lib/sync/sanitize.ts` re-runs every incoming action through the app's real `toDisplaySafeScreen`/`toDisplaySafeRandomNumberSnapshot` filters server-side before storing or broadcasting — the safe/unsafe boundary is enforced by the wire protocol itself, per §3's requirement, not by trusting the sender. Blank precedence holds across the wire (a blanked action clears the screen even if one was smuggled into the same message). `src/lib/sync/controlSyncClient.ts` / `displaySyncClient.ts` are best-effort bridges: same-device sync is untouched, and everything no-ops cleanly if no sync server is reachable.
+
+Deferred from Stage 2's "core," by explicit go-ahead: **Prize Board** (Press Your Luck) has no wire channel yet — it's multi-store plus a live client-side spin animation, real follow-up scope, not built. **Noise meter** turned out not to be rendered on `/display` at all, in this codebase, ever — there is nothing to sync.
+
+**Stage 3 — pairing/security,** per §4 below, now implemented (not just designed): a 6-digit pairing code shown on `/display` when unpaired; `/control` submits it once and receives a long random token, stored in `localStorage`; every action must carry a valid token or the server silently drops it; the code is single-use (regenerates on successful pairing) and never reaches a control-role socket, and the token never reaches a display-role socket (role is set once per connection via `?role=control|display` on the WebSocket URL, and the server uses it to decide who gets which message types). `/control` has an "Unpair this device" control; restarting the server is the fallback if the iPad itself is unreachable — pairing state is deliberately kept in memory only, never persisted, so a restart genuinely revokes it. Session length is "pair once per server boot," per the design's own recommendation.
+
+Also fixed: the state-file save is now atomic (write to a temp file, then rename), so a crash mid-write can't corrupt `.local/classroom-sync-state.json`.
+
+**Verified:** `npm run test:classroom-sync` (sanitizer unit tests + a live integration test against a real spawned server and real WebSocket clients — poisoned-payload privacy checks, Blank precedence, unpaired/invalid-token rejection, a second never-paired browser unable to act, token revocation after unpair, atomic-write crash recovery); full existing regression suite (`build`, `lint`, `test:display-import-guard`, `test:display-bundle-guard`, `test:clean-board`) still green. Live-verified on real hardware: the physical school-owned iPad, over real Wi-Fi, paired via the code shown on `/display`, cast a screen (with its timer widget) and Blank, both reflected live on a separate machine; a second, never-paired browser was confirmed unable to control the display; unpair/re-pair with a fresh device and back to the iPad was exercised live; Random Number was also live-verified end-to-end this way.
+
+**Still open:** Item 1 (touch/pointer support for `/control`'s drag code) and item 5 (reconnect/disconnected-state UI, §5) from the staged build plan below are not built — the client bridges retry with simple backoff, but `/display` has no visible "disconnected" indicator yet. Prize Board sync (above). A Linux Playwright snapshot baseline and a few other pre-existing, unrelated gaps noted elsewhere are untouched by this work. Pairing attempts during the unpaired window are not rate-limited — a brute-force guess against the 6-digit code on school Wi-Fi is not currently defended against. Sync runs over plain `ws://` on the local network; the token could be sniffed by another device on shared Wi-Fi, and whether `wss://` is worth the added certificate/setup complexity for a classroom LAN is an open question. The noise meter is not rendered on `/display` at all, in this codebase — that's a display feature gap independent of sync, not something Stage 2/3 need to carry.
 
 ## 1. How `/control` currently sends state to `/display` — and whether cross-device works today
 

@@ -7,6 +7,8 @@ import { ProjectedStampCard } from '../../widgets/ProjectedStampCard'
 import { QRCodeWidget } from '../../widgets/QRCodeWidget'
 import { DisplayOverlayHost } from './DisplayOverlayHost'
 import { DisplayFullscreenControl } from './DisplayFullscreenControl'
+import { useDisplaySyncClient } from '../../lib/sync/displaySyncClient'
+import { PairingCodeBadge } from '../../lib/sync/PairingCodeBadge'
 
 /**
  * DB-7A — Clean Board host display.
@@ -39,6 +41,10 @@ export function BoardHostDisplay() {
   // Silent keep-awake (no toggle UI on the student display).
   useWakeLock(true)
 
+  // Cross-device sync (docs/architecture/cross-device-control.md):
+  // best-effort, no-ops entirely if no classroom sync server is reachable.
+  const { pairingCode } = useDisplaySyncClient()
+
   return (
     <div
       className="relative flex h-dvh w-dvw overflow-hidden bg-slate-950"
@@ -63,6 +69,11 @@ export function BoardHostDisplay() {
       {/* Cast-to-display overlay pipeline (Prize Board, Random Number,
           Display Composer, Morning Message, Now Showing). */}
       <DisplayOverlayHost />
+
+      {/* Stage 3 pairing code — a system indicator, not classroom content,
+          so it renders above Blank (z-[70] vs. Blank's z-50) same as the
+          fullscreen control below. Empty/hidden once paired. */}
+      <PairingCodeBadge code={pairingCode} />
 
       {/* Auto-hiding "Enter fullscreen" affordance + cursor auto-hide.
           Never shown to students during a normal lesson -- only appears on

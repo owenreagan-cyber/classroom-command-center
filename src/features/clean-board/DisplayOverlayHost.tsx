@@ -25,6 +25,19 @@ import { resolveNowShowingDisplay } from '../../lib/nowShowing'
  * component only layers the active student-facing overlays above it. Every
  * overlay is student-safe and renders nothing (or a safe fallback) unless a
  * teacher explicitly activated it.
+ *
+ * Present-while-blanked (Stage 3 requirement 6, confirmed not changed):
+ * `displayBlanked` only ever flips via `blankDisplay()`/`unblankDisplay()`/
+ * `clearDisplay()` in displayComposerStore.ts, and those are only ever
+ * called from an explicit teacher click — PresentationHub.tsx's "Blank
+ * Screen"/"Restore" buttons and DisplayStudioCommandBar.tsx's equivalents
+ * (`data-hub-action="blank-display"`/`"restore-display"`,
+ * `data-studio-action="blank-display"`/`"unblank-display"`). Nothing else in
+ * the codebase sets `displayBlanked` — no timeout, no side effect of another
+ * action, and the Stage 2/3 sync bridges only mirror whatever this store's
+ * real value already is (see displaySyncClient.ts's `applyComposer`), they
+ * never set it independently. So content can only ever come back from
+ * "paused" through a deliberate teacher action, on either device.
  */
 export function DisplayOverlayHost() {
   const pylPhase = usePressYourLuckStore((s) => s.phase)
