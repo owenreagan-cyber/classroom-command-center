@@ -57,7 +57,6 @@ export function PresentationHub({ boardWorkspace }: PresentationHubProps) {
   const order = useDisplayComposerStore((s) => s.order)
   const activeScreenId = useDisplayComposerStore((s) => s.activeScreenId)
   const displayBlanked = useDisplayComposerStore((s) => s.displayBlanked)
-  const sendToDisplay = useDisplayComposerStore((s) => s.sendToDisplay)
   const clearDisplay = useDisplayComposerStore((s) => s.clearDisplay)
   const blankDisplay = useDisplayComposerStore((s) => s.blankDisplay)
   const unblankDisplay = useDisplayComposerStore((s) => s.unblankDisplay)
@@ -129,10 +128,6 @@ export function PresentationHub({ boardWorkspace }: PresentationHubProps) {
   }, [liveScreen, transitionTimers, taskTimers, routineTimers])
 
   const musicLabel = useMemo(() => getDisplayMusicLabel(musicMode), [musicMode])
-
-  const handleSend = () => {
-    if (selectedId) sendToDisplay(selectedId)
-  }
 
   const handleOpenStudio = () => {
     if (selectedId) selectScreen(selectedId)
@@ -233,15 +228,9 @@ export function PresentationHub({ boardWorkspace }: PresentationHubProps) {
                 <button type="button" className={secondaryBtn} onClick={() => prevId && handleSelect(prevId)} disabled={!prevId} data-hub-action="previous">
                   {'◀'} Prev
                 </button>
-                <button
-                  type="button"
-                  className={primaryBtn}
-                  onClick={handleSend}
-                  disabled={!selectedId}
-                  data-hub-action="send-to-display"
-                >
-                  {status === 'live' && activeScreenId === selectedId ? 'On Display' : 'Send to Display'}
-                </button>
+                {/* Send to Display lives in Display Studio's command bar (the one primary
+                    location — see docs/architecture/command-center-product-direction.md,
+                    Pillar 2). Open Studio above to send the selected screen. */}
                 {status === 'blanked' ? (
                   <button type="button" className="rounded-xl border border-emerald-400/40 bg-emerald-950/30 px-4 py-2.5 text-sm font-semibold text-emerald-200 transition hover:bg-emerald-900/40" onClick={unblankDisplay} data-hub-action="restore-display">
                     Restore Display

@@ -162,6 +162,24 @@ if ! grep -qE "Browse Templates" \
   FAILED=1
 fi
 
+# Send to Display must NOT have a second active control in Presentation Hub
+# (the duplicate found and removed in Phase 1 hygiene, 2026-09-23 — Presentation
+# Hub and Display Studio's command bar are both mounted at once in
+# EditorModeShell, so a second button here is a silent regression, not a
+# convenience). Display Studio's command bar remains the one primary location.
+if grep -qE "sendToDisplay\(selectedId\)|data-hub-action=\"send-to-display\"" \
+  src/features/presentation-hub/PresentationHub.tsx; then
+  echo "FAIL: Send to Display action reintroduced in PresentationHub.tsx"
+  FAILED=1
+fi
+
+# The one primary Send to Display control must still exist in CommandBar
+if ! grep -qE "data-studio-action=\"send-to-display\"" \
+  src/features/display-studio/DisplayStudioCommandBar.tsx; then
+  echo "FAIL: Send to Display action missing from DisplayStudioCommandBar.tsx"
+  FAILED=1
+fi
+
 if [ "$FAILED" -eq 0 ]; then
   echo "PASS: Duplicate chrome collapse guards verified"
 else

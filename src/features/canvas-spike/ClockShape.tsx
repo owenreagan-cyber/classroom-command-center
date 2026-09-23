@@ -3,8 +3,8 @@
  * A read-only current-time display widget with w/h in props.
  */
 
-import { useState, useEffect } from 'react'
-import { createShapeId, ShapeUtil, HTMLContainer, type TLBaseShape } from 'tldraw'
+import { createShapeId, ShapeUtil, type TLBaseShape } from 'tldraw'
+import { ClockComponent } from './ClockComponent'
 
 type ClockShape = TLBaseShape<'spike-clock', { label: string; w: number; h: number }>
 
@@ -34,23 +34,6 @@ export class ClockShapeUtil extends ShapeUtil<ClockShape> {
     path.rect(0, 0, shape.props.w, shape.props.h)
     return path
   }
-}
-
-function ClockComponent({ label }: { label: string; w: number; h: number }) {
-  const [time, setTime] = useState(() => new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }))
-  useEffect(() => {
-    const id = setInterval(() => setTime(new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })), 1000)
-    return () => clearInterval(id)
-  }, [])
-
-  return (
-    <HTMLContainer>
-      <div className="flex h-full w-full flex-col items-center justify-center rounded-2xl bg-slate-950/80 px-4 py-2 text-white shadow-xl backdrop-blur-sm">
-        <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">{label}</span>
-        <span className="text-3xl font-black tabular-nums text-cyan-200">{time}</span>
-      </div>
-    </HTMLContainer>
-  )
 }
 
 export function createClockShapeId() {

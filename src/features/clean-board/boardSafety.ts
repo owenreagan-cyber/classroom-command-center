@@ -11,6 +11,17 @@ import { sanitizeImageObjectConfig } from './images'
  * objects ordered by layer, and widget configs reduced to student-safe data.
  */
 
+/**
+ * Minimum legible font size (px) for text projected to /display, sized for a
+ * classroom TV read from the back of the room. Matches Display Composer's
+ * own floor (`text-xl`, the smallest size used for real body content in
+ * `WidgetDisplayOverlay.tsx`/`elements/*.tsx` — its one smaller size,
+ * `text-lg`/18px, is reserved for secondary supporting text, not primary
+ * content). Enforced here, at the display-safe boundary, so it can't be
+ * bypassed by any current or future editing UI.
+ */
+const MIN_DISPLAY_FONT_SIZE = 20
+
 /** Keys that must never reach present mode. */
 const FORBIDDEN_BOARD_KEYS = [
   'teacherNotes',
@@ -43,6 +54,11 @@ function sanitizeConfig(config: BoardObjectConfig): BoardObjectConfig {
     // Images project as content only. Re-whitelist the safe local payload so no
     // extra/private keys (tokens, names, paths, URLs) reach present mode.
     return sanitizeImageObjectConfig(config) ?? config
+  }
+  if (config.kind === 'text') {
+    // Enforce the classroom-legibility floor regardless of what the teacher's
+    // editing UI allowed — see MIN_DISPLAY_FONT_SIZE.
+    return { ...config, fontSize: Math.max(config.fontSize, MIN_DISPLAY_FONT_SIZE) }
   }
   return config
 }
