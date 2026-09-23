@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react'
 import { getBackgroundPreset, overlayScrimCss } from './backgrounds'
 import { BoardObjectRenderer } from './BoardObjectRenderer'
@@ -54,6 +54,30 @@ function backgroundStyle(bg: BoardBackground): CSSProperties {
 }
 
 /**
+ * Fills the full outer container (not just the scaled 16:9 board) with the
+ * same active background, so a non-16:9 container's margins blend into the
+ * board's own background instead of showing the flat wrapper color as a
+ * letterbox/pillarbox bar. At an exact 16:9 container there is no margin to
+ * fill (the board covers it exactly), so this layer is simply hidden behind
+ * it -- it only becomes visible in the non-16:9 fallback case.
+ *
+ * Solid colors and CSS gradients extend naturally to any box size, so they
+ * render this the same way as the board's own background. A local image
+ * can't extend cleanly, so the backdrop uses a blurred, scaled-up copy of
+ * the same image instead of leaving a mismatched hard edge -- never black.
+ */
+function backdropStyle(bg: BoardBackground): CSSProperties {
+  if (bg.type === 'localImage') {
+    return {
+      ...backgroundStyle(bg),
+      filter: 'blur(60px) brightness(0.85)',
+      transform: 'scale(1.15)',
+    }
+  }
+  return backgroundStyle(bg)
+}
+
+/**
  * DB-1 — the 16:9 board canvas.
  *
  * Measures its container and applies a uniform scale-to-fit so the board
@@ -75,7 +99,7 @@ export function BoardCanvas({
   const dragRef = useRef<DragState | null>(null)
   const [size, setSize] = useState({ w: 0, h: 0 })
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const el = containerRef.current
     if (!el) return
     const update = () => setSize({ w: el.clientWidth, h: el.clientHeight })
@@ -123,74 +147,86 @@ export function BoardCanvas({
   return (
     <div ref={containerRef} className="relative h-full w-full overflow-hidden bg-slate-950">
       {size.w > 0 && size.h > 0 && (
-        <div
-          className="absolute"
-          style={{
-            left: fit.offsetX,
-            top: fit.offsetY,
-            width: fit.width,
-            height: fit.height,
-          }}
-        >
+        <>
+          {/* Backdrop: fills the whole container with the active background
+              so a non-16:9 container's margins never show as a flat black
+              bar -- only visible when fit.width/height don't already cover
+              the container exactly (i.e. a non-16:9 case). */}
           <div
-            className="relative origin-top-left overflow-hidden"
+            className="absolute inset-0 overflow-hidden"
+            style={backdropStyle(background)}
+            aria-hidden
+            data-board-backdrop
+          />
+          <div
+            className="absolute"
             style={{
-              width: BOARD_LOGICAL_WIDTH,
-              height: BOARD_LOGICAL_HEIGHT,
-              transform: `scale(${fit.scale})`,
-              ...backgroundStyle(background),
-            }}
-            data-board-canvas
-            onPointerDown={(e) => {
-              if (mode === 'edit' && e.target === e.currentTarget) onSelect(null)
+              left: fit.offsetX,
+              top: fit.offsetY,
+              width: fit.width,
+              height: fit.height,
             }}
           >
-            {scrim && (
-              <div
-                className="pointer-events-none absolute inset-0"
-                style={scrim}
-                aria-hidden
-                data-board-readability-scrim
-              />
-            )}
-            {ordered.map((o) => {
-              const selected = mode === 'edit' && selectedObjectId === o.id
-              return (
+            <div
+              className="relative origin-top-left overflow-hidden"
+              style={{
+                width: BOARD_LOGICAL_WIDTH,
+                height: BOARD_LOGICAL_HEIGHT,
+                transform: `scale(${fit.scale})`,
+                ...backgroundStyle(background),
+              }}
+              data-board-canvas
+              onPointerDown={(e) => {
+                if (mode === 'edit' && e.target === e.currentTarget) onSelect(null)
+              }}
+            >
+              {scrim && (
                 <div
-                  key={o.id}
-                  data-board-object-kind={o.kind}
-                  className={`absolute ${mode === 'edit' ? 'cursor-move' : ''}`}
-                  style={{
-                    left: o.x,
-                    top: o.y,
-                    width: o.w,
-                    height: o.h,
-                    transform: `rotate(${o.rotation}deg)`,
-                    opacity: mode === 'edit' && !o.visible ? 0.35 : 1,
-                  }}
-                  onPointerDown={(e) => handlePointerDown(e, o)}
-                  onPointerMove={(e) => handlePointerMove(e, o)}
-                  onPointerUp={endDrag}
-                  onPointerCancel={endDrag}
-                >
-                  <BoardObjectRenderer
-                    object={o}
-                    spotifyNowPlaying={spotifyNowPlaying}
-                    mode={mode}
-                    theme={theme}
-                  />
-                  {selected && (
-                    <div
-                      className="pointer-events-none absolute inset-0 rounded-xl"
-                      style={{ outline: `2px solid ${accent}`, outlineOffset: '2px' }}
-                      data-board-selection
+                  className="pointer-events-none absolute inset-0"
+                  style={scrim}
+                  aria-hidden
+                  data-board-readability-scrim
+                />
+              )}
+              {ordered.map((o) => {
+                const selected = mode === 'edit' && selectedObjectId === o.id
+                return (
+                  <div
+                    key={o.id}
+                    data-board-object-kind={o.kind}
+                    className={`absolute ${mode === 'edit' ? 'cursor-move' : ''}`}
+                    style={{
+                      left: o.x,
+                      top: o.y,
+                      width: o.w,
+                      height: o.h,
+                      transform: `rotate(${o.rotation}deg)`,
+                      opacity: mode === 'edit' && !o.visible ? 0.35 : 1,
+                    }}
+                    onPointerDown={(e) => handlePointerDown(e, o)}
+                    onPointerMove={(e) => handlePointerMove(e, o)}
+                    onPointerUp={endDrag}
+                    onPointerCancel={endDrag}
+                  >
+                    <BoardObjectRenderer
+                      object={o}
+                      spotifyNowPlaying={spotifyNowPlaying}
+                      mode={mode}
+                      theme={theme}
                     />
-                  )}
-                </div>
-              )
-            })}
+                    {selected && (
+                      <div
+                        className="pointer-events-none absolute inset-0 rounded-xl"
+                        style={{ outline: `2px solid ${accent}`, outlineOffset: '2px' }}
+                        data-board-selection
+                      />
+                    )}
+                  </div>
+                )
+              })}
+            </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   )

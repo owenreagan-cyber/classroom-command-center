@@ -6,6 +6,7 @@ import { unlockSynthesizer } from '../../lib/audio/synthesizer'
 import { ProjectedStampCard } from '../../widgets/ProjectedStampCard'
 import { QRCodeWidget } from '../../widgets/QRCodeWidget'
 import { DisplayOverlayHost } from './DisplayOverlayHost'
+import { DisplayFullscreenControl } from './DisplayFullscreenControl'
 
 /**
  * DB-7A — Clean Board host display.
@@ -62,6 +63,11 @@ export function BoardHostDisplay() {
       {/* Cast-to-display overlay pipeline (Prize Board, Random Number,
           Display Composer, Morning Message, Now Showing). */}
       <DisplayOverlayHost />
+
+      {/* Auto-hiding "Enter fullscreen" affordance + cursor auto-hide.
+          Never shown to students during a normal lesson -- only appears on
+          mouse movement. See DisplayFullscreenControl.tsx. */}
+      <DisplayFullscreenControl />
 
       {/* A projector display has nobody physically clicking it in normal
           use, but browsers only allow a milestone fanfare to actually play

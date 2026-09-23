@@ -354,3 +354,11 @@ button {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ── /display cursor auto-hide ─────────────────────────────────────── */
+/* Overrides descendant cursor rules (e.g. `button { cursor: pointer }`)
+   too, so the cursor stays hidden even while idling over a button. */
+.display-cursor-hidden,
+.display-cursor-hidden * {
+  cursor: none !important;
+}
