@@ -17,7 +17,14 @@ import { join } from 'node:path'
  *     action works end-to-end; a second, never-paired device cannot act;
  *     the pairing code never reaches any control-role socket and the
  *     token never reaches any display-role socket; unpair revokes the old
- *     token and issues a fresh code.
+ *     token and issues a fresh code; a brand-new connection presenting an
+ *     already-issued token is accepted with no re-pairing (reconnect).
+ *   - Pairing rate limiting (brute-force protection, follow-up to Stage 3):
+ *     the first few wrong guesses on one connection are free; further wrong
+ *     guesses on that connection earn a growing cooldown that also blocks
+ *     the correct code until it elapses; enough wrong guesses spread across
+ *     many connections (not just one) hit a global cap that rotates the
+ *     code entirely, invalidating whatever was guessed so far.
  *   - Atomic state write: a corrupted state file (simulating a crash
  *     mid-write under the old non-atomic code) doesn't crash the server on
  *     boot, and a real save leaves no stray temp file behind.
@@ -300,6 +307,31 @@ async function testPrivacyAuthAndPairing() {
     ])
     assert(JSON.parse(randomBroadcast).payload.value === 42, 'random number value 42 reaches /display end-to-end over the real socket, with a valid token')
 
+    // --- Reconnect: a brand-new socket presenting the same (still-valid)
+    // token is accepted with no re-pairing — this is the server-side half of
+    // "on reconnect, /control re-sends its token and resumes" (the client
+    // half — closing/reopening on a real drop, with backoff — lives in
+    // controlSyncClient.ts and isn't exercised by a WebSocket-level test like
+    // this one). Simulates the iPad's tab reconnecting after a Wi-Fi blip.
+    const reconnectedControl = new WebSocket(wsUrl('control'))
+    const reconnectedMessages = recordMessages(reconnectedControl)
+    await Promise.race([waitForOpen(reconnectedControl), exitedEarly])
+    await Promise.race([reconnectedMessages.waitFor((raw) => JSON.parse(raw).type === 'hello'), exitedEarly])
+    await Promise.race([
+      (async () => {
+        reconnectedControl.send(
+          JSON.stringify({ type: 'action', channel: 'randomNumber', token: tokenA, payload: { value: 7 } }),
+        )
+        const broadcast = await displayMessages.waitFor((raw) => {
+          const msg = JSON.parse(raw)
+          return msg.type === 'state' && msg.channel === 'randomNumber' && msg.payload?.value === 7
+        })
+        assert(!!broadcast, 'a brand-new connection presenting the same stored token is accepted with no re-pairing (reconnect resumes)')
+      })(),
+      exitedEarly,
+    ])
+    reconnectedControl.close()
+
     // --- Unpair: revokes the old token and issues a fresh code ---
     await Promise.race([
       (async () => {
@@ -353,6 +385,188 @@ async function testPrivacyAuthAndPairing() {
     controlA.close()
     controlB.close()
     console.log('PASS: privacy + auth/pairing live integration test')
+  } finally {
+    server.kill('SIGTERM')
+    rmSync(stateDir, { recursive: true, force: true })
+  }
+}
+
+/** Polls `recorder.seen` for the message at a specific index rather than
+ * searching the whole history for a predicate match (recordMessages'
+ * `waitFor` does the latter, which is wrong for a *sequence* of
+ * same-shaped replies like several pairError/rateLimited responses in a
+ * row — the first one already in `seen` would satisfy a type-only
+ * predicate and resolve stale, not the new one this particular send
+ * provoked). Used only by the rate-limit tests below, where attempts are
+ * strictly sequential (this server processes one message at a time per
+ * connection, replying before the next is handled), so "the next message to
+ * land at this index" reliably means "the reply to the send I just made." */
+function nextMessageAt(recorder: { seen: string[] }, index: number, timeoutMs = 5000): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const start = Date.now()
+    const poll = () => {
+      if (recorder.seen.length > index) return resolve(recorder.seen[index])
+      if (Date.now() - start > timeoutMs) return reject(new Error(`timed out waiting for message at index ${index}`))
+      setTimeout(poll, 20)
+    }
+    poll()
+  })
+}
+
+async function testPairingRateLimit() {
+  const port = 4197
+  const stateDir = mkdtempSync(join(tmpdir(), 'classroom-sync-livetest-ratelimit-'))
+  const stateFile = join(stateDir, 'state.json')
+  const { server, exitedEarly } = spawnServer(port, stateFile)
+
+  try {
+    await Promise.race([new Promise((r) => setTimeout(r, 700)), exitedEarly])
+    const wsUrl = (role: 'control' | 'display') => `ws://${HOST}:${port}/__classroom-sync?role=${role}`
+
+    const display = new WebSocket(wsUrl('display'))
+    const control = new WebSocket(wsUrl('control'))
+    const displayMessages = recordMessages(display)
+    const controlMessages = recordMessages(control)
+    await Promise.race([Promise.all([waitForOpen(display), waitForOpen(control)]), exitedEarly])
+    await Promise.race([
+      Promise.all([
+        displayMessages.waitFor((raw) => JSON.parse(raw).type === 'hello'),
+        controlMessages.waitFor((raw) => JSON.parse(raw).type === 'hello'),
+      ]),
+      exitedEarly,
+    ])
+    const statusRaw = await Promise.race([displayMessages.waitFor((raw) => JSON.parse(raw).type === 'pairingStatus'), exitedEarly])
+    const code = JSON.parse(statusRaw).code as string
+    const wrongCode = code === '000000' ? '111111' : '000000'
+
+    // --- PAIR_FREE_ATTEMPTS (3): a teacher mistyping a couple of times pays no cooldown ---
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      const cursor = controlMessages.seen.length
+      control.send(JSON.stringify({ type: 'pair', code: wrongCode }))
+      const reply = await Promise.race([nextMessageAt(controlMessages, cursor), exitedEarly])
+      const msg = JSON.parse(reply)
+      assert(msg.type === 'pairError', `wrong pairing attempt ${attempt} of 3 (within the free budget) gets a plain pairError, no cooldown`)
+    }
+
+    // --- The 4th wrong attempt on the same connection triggers a 1s cooldown ---
+    const cooldownCursor = controlMessages.seen.length
+    control.send(JSON.stringify({ type: 'pair', code: wrongCode }))
+    const cooldownReply = await Promise.race([nextMessageAt(controlMessages, cooldownCursor), exitedEarly])
+    const cooldownMsg = JSON.parse(cooldownReply)
+    assert(cooldownMsg.type === 'rateLimited', 'the 4th wrong attempt on one connection is rate-limited, not just another pairError')
+    assert(cooldownMsg.retryAfterSeconds === 1, 'the first cooldown is exactly 1 second (the growing 1s, 2s, 4s... schedule)')
+
+    // --- Cooldown blocks even the CORRECT code — it isn't checked at all while cooling down ---
+    const duringCooldownCursor = controlMessages.seen.length
+    control.send(JSON.stringify({ type: 'pair', code }))
+    const duringCooldownReply = await Promise.race([nextMessageAt(controlMessages, duringCooldownCursor), exitedEarly])
+    assert(
+      JSON.parse(duringCooldownReply).type === 'rateLimited',
+      'submitting the CORRECT code during an active cooldown is still rate-limited, not silently accepted or evaluated',
+    )
+
+    // --- Once the cooldown elapses, the correct code works normally ---
+    await new Promise((r) => setTimeout(r, 1100))
+    const pairedCursor = controlMessages.seen.length
+    control.send(JSON.stringify({ type: 'pair', code }))
+    const pairedReply = await Promise.race([nextMessageAt(controlMessages, pairedCursor), exitedEarly])
+    const pairedMsg = JSON.parse(pairedReply)
+    assert(pairedMsg.type === 'paired' && typeof pairedMsg.token === 'string', 'the correct code pairs successfully once the cooldown has elapsed')
+
+    // --- A successful pair resets THIS connection's attempt count, not just the global one ---
+    // (If it hadn't, this connection's next wrong guess would resume at its
+    // pre-pairing escalation tier and get an immediate cooldown instead of a
+    // 4th "free" pass through the same 3-free-attempts budget.)
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      const cursor = controlMessages.seen.length
+      control.send(JSON.stringify({ type: 'pair', code: wrongCode }))
+      const reply = await Promise.race([nextMessageAt(controlMessages, cursor), exitedEarly])
+      assert(
+        JSON.parse(reply).type === 'pairError',
+        `post-pairing wrong attempt ${attempt} of 3 on the same connection is still free — a successful pair reset this connection's cooldown state`,
+      )
+    }
+
+    display.close()
+    control.close()
+    console.log('PASS: pairing rate-limit (per-connection cooldown) live integration test')
+  } finally {
+    server.kill('SIGTERM')
+    rmSync(stateDir, { recursive: true, force: true })
+  }
+}
+
+async function testPairingGlobalCap() {
+  const port = 4196
+  const stateDir = mkdtempSync(join(tmpdir(), 'classroom-sync-livetest-globalcap-'))
+  const stateFile = join(stateDir, 'state.json')
+  const { server, exitedEarly } = spawnServer(port, stateFile)
+
+  try {
+    await Promise.race([new Promise((r) => setTimeout(r, 700)), exitedEarly])
+    const wsUrl = (role: 'control' | 'display') => `ws://${HOST}:${port}/__classroom-sync?role=${role}`
+
+    const display = new WebSocket(wsUrl('display'))
+    const displayMessages = recordMessages(display)
+    await Promise.race([waitForOpen(display), exitedEarly])
+    const statusRaw = await Promise.race([displayMessages.waitFor((raw) => JSON.parse(raw).type === 'pairingStatus'), exitedEarly])
+    const code = JSON.parse(statusRaw).code as string
+    const wrongCode = code === '000000' ? '111111' : '000000'
+
+    // Reconnecting with a fresh socket resets a connection's own free-attempt
+    // budget (by design — see classroomSyncServer.ts's comment on the two
+    // rate-limiting layers), so "just open a new socket every few guesses"
+    // must be caught by the GLOBAL cap instead. Simulate exactly that: many
+    // short-lived connections, each spending its 3 free guesses and
+    // disconnecting, well past PAIR_GLOBAL_ATTEMPT_CAP (25) in total.
+    const rotationWait = Promise.race([
+      displayMessages.waitFor((raw) => {
+        const msg = JSON.parse(raw)
+        return msg.type === 'pairingStatus' && typeof msg.code === 'string' && msg.code !== code
+      }, 10000),
+      exitedEarly,
+    ])
+
+    const fireBatches = (async () => {
+      for (let batch = 0; batch < 12; batch++) {
+        const c = new WebSocket(wsUrl('control'))
+        await Promise.race([waitForOpen(c), exitedEarly])
+        for (let i = 0; i < 3; i++) {
+          c.send(JSON.stringify({ type: 'pair', code: wrongCode }))
+        }
+        await new Promise((r) => setTimeout(r, 25))
+        c.close()
+      }
+    })()
+
+    const statusAfterRotation = await rotationWait
+    await fireBatches // let in-flight sockets close cleanly before asserting further
+    const newCode = JSON.parse(statusAfterRotation).code as string
+    assert(
+      typeof newCode === 'string' && newCode !== code,
+      'after enough wrong attempts spread across many connections (global cap, not per-connection), the code rotates and /display is told the new one immediately',
+    )
+
+    // --- The stale, pre-rotation code no longer works, even from a brand-new connection ---
+    const freshControl = new WebSocket(wsUrl('control'))
+    const freshMessages = recordMessages(freshControl)
+    await Promise.race([waitForOpen(freshControl), exitedEarly])
+    await Promise.race([freshMessages.waitFor((raw) => JSON.parse(raw).type === 'hello'), exitedEarly])
+    const staleCursor = freshMessages.seen.length
+    freshControl.send(JSON.stringify({ type: 'pair', code }))
+    const staleReply = await Promise.race([nextMessageAt(freshMessages, staleCursor), exitedEarly])
+    assert(JSON.parse(staleReply).type === 'pairError', 'the original (pre-rotation) code is rejected after a global-cap rotation, even from a brand-new connection')
+
+    // --- The newly rotated code — the one actually shown on /display now — does work ---
+    const freshCursor = freshMessages.seen.length
+    freshControl.send(JSON.stringify({ type: 'pair', code: newCode }))
+    const freshReply = await Promise.race([nextMessageAt(freshMessages, freshCursor), exitedEarly])
+    const freshMsg = JSON.parse(freshReply)
+    assert(freshMsg.type === 'paired' && typeof freshMsg.token === 'string', 'the newly rotated code, once read off /display, pairs successfully')
+
+    display.close()
+    freshControl.close()
+    console.log('PASS: pairing rate-limit (global cap + rotation) live integration test')
   } finally {
     server.kill('SIGTERM')
     rmSync(stateDir, { recursive: true, force: true })
@@ -423,6 +637,8 @@ async function testAtomicStateWrite() {
 
 async function main() {
   await testPrivacyAuthAndPairing()
+  await testPairingRateLimit()
+  await testPairingGlobalCap()
   await testAtomicStateWrite()
   console.log('ALL PASS: classroom sync live integration test')
 }

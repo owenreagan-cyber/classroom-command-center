@@ -7,17 +7,37 @@ import { SYNC_TOKEN_STORAGE_KEY, syncWsUrl, type SyncServerMessage } from './pro
 
 export type ControlSyncAuthStatus = 'unauthenticated' | 'authenticated'
 
+/**
+ * 'connected': socket open right now.
+ * 'reconnecting': a drop just happened; the retry loop (see connect() below)
+ *   is on it, backoff is still small — most Wi-Fi blips resolve here.
+ * 'disconnected': the retry loop has failed several times in a row. Still
+ *   retrying underneath (it never gives up — see connect()'s doc comment),
+ *   just telling the teacher this looks like more than a blip.
+ */
+export type ControlSyncConnectionStatus = 'connected' | 'reconnecting' | 'disconnected'
+
+const DISCONNECTED_ATTEMPT_THRESHOLD = 3
+
 export interface ControlSyncState {
-  /** False until this device's socket has actually opened at least once.
-   * Callers should NOT gate the UI on `authStatus` while this is false —
-   * e.g. plain `npm run dev` with no sync server running at all must keep
-   * behaving exactly as before Stage 3 (no pairing gate, nothing changes),
-   * the same "entirely additive, best-effort" invariant Stage 2 already
-   * established. Only once a real server has confirmed we're unauthenticated
-   * should the pairing prompt appear. */
-  connected: boolean
+  connectionStatus: ControlSyncConnectionStatus
+  /** True once this device's socket has opened at least once, ever, this
+   * session — and stays true afterward even through later drops. Callers
+   * should gate the pairing prompt on THIS, not on connectionStatus ===
+   * 'connected': plain `npm run dev` with no sync server running at all must
+   * keep behaving exactly as before Stage 3 (no pairing gate, nothing
+   * changes) — that's `hasConnectedOnce === false`, forever, since a socket
+   * to nothing never opens. But a device that DID confirm it's unauthenticated
+   * and then loses the connection mid-pairing should keep showing the
+   * pairing gate, not fall back to the permissive "never seen a server"
+   * behavior just because the socket is momentarily down. */
+  hasConnectedOnce: boolean
   authStatus: ControlSyncAuthStatus
   pairError: string | null
+  /** Non-null while this device is in a pairing-attempt cooldown (brute-force
+   * rate limiting) — counts down to 0, then clears. UI should disable the
+   * pair submit button and show it, not fail silently (requirement 3). */
+  rateLimitedSeconds: number | null
   /** Submit the code shown on /display. */
   submitCode: (code: string) => void
   /** Revoke this device's pairing (requirement 4) — the server generates a
@@ -70,6 +90,22 @@ function writeStoredToken(token: string | null) {
  * elsewhere), the first rejected action flips it back to 'unauthenticated'
  * and clears the stored token. This device never receives the pairing code
  * itself (requirement 3) — only ever submits what a human typed in.
+ *
+ * Reconnect: the retry loop never gives up (unlike the design doc's original
+ * "~10-15 attempts then stop" suggestion) — capped exponential backoff with
+ * jitter, forever. That original suggestion was written when there was no
+ * visible connection state at all, so "silently retrying forever" was a real
+ * concern; now that connectionStatus is surfaced to the teacher (see
+ * ConnectionStatusIndicator), an outage is visible rather than silent, and
+ * giving up permanently would otherwise stall the classroom until a manual
+ * page reload — worse than an honest "disconnected" indicator that keeps
+ * trying underneath it. On every successful (re)open this resends the full
+ * current composer/random-number snapshot with whatever token is stored —
+ * that's what makes a reconnect "self-healing" without a literal queue: the
+ * latest state always gets sent again as soon as a connection exists, and a
+ * restarted server (which revokes pairing by design) rejects it once, which
+ * flips this device back to the pairing gate rather than acting silently
+ * unpaired forever.
  */
 export function useControlSyncClient(): ControlSyncState {
   const socketRef = useRef<WebSocket | null>(null)
@@ -79,13 +115,31 @@ export function useControlSyncClient(): ControlSyncState {
   const tokenRef = useRef<string | null>(readStoredToken())
   const [authStatus, setAuthStatus] = useState<ControlSyncAuthStatus>(readStoredToken() ? 'authenticated' : 'unauthenticated')
   const [pairError, setPairError] = useState<string | null>(null)
-  const [connected, setConnected] = useState(false)
+  const [connectionStatus, setConnectionStatus] = useState<ControlSyncConnectionStatus>('reconnecting')
+  const [hasConnectedOnce, setHasConnectedOnce] = useState(false)
+  // Whole seconds remaining in a pairing-attempt cooldown, counted down by
+  // the interval below. Deliberately a plain seconds count set directly from
+  // the server's retryAfterSeconds, not a wall-clock deadline recomputed via
+  // Date.now() at render time — reading the clock during render isn't a pure
+  // computation (React flags it), and every update below happens inside a
+  // callback (a WebSocket message handler or a setInterval tick), never as a
+  // bare synchronous call in an effect body.
+  const [rateLimitedSeconds, setRateLimitedSeconds] = useState<number | null>(null)
 
   const setToken = useCallback((token: string | null) => {
     tokenRef.current = token
     writeStoredToken(token)
     setAuthStatus(token ? 'authenticated' : 'unauthenticated')
   }, [])
+
+  const isRateLimited = rateLimitedSeconds !== null
+  useEffect(() => {
+    if (!isRateLimited) return
+    const interval = setInterval(() => {
+      setRateLimitedSeconds((s) => (s !== null && s > 1 ? s - 1 : null))
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [isRateLimited])
 
   useEffect(() => {
     let cancelled = false
@@ -122,10 +176,17 @@ export function useControlSyncClient(): ControlSyncState {
       if (msg.type === 'paired') {
         setToken(msg.token)
         setPairError(null)
+        setRateLimitedSeconds(null)
         return
       }
       if (msg.type === 'pairError') {
+        setRateLimitedSeconds(null)
         setPairError(msg.message)
+        return
+      }
+      if (msg.type === 'rateLimited') {
+        setPairError(null)
+        setRateLimitedSeconds(msg.retryAfterSeconds)
         return
       }
       if (msg.type === 'unpaired') {
@@ -147,16 +208,20 @@ export function useControlSyncClient(): ControlSyncState {
 
       socket.onopen = () => {
         attempt = 0
-        setConnected(true)
+        setConnectionStatus('connected')
+        setHasConnectedOnce(true)
+        setRateLimitedSeconds(null)
         sendComposerState()
         sendRandomNumberState()
       }
       socket.onmessage = handleMessage
       socket.onclose = () => {
-        setConnected(false)
         if (cancelled) return
         attempt += 1
-        if (attempt > 10) return
+        setConnectionStatus(attempt <= DISCONNECTED_ATTEMPT_THRESHOLD ? 'reconnecting' : 'disconnected')
+        // No attempt ceiling — see this hook's doc comment on why giving up
+        // permanently would be worse than an honest, still-retrying
+        // "disconnected" indicator. Backoff still caps at 30s either way.
         const delay = Math.min(30000, 500 * 2 ** attempt) + Math.random() * 300
         retryTimer = setTimeout(connect, delay)
       }
@@ -204,12 +269,25 @@ export function useControlSyncClient(): ControlSyncState {
     const token = tokenRef.current
     if (socket?.readyState === WebSocket.OPEN && token) {
       socket.send(JSON.stringify({ type: 'unpair', token }))
+      // Optimistic: clear locally right away rather than waiting on the
+      // server's 'unpaired' ack. Only done here, inside the "socket is
+      // actually open" branch — the unpair message did reach the server, so
+      // there's no risk of this device forgetting its token while the
+      // server still considers it valid. (UnpairControl disables this
+      // action entirely while disconnected, so in practice this branch is
+      // the only one ever reached — this guard is defense in depth, not the
+      // primary mechanism.)
+      setToken(null)
     }
-    // Optimistic: clear locally right away even if the send above can't
-    // reach the server (e.g. offline) — this device shouldn't keep acting
-    // as "paired" once the teacher has asked to unpair it.
-    setToken(null)
   }, [setToken])
 
-  return { connected, authStatus, pairError, submitCode, unpair }
+  return {
+    connectionStatus,
+    hasConnectedOnce,
+    authStatus,
+    pairError,
+    rateLimitedSeconds,
+    submitCode,
+    unpair,
+  }
 }

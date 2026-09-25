@@ -136,6 +136,16 @@ export interface SyncPairErrorMessage {
   message: string
 }
 
+/** server -> a control socket whose `pair` attempt landed during its cooldown
+ * window (brute-force rate limiting, see classroomSyncServer.ts's
+ * PAIR_FREE_ATTEMPTS/cooldownSecondsFor). Distinct from SyncPairErrorMessage
+ * so /control can show a live countdown ("wait Ns") instead of a generic
+ * wrong-code message -- the code itself was never even checked this time. */
+export interface SyncRateLimitedMessage {
+  type: 'rateLimited'
+  retryAfterSeconds: number
+}
+
 /** server -> a control socket whose action/token was rejected, so the UI
  * can drop its stale token and show the pairing prompt again instead of
  * silently doing nothing forever. */
@@ -155,6 +165,7 @@ export type SyncServerMessage =
   | SyncPairingStatusMessage
   | SyncPairedMessage
   | SyncPairErrorMessage
+  | SyncRateLimitedMessage
   | SyncActionRejectedMessage
   | SyncUnpairedMessage
 

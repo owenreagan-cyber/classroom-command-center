@@ -9,6 +9,7 @@ import { DisplayOverlayHost } from './DisplayOverlayHost'
 import { DisplayFullscreenControl } from './DisplayFullscreenControl'
 import { useDisplaySyncClient } from '../../lib/sync/displaySyncClient'
 import { PairingCodeBadge } from '../../lib/sync/PairingCodeBadge'
+import { SyncStatusDot } from '../../lib/sync/SyncStatusDot'
 
 /**
  * DB-7A — Clean Board host display.
@@ -43,7 +44,8 @@ export function BoardHostDisplay() {
 
   // Cross-device sync (docs/architecture/cross-device-control.md):
   // best-effort, no-ops entirely if no classroom sync server is reachable.
-  const { pairingCode } = useDisplaySyncClient()
+  const { pairingCode, connected: syncConnected } = useDisplaySyncClient()
+  const syncStatus = !syncConnected ? 'disconnected' : pairingCode ? 'awaiting-pairing' : 'paired'
 
   return (
     <div
@@ -74,6 +76,11 @@ export function BoardHostDisplay() {
           so it renders above Blank (z-[70] vs. Blank's z-50) same as the
           fullscreen control below. Empty/hidden once paired. */}
       <PairingCodeBadge code={pairingCode} />
+
+      {/* Connection status — same "system indicator, not classroom content"
+          rationale as the pairing badge above. Bottom-right, offset to avoid
+          the sound-unlock banner in the same corner (see SyncStatusDot). */}
+      <SyncStatusDot status={syncStatus} />
 
       {/* Auto-hiding "Enter fullscreen" affordance + cursor auto-hide.
           Never shown to students during a normal lesson -- only appears on

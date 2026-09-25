@@ -13,12 +13,25 @@ export function UnpairControl({ sync }: { sync: ControlSyncState }) {
 
   if (sync.authStatus !== 'authenticated') return null
 
-  if (!confirming) {
+  // Disabled while disconnected rather than silently failing: sending
+  // 'unpair' with no open socket would clear this device's token locally
+  // (see controlSyncClient.ts's unpair()) while the server still considers
+  // it paired, with no way for this device to tell the difference from a
+  // real unpair the next time it reconnects.
+  const offline = sync.connectionStatus !== 'connected'
+
+  // Derived, not synced via an effect: if the connection drops while the
+  // confirm dialog is open, this falls straight back to the plain (disabled)
+  // button on the very next render — no separate "was confirming" state to
+  // keep in sync with `offline`.
+  if (!confirming || offline) {
     return (
       <button
         type="button"
         onClick={() => setConfirming(true)}
-        className="fixed bottom-3 left-3 z-[70] rounded-full border border-slate-700/50 bg-slate-950/70 px-3 py-1.5 text-[11px] font-medium text-slate-500 backdrop-blur transition hover:border-slate-600 hover:text-slate-300"
+        disabled={offline}
+        title={offline ? 'Reconnect to the classroom sync server to unpair this device.' : undefined}
+        className="fixed bottom-3 left-3 z-[70] rounded-full border border-slate-700/50 bg-slate-950/70 px-3 py-1.5 text-[11px] font-medium text-slate-500 backdrop-blur transition hover:border-slate-600 hover:text-slate-300 disabled:cursor-not-allowed disabled:opacity-40"
         data-unpair-action="open"
       >
         Unpair this device

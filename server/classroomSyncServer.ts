@@ -118,6 +118,57 @@ const pairing: { code: string | null; token: string | null } = {
 
 const socketRoles = new WeakMap<WebSocket, SyncRole>()
 
+// --- Pairing rate limiting (brute-force protection on school Wi-Fi) ---
+//
+// Two layers, deliberately different shapes:
+//
+// 1. Per-connection cooldown: the first PAIR_FREE_ATTEMPTS wrong guesses on a
+//    given socket cost nothing (a teacher mistyping the 6-digit code once or
+//    twice is common and should never be penalized). Past that, each further
+//    wrong guess on THAT connection earns a growing cooldown (1s, 2s, 4s...,
+//    capped) before it's allowed to try again. This resets to fresh on a new
+//    connection -- by design; see layer 2 for why that's not a bypass.
+//
+// 2. Global cap: a single counter, shared across every connection, of wrong
+//    guesses since the current code was issued. Reconnecting with a fresh
+//    socket resets layer 1's cooldown but NOT this counter, so "just open a
+//    new socket every couple of guesses" cannot dodge it. Once the cap is
+//    hit, the code itself rotates and /display shows the new one immediately
+//    -- this, not the cooldown, is the real ceiling: whatever fraction of the
+//    guess space was covered before the cap trips is thrown away, so no
+//    accumulation of attempts across reconnects/rotations ever gets closer to
+//    the (currently) live code.
+const PAIR_FREE_ATTEMPTS = 3
+const PAIR_COOLDOWN_CAP_SECONDS = 30
+const PAIR_GLOBAL_ATTEMPT_CAP = 25
+
+interface PairingAttemptState {
+  wrongAttempts: number
+  cooldownUntil: number
+}
+
+const pairingAttempts = new Map<WebSocket, PairingAttemptState>()
+let globalWrongPairAttempts = 0
+
+/** Called whenever the live code changes for any reason (successful pair,
+ * explicit unpair, or a forced rotation below) -- the old code's attempt
+ * history is no longer meaningful once it can't be guessed into anymore. */
+function resetAllPairingAttempts() {
+  globalWrongPairAttempts = 0
+  for (const s of pairingAttempts.values()) {
+    s.wrongAttempts = 0
+    s.cooldownUntil = 0
+  }
+}
+
+/** wrongAttempts is this connection's count AFTER the current guess. Returns
+ * 0 while still within the free budget. */
+function cooldownSecondsFor(wrongAttempts: number): number {
+  const over = wrongAttempts - PAIR_FREE_ATTEMPTS
+  if (over <= 0) return 0
+  return Math.min(PAIR_COOLDOWN_CAP_SECONDS, 2 ** (over - 1))
+}
+
 const MIME: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
@@ -193,11 +244,16 @@ wss.on('connection', (socket, req) => {
   // pairing code) — err toward not leaking rather than toward convenience.
   const role: SyncRole = url.searchParams.get('role') === 'display' ? 'display' : 'control'
   socketRoles.set(socket, role)
+  pairingAttempts.set(socket, { wrongAttempts: 0, cooldownUntil: 0 })
 
   send(socket, { type: 'hello', state })
   if (role === 'display') {
     send(socket, { type: 'pairingStatus', code: pairing.code })
   }
+
+  socket.on('close', () => {
+    pairingAttempts.delete(socket)
+  })
 
   socket.on('message', (raw) => {
     let message: { type?: string; channel?: SyncChannel; payload?: unknown; token?: string; code?: string }
@@ -208,15 +264,47 @@ wss.on('connection', (socket, req) => {
     }
 
     if (message.type === 'pair') {
-      if (typeof message.code !== 'string' || pairing.code === null || message.code !== pairing.code) {
-        send(socket, { type: 'pairError', message: 'Incorrect or expired code.' })
+      // Every socket got an entry in the connection handler above; this
+      // fallback only matters if a message somehow arrives after 'close'.
+      const attemptState = pairingAttempts.get(socket) ?? { wrongAttempts: 0, cooldownUntil: 0 }
+      const now = Date.now()
+
+      if (now < attemptState.cooldownUntil) {
+        send(socket, { type: 'rateLimited', retryAfterSeconds: Math.ceil((attemptState.cooldownUntil - now) / 1000) })
         return
       }
-      const token = generateToken()
-      pairing.token = token
-      pairing.code = null
-      send(socket, { type: 'paired', token })
-      broadcastPairingStatus()
+
+      if (typeof message.code === 'string' && pairing.code !== null && message.code === pairing.code) {
+        const token = generateToken()
+        pairing.token = token
+        pairing.code = null
+        resetAllPairingAttempts()
+        send(socket, { type: 'paired', token })
+        broadcastPairingStatus()
+        return
+      }
+
+      attemptState.wrongAttempts += 1
+      globalWrongPairAttempts += 1
+
+      if (globalWrongPairAttempts >= PAIR_GLOBAL_ATTEMPT_CAP) {
+        pairing.code = generatePairingCode()
+        resetAllPairingAttempts()
+        send(socket, {
+          type: 'pairError',
+          message: 'Too many incorrect attempts across all devices. A new code is now shown on the display.',
+        })
+        broadcastPairingStatus()
+        return
+      }
+
+      const cooldown = cooldownSecondsFor(attemptState.wrongAttempts)
+      if (cooldown > 0) {
+        attemptState.cooldownUntil = now + cooldown * 1000
+        send(socket, { type: 'rateLimited', retryAfterSeconds: cooldown })
+      } else {
+        send(socket, { type: 'pairError', message: 'Incorrect or expired code.' })
+      }
       return
     }
 
@@ -227,6 +315,7 @@ wss.on('connection', (socket, req) => {
       }
       pairing.token = null
       pairing.code = generatePairingCode()
+      resetAllPairingAttempts()
       send(socket, { type: 'unpaired' })
       broadcastPairingStatus()
       return

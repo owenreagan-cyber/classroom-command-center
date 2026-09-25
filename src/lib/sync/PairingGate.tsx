@@ -14,10 +14,11 @@ import type { ControlSyncState } from './controlSyncClient'
  */
 export function PairingGate({ sync }: { sync: ControlSyncState }) {
   const [code, setCode] = useState('')
+  const rateLimited = sync.rateLimitedSeconds !== null
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
-    if (code.trim().length > 0) sync.submitCode(code.trim())
+    if (!rateLimited && code.trim().length > 0) sync.submitCode(code.trim())
   }
 
   return (
@@ -41,10 +42,15 @@ export function PairingGate({ sync }: { sync: ControlSyncState }) {
           className="mt-5 w-full rounded-xl border border-slate-700 bg-slate-950/60 px-4 py-3 text-center text-2xl font-bold tracking-[0.4em] text-slate-100 outline-none focus:border-cyan-400/60"
           data-pairing-code-input
         />
-        {sync.pairError && <p className="mt-3 text-sm font-medium text-rose-400">{sync.pairError}</p>}
+        {rateLimited && (
+          <p className="mt-3 text-sm font-medium text-amber-400" data-pairing-rate-limited>
+            Too many tries — wait {sync.rateLimitedSeconds}s
+          </p>
+        )}
+        {!rateLimited && sync.pairError && <p className="mt-3 text-sm font-medium text-rose-400">{sync.pairError}</p>}
         <button
           type="submit"
-          disabled={code.trim().length === 0}
+          disabled={rateLimited || code.trim().length === 0}
           className="mt-5 w-full rounded-xl border border-cyan-400/40 bg-cyan-950/30 px-4 py-2.5 text-sm font-semibold text-cyan-200 transition hover:bg-cyan-900/40 disabled:cursor-not-allowed disabled:opacity-40"
           data-pairing-submit
         >

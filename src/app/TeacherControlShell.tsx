@@ -11,6 +11,7 @@ import { TeachModeShell } from './TeachModeShell'
 import { useControlSyncClient } from '../lib/sync/controlSyncClient'
 import { PairingGate } from '../lib/sync/PairingGate'
 import { UnpairControl } from '../lib/sync/UnpairControl'
+import { ConnectionStatusIndicator } from '../lib/sync/ConnectionStatusIndicator'
 import {
   getEffectiveBoardMode,
   shouldAllowStudioEditActions,
@@ -24,18 +25,28 @@ export function TeacherControlShell() {
   // best-effort, no-ops entirely if no classroom sync server is reachable.
   const sync = useControlSyncClient()
 
-  // Stage 3 pairing gate: only enforced once we actually know (a real
-  // server told us) that this device isn't paired. `!sync.connected` covers
-  // plain `npm run dev` / no server at all, where nothing about Stage 3
-  // should change existing behavior — see ControlSyncState.connected's doc.
-  if (sync.connected && sync.authStatus === 'unauthenticated') {
-    return <PairingGate sync={sync} />
+  // Stage 3 pairing gate: only enforced once we actually know (a real server
+  // told us, at least once) that this device isn't paired. Gated on
+  // `hasConnectedOnce`, not on connectionStatus === 'connected' — the latter
+  // would let a device that already confirmed it's unauthenticated fall back
+  // to the permissive "never seen a server" full-UI behavior the moment its
+  // socket drops mid-pairing, which is exactly backwards (see
+  // ControlSyncState.hasConnectedOnce's doc). Plain `npm run dev` / no
+  // server at all never sets this, so nothing about Stage 3 changes there.
+  if (sync.hasConnectedOnce && sync.authStatus === 'unauthenticated') {
+    return (
+      <>
+        <PairingGate sync={sync} />
+        <ConnectionStatusIndicator status={sync.connectionStatus} />
+      </>
+    )
   }
 
   return (
     <>
       {mode === 'teach' ? <TeachModeShell /> : <EditorModeShell />}
       <UnpairControl sync={sync} />
+      <ConnectionStatusIndicator status={sync.connectionStatus} />
     </>
   )
 }
