@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Command Center — /control unified home</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: #0f1116;
+    color: #e7e9ee;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    padding: 32px;
+  }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  p.lead { color: #9aa1ad; margin: 0 0 24px; max-width: 980px; line-height: 1.5; }
+  .legend { display:flex; gap:22px; flex-wrap:wrap; font-size: 13px; color:#9aa1ad; margin-bottom: 28px; }
+  .legend span b { color:#e7e9ee; }
+  .tap1 { color:#7fd88a; } .tap2 { color:#ffd479; } .taprare { color:#8fa3ff; }
+
+  .frame-label { font-size: 13px; font-weight: 600; color: #8fd3ff; margin: 34px 0 10px; text-transform: uppercase; letter-spacing: .05em; }
+  .frame-sub { font-size: 12.5px; color: #767c88; margin-bottom: 14px; max-width: 900px; }
+
+  /* --- MacBook-width app frame --- */
+  .app {
+    width: 1280px;
+    height: 760px;
+    border: 1px solid #262a33;
+    border-radius: 14px;
+    overflow: hidden;
+    display: flex;
+    background: #14161c;
+    box-shadow: 0 10px 40px rgba(0,0,0,.4);
+  }
+  .rail {
+    width: 84px;
+    background: #101218;
+    border-right: 1px solid #23262f;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 18px 0; gap: 10px;
+  }
+  .rail .tool {
+    width: 56px; height: 56px; border-radius: 14px;
+    background: #1b1e26; display:flex; align-items:center; justify-content:center;
+    font-size: 22px; position: relative;
+  }
+  .rail .tool.fav { background: #23324a; border: 1px solid #3a6fd8; }
+  .rail .tool .badge {
+    position:absolute; top:-6px; right:-6px; background:#7fd88a; color:#0f1116;
+    font-size:9px; font-weight:800; border-radius:5px; padding:1px 4px;
+  }
+
+  .main-col { flex: 1; display:flex; flex-direction:column; padding: 20px 24px; gap: 16px; min-width:0; }
+
+  .topbar { display:flex; align-items:center; justify-content:space-between; }
+  .topbar .status { display:flex; align-items:center; gap:10px; font-size:13px; color:#9aa1ad; }
+  .dot { width:8px;height:8px;border-radius:50%; background:#7fd88a; }
+  .topbar .actions { display:flex; gap:10px; }
+  .btn { padding: 9px 16px; border-radius: 9px; font-size: 13.5px; font-weight:600; border:1px solid #2c303a; background:#1b1e26; color:#e7e9ee; cursor:pointer; }
+  .btn.primary { background:#2b6ef2; border-color:#2b6ef2; }
+  .btn.warn { background:#3a2230; border-color:#5a2f43; color:#ffb4c8; }
+
+  .preview-row { display:flex; gap: 18px; flex: 1; min-height:0; }
+  .preview {
+    flex: 1.4; border-radius: 14px; background: linear-gradient(160deg,#fff3c4,#ffe08a);
+    color:#1c2230; padding: 26px; position:relative; display:flex; flex-direction:column;
+    justify-content:space-between;
+  }
+  .preview .tag { position:absolute; top:14px; left:14px; background:rgba(0,0,0,.12); font-size:11px; padding:3px 8px; border-radius:6px; font-weight:700; letter-spacing:.05em; }
+  .preview h2 { font-size: 34px; margin:0; }
+  .preview .msg { font-size: 15px; background:rgba(255,255,255,.55); border-radius:10px; padding:14px 16px; max-width: 60%; }
+  .preview .timer { position:absolute; top:20px; right:20px; background:rgba(255,255,255,.6); border-radius:10px; padding:10px 16px; text-align:center; }
+  .preview .timer b { font-size:22px; display:block; }
+
+  .side-col { flex: 1; display:flex; flex-direction:column; gap: 14px; min-width:0; }
+  .card { background:#181b22; border:1px solid #23262f; border-radius:12px; padding:14px; }
+  .card h3 { font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:#8fa3ff; margin:0 0 10px; }
+  .scene-rail { display:flex; gap:8px; overflow:hidden; }
+  .scene-thumb { flex:0 0 auto; width:76px; height:44px; border-radius:6px; background:#2a2e3a; border:2px solid transparent; }
+  .scene-thumb.active { border-color:#2b6ef2; }
+
+  .quickgrid { display:grid; grid-template-columns: repeat(4,1fr); gap:10px; }
+  .qbtn { background:#1f232c; border:1px solid #2c303a; border-radius:10px; padding:12px 8px; text-align:center; font-size:12.5px; }
+  .qbtn .ic { font-size:20px; display:block; margin-bottom:6px; }
+
+  .drawer-tag { position:absolute; }
+
+  .bottombar { display:flex; align-items:center; justify-content:space-between; }
+  .bottombar .left { display:flex; gap:8px; }
+  .chip { font-size:12px; padding:6px 10px; border-radius:20px; background:#1b1e26; border:1px solid #2c303a; color:#9aa1ad; }
+
+  /* Classroomscreen-style bottom widget bar: tap an icon, it lands on the canvas */
+  .widgetbar { display:flex; align-items:center; gap:8px; background:#14161c; border:1px solid #23262f; border-radius:12px; padding:8px 10px; }
+  .widgetbar .wlabel { font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; color:#565f70; padding:0 6px 0 2px; white-space:nowrap; }
+  .wicon { width:40px; height:40px; border-radius:10px; background:#1f232c; border:1px solid #2c303a; display:flex; align-items:center; justify-content:center; font-size:18px; flex:0 0 auto; }
+  .wicon:hover, .wicon.hint { background:#23324a; border-color:#3a6fd8; }
+
+  /* Drawer overlay illustration */
+  .frame-drawer { position:relative; }
+  .drawer {
+    position:absolute; right:0; top:0; bottom:0; width: 380px;
+    background:#12141a; border-left:1px solid #262a33; padding: 18px;
+    box-shadow: -10px 0 30px rgba(0,0,0,.4);
+  }
+  .drawer h3 { font-size:13px; text-transform:uppercase; letter-spacing:.06em; color:#8fd3ff; margin:0 0 14px;}
+  .cat { margin-bottom: 16px; }
+  .cat .catname { font-size:11px; color:#767c88; text-transform:uppercase; letter-spacing:.06em; margin-bottom:8px; }
+  .toolgrid { display:grid; grid-template-columns: repeat(3,1fr); gap:8px; }
+  .toolcell { background:#1b1e26; border:1px solid #262a33; border-radius:8px; padding:10px 6px; text-align:center; font-size:11.5px; }
+  .toolcell .ic { font-size:18px; display:block; margin-bottom:4px; }
+
+  /* iPad frame */
+  .ipad {
+    width: 760px; height: 1010px;
+    border: 1px solid #262a33; border-radius: 24px; overflow:hidden;
+    background:#14161c; display:flex; flex-direction:column; padding: 18px; gap:14px;
+  }
+</style>
+</head>
+<body>
+
+<h1>Command Center — one /control home</h1>
+<p class="lead">
+  Merges the four current "home" surfaces (Teach Mode, Presentation Hub, Teacher Command Dock,
+  Display Studio) into one screen, and adds a Classroomscreen-style bottom widget bar (tap an icon,
+  it lands on the screen — see the redesign doc's Part 2.0 research) as the fast path for adding
+  content. Tap-cost color-coded below:
+</p>
+<div class="legend">
+  <span class="tap1"><b>green</b> = always visible, 0 extra taps</span>
+  <span class="tap2"><b>yellow</b> = one tap away (drawer / popover)</span>
+  <span class="taprare"><b>blue</b> = rare settings, two taps, never on the main screen</span>
+</div>
+
+<div class="frame-label">MacBook width (1280px) — default state</div>
+<div class="frame-sub">
+  Always visible, no scrolling: live display preview + Send/Blank/Restore, the scene rail to switch screens,
+  a 4-across quick-launch grid for the daily-use tools (Timer, Noise, Picker, Display Screens — teacher's own
+  favorites, swappable), and the edit/tools rail on the left. This single layout replaces Teach Mode's
+  chrome-minimal shell, Presentation Hub's "Present" view, and the always-mounted-but-empty-until-edit-mode
+  Command Dock aside — they are one screen now, not three that swap based on a hidden mode flag.
+</div>
+<div class="app">
+  <div class="rail">
+    <div class="tool fav" title="Home / Dashboard">🏠</div>
+    <div class="tool fav" title="Timers">⏱</div>
+    <div class="tool" title="Noise Control">🔊</div>
+    <div class="tool" title="Student Picker">🎯</div>
+    <div class="tool" title="More tools — opens drawer" style="margin-top:auto; background:#20242f;">⋯</div>
+    <div class="tool" title="Settings (rare)" style="opacity:.6;">⚙️</div>
+  </div>
+  <div class="main-col">
+    <div class="topbar">
+      <div class="status"><span class="dot"></span> Live — 7:20 Arrival <span style="opacity:.5">· synced to display</span></div>
+      <div class="actions">
+        <button class="btn">Prev</button>
+        <button class="btn warn">Blank Display</button>
+        <button class="btn primary">Send to Display</button>
+        <button class="btn">Next</button>
+      </div>
+    </div>
+    <div class="preview-row">
+      <div class="preview">
+        <span class="tag">LIVE PREVIEW</span>
+        <div class="timer"><b>24:12</b>Quiet Morning Work</div>
+        <h2>Good Morning</h2>
+        <div class="msg">Welcome to the New Classroom! Please complete your morning routines...</div>
+      </div>
+      <div class="side-col">
+        <div class="card">
+          <h3>Screens (tap to switch — 1 tap)</h3>
+          <div class="scene-rail">
+            <div class="scene-thumb active"></div>
+            <div class="scene-thumb"></div>
+            <div class="scene-thumb"></div>
+            <div class="scene-thumb"></div>
+            <div class="scene-thumb"></div>
+          </div>
+        </div>
+        <div class="card" style="flex:1;">
+          <h3>Quick tools (1 tap)</h3>
+          <div class="quickgrid">
+            <div class="qbtn"><span class="ic">⏱</span>Start Timer</div>
+            <div class="qbtn"><span class="ic">🔊</span>Noise Game</div>
+            <div class="qbtn"><span class="ic">🎯</span>Quick Pick</div>
+            <div class="qbtn"><span class="ic">🖼</span>Add Widget</div>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Edit this screen</h3>
+          <button class="btn" style="width:100%;">✎ Edit board (on-canvas)</button>
+        </div>
+      </div>
+    </div>
+    <div class="widgetbar">
+      <span class="wlabel">Add widget<br>(tap → lands on screen)</span>
+      <div class="wicon" title="Add Timer">⏱</div>
+      <div class="wicon" title="Add Message">💬</div>
+      <div class="wicon hint" title="Add Music — hinted, no music widget on this screen yet">🎵</div>
+      <div class="wicon" title="Add Noise Status">🔊</div>
+      <div class="wicon" title="Add Stamp Card">🏷️</div>
+      <div class="wicon" title="Add QR Code">📷</div>
+      <div class="wicon" title="More widget types">⋯</div>
+    </div>
+    <div class="bottombar">
+      <div class="left"><span class="chip">Roster: Homeroom</span><span class="chip">Music: Calm Morning Mix</span></div>
+      <span class="chip">Paired to Display · iPad</span>
+    </div>
+  </div>
+</div>
+<div class="frame-sub" style="margin-top:-4px;">
+  The bottom widget bar is new in this revision (Classroomscreen-style tap-to-add — see the redesign doc's Part 2.0/2.1). Tapping <b>⏱ Add Timer</b> here drops a timer straight onto the live preview in its default rail slot — no drag from a sidebar, no intermediate "widget library" screen. If a timer already occupies that slot, the new one joins it as part of the same timer <i>group</i> (one occupant, several timers inside — see the editing-model mockup) rather than being blocked or overlapping it.
+</div>
+
+<div class="frame-label">One tap away — the single grouped tool drawer</div>
+<div class="frame-sub">
+  Tapping "⋯" (More tools) opens one drawer with the tool registry (18 entries as recounted directly
+  against <code>toolRegistry.ts</code> today — that number is a fact about current code, not a target this
+  drawer is designed to hit) grouped by its existing daily / students / instruction / management categories
+  — plus Clean Board's Spotify, Stamps, QR, and routine-prompt tools folded in as new entries in the same
+  categories (not a second, separate dock), and lesson resources as a tab here instead of a full-screen mode
+  swap. What stays visible in the favorites row above vs. lives only in this drawer is decided by this
+  merged home screen's own layout, not by preserving any particular tool count. This is the only place any
+  tool not already favorited lives — no more Teach Mode vs. Dashboard vs. Board Control vs. Display Studio
+  guessing games about which surface has the thing you want.
+</div>
+<div class="app frame-drawer">
+  <div class="rail">
+    <div class="tool fav">🏠</div><div class="tool fav">⏱</div><div class="tool">🔊</div><div class="tool">🎯</div>
+  </div>
+  <div class="main-col" style="opacity:.35;">
+    <div class="topbar"><div class="status"><span class="dot"></span> Live — 7:20 Arrival</div></div>
+  </div>
+  <div class="drawer">
+    <h3>All Tools</h3>
+    <div class="cat">
+      <div class="catname">Daily</div>
+      <div class="toolgrid">
+        <div class="toolcell"><span class="ic">📊</span>Dashboard</div>
+        <div class="toolcell"><span class="ic">☀️</span>Morning Msg</div>
+        <div class="toolcell"><span class="ic">📋</span>Today Prep</div>
+        <div class="toolcell"><span class="ic">📚</span>Curriculum</div>
+        <div class="toolcell"><span class="ic">🖼</span>Display Screens</div>
+        <div class="toolcell"><span class="ic">🎵</span>Spotify</div>
+      </div>
+    </div>
+    <div class="cat">
+      <div class="catname">Students</div>
+      <div class="toolgrid">
+        <div class="toolcell"><span class="ic">⭐</span>Mystery Star</div>
+        <div class="toolcell"><span class="ic">🎁</span>Prize Board</div>
+        <div class="toolcell"><span class="ic">🔢</span>Random #</div>
+        <div class="toolcell"><span class="ic">🎱</span>Lotto Board</div>
+        <div class="toolcell"><span class="ic">🏷️</span>Stamps</div>
+      </div>
+    </div>
+    <div class="cat">
+      <div class="catname">Instruction</div>
+      <div class="toolgrid">
+        <div class="toolcell"><span class="ic">📚</span>Materials</div>
+        <div class="toolcell"><span class="ic">📝</span>OmniNote</div>
+        <div class="toolcell"><span class="ic">📎</span>Lesson Resources</div>
+        <div class="toolcell"><span class="ic">📷</span>QR Code</div>
+      </div>
+    </div>
+    <div class="cat">
+      <div class="catname">Management</div>
+      <div class="toolgrid">
+        <div class="toolcell"><span class="ic">🧰</span>Jobs</div>
+        <div class="toolcell"><span class="ic">🎛</span>Board Control</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="frame-label">iPad portrait (768pt width) — same layout, stacked</div>
+<div class="frame-sub">Preview + actions stay pinned to the top; scene rail and quick tools stack below, still zero scrolling for the common tasks.</div>
+<div class="ipad">
+  <div class="topbar">
+    <div class="status"><span class="dot"></span> Live — 7:20 Arrival</div>
+  </div>
+  <div class="preview" style="flex:0 0 260px;">
+    <span class="tag">LIVE PREVIEW</span>
+    <div class="timer"><b>24:12</b>Morning Work</div>
+    <h2 style="font-size:26px;">Good Morning</h2>
+  </div>
+  <div class="actions" style="display:flex;gap:8px;">
+    <button class="btn warn" style="flex:1;">Blank</button>
+    <button class="btn primary" style="flex:2;">Send to Display</button>
+  </div>
+  <div class="card">
+    <h3>Screens</h3>
+    <div class="scene-rail"><div class="scene-thumb active"></div><div class="scene-thumb"></div><div class="scene-thumb"></div><div class="scene-thumb"></div></div>
+  </div>
+  <div class="card" style="flex:1;">
+    <h3>Quick tools</h3>
+    <div class="quickgrid">
+      <div class="qbtn"><span class="ic">⏱</span>Timer</div>
+      <div class="qbtn"><span class="ic">🔊</span>Noise</div>
+      <div class="qbtn"><span class="ic">🎯</span>Pick</div>
+      <div class="qbtn"><span class="ic">➕</span>Add</div>
+    </div>
+  </div>
+  <button class="btn" style="width:100%;">⋯ More tools</button>
+</div>
+
+</body>
+</html>

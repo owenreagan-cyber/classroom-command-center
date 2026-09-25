@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Command Center — /display zone system + 3 redesigned presets</title>
+<style>
+  :root{
+    --gap: 28px;
+    --margin: 56px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: #16181d;
+    color: #e7e9ee;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    padding: 32px;
+  }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  p.lead { color: #9aa1ad; margin: 0 0 28px; max-width: 900px; line-height: 1.5; }
+  .rules {
+    background: #1e2129;
+    border: 1px solid #2c303a;
+    border-radius: 10px;
+    padding: 18px 22px;
+    margin-bottom: 36px;
+    max-width: 1120px;
+  }
+  .rules h2 { font-size: 14px; text-transform: uppercase; letter-spacing: .06em; color: #8fd3ff; margin: 0 0 10px; }
+  .rules ul { margin: 0; padding-left: 18px; line-height: 1.7; font-size: 14px; color: #c7cbd4; }
+  .rules code { background: #0f1116; padding: 1px 6px; border-radius: 4px; font-size: 12.5px; }
+
+  .frame-wrap { margin-bottom: 44px; }
+  .frame-label { font-size: 13px; font-weight: 600; color: #8fd3ff; margin-bottom: 8px; text-transform: uppercase; letter-spacing: .05em; }
+  .frame-sub { font-size: 12.5px; color: #767c88; margin-bottom: 10px; }
+
+  /* 16:9 board frame, scaled down from a 1920x1080 logical canvas */
+  .board {
+    position: relative;
+    width: 1120px;
+    height: 630px; /* 1120 * 9/16 */
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid #2c303a;
+    box-shadow: 0 10px 40px rgba(0,0,0,.35);
+  }
+  .scale { position:absolute; inset:0; transform-origin: top left; transform: scale(0.5833); width: 1920px; height: 1080px; }
+
+  .zone { position: absolute; border-radius: 18px; }
+  .zone-label {
+    position: absolute; top: 8px; left: 12px;
+    font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+    opacity: .55;
+  }
+
+  /* zone geometry (shared across all presets) */
+  .zone-title   { left: var(--margin); top: var(--margin); width: 1272px; height: 160px; }
+  .zone-main    { left: var(--margin); top: 274px; width: 1272px; height: 750px; }
+  .zone-rail-1  { left: 1360px; top: var(--margin); width: 504px; height: 361px; }
+  .zone-rail-2  { left: 1360px; top: 445px; width: 504px; height: 361px; }
+  .zone-status  { left: var(--margin); top: 1024px; width: 1816px; height: 0; } /* status now inline in rail-2 or main footer, see per-preset */
+  .zone-system  { left: 0; top: 1040px; width: 1920px; height: 40px; }
+
+  .card { border-radius: 20px; padding: 40px 44px; display:flex; flex-direction:column; justify-content:center; }
+  .title-text { font-size: 88px; font-weight: 600; line-height: 1; }
+  .main-heading { font-size: 52px; font-weight: 700; margin: 0 0 18px; }
+  .main-body { font-size: 36px; line-height: 1.5; margin: 0; }
+  .timer-num { font-size: 96px; font-weight: 800; line-height: 1; }
+  .timer-label { font-size: 26px; opacity: .75; margin-top: 10px; }
+  .status-row { display:flex; align-items:center; gap:18px; font-size: 26px; }
+  .system-strip { display:flex; align-items:center; justify-content:space-between; padding: 0 28px; font-size: 15px; opacity:.4; }
+
+  /* Theme: calm/morning */
+  .theme-calm .zone-main, .theme-calm .zone-rail-1, .theme-calm .zone-rail-2 { background: rgba(255,255,255,.55); color:#1c2230; }
+  .theme-calm { background: linear-gradient(160deg,#fff3c4,#ffe08a); color:#1c2230; }
+
+  /* Theme: focus/dark */
+  .theme-focus { background: #171a22; color: #f2f4f8; }
+  .theme-focus .zone-main, .theme-focus .zone-rail-1, .theme-focus .zone-rail-2 { background: #20242f; border: 1px solid #2c303c; }
+
+  /* Theme: assessment/clean */
+  .theme-clean { background: #ffffff; color: #1c2230; }
+  .theme-clean .zone-main, .theme-clean .zone-rail-1 { background: #f4f6f9; border: 1px solid #e3e7ee; }
+
+  .accent-bar { position:absolute; left:0; top:0; bottom:0; width:8px; border-radius: 8px 0 0 8px; }
+
+  /* snap grid + group framing for the "free placement" preset */
+  .grid-bg {
+    background-image:
+      linear-gradient(rgba(255,255,255,.08) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.08) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+  .group-frame {
+    position:absolute; border-radius:18px; border:3px dashed rgba(43,110,242,.85);
+    background: rgba(43,110,242,.05); display:flex; flex-direction:column; justify-content:space-around; padding: 18px;
+  }
+  .group-tag {
+    position:absolute; top:-30px; left:0; font-size:15px; font-weight:700; color:#8fa3ff;
+    background:#16181d; border:1px solid #2c303a; border-radius:8px; padding:4px 12px;
+  }
+  .mini-timer { background: rgba(255,255,255,.55); border-radius:12px; padding:12px 18px; color:#1c2230; display:flex; align-items:baseline; gap:16px; }
+  .mini-timer b { font-size:34px; }
+  .mini-timer span { font-size:18px; opacity:.75; }
+  .offgrid-badge {
+    position:absolute; top:-30px; right:0; font-size:13px; font-weight:700; color:#3ddc97;
+    background:#16181d; border:1px solid #2c303a; border-radius:8px; padding:4px 10px;
+  }
+</style>
+</head>
+<body>
+
+<h1>Command Center — /display zone system</h1>
+<p class="lead">
+  Every preset below is built from the same shared grid, not hand-tuned x/y coordinates.
+  This replaces the current template system, where each of the 9 built-in presets places
+  objects at independently-chosen pixel positions (see <code>templatePacks.ts</code>) with
+  no shared layout guarantee. <b>Revised in this pass:</b> the 5 zones are now default landing
+  spots, not hard slots, and the old 4-widget cap is gone — see the updated rules and the 4th
+  worked example below.
+</p>
+
+<div class="rules">
+  <h2>Zone rules (enforced in code, not by convention)</h2>
+  <ul>
+    <li><b>5 zones remain, but as smart defaults now, not hard slots (revised):</b> <code>title</code>, <code>main</code>, <code>rail-1</code>, <code>rail-2</code>, <code>system</code>, on a 1920×1080 canvas, 56px safe margin, sitting on top of a finer snap grid a teacher can place a widget on anywhere there's room — see the 4th worked example below.</li>
+    <li><b>No hard widget-count cap (revised — replaces the old "4 content slots" rule):</b> overlap is prevented by the snap grid + a real-time collision check, not by capping the screen at 4 boxes. A <b>widget group</b> (e.g. a stack of timers) counts as <b>one occupant</b> of a zone regardless of how many widgets it contains — this is what makes Owen's real morning board (message + 3 timers + music) work without hitting an artificial ceiling.</li>
+    <li><b>One rail slot is reserved for "status"</b> (music <em>or</em> a status/game widget, never both, never floating over the title) — this is where the current always-on Noise Defense HUD moves to: opt-in per screen, and only rendered while a noise-monitoring session is actively running — never on Assessment Mode, full stop.</li>
+    <li><b>Multi-timer routines collapse to one group</b> (current step + up→next, or all steps visible as one occupant), instead of 3 stacked boxes — fixes the Morning Arrival — New Classroom preset's 3-timer rail, and is the same mechanism as the group-as-one-occupant rule above.</li>
+    <li><b>Minimum type scale, clamped in the data model:</b> title ≥64px, main heading ≥40px, main body ≥32px, timer digits ≥56px, status/system text ≥20px — a widget cannot be saved below its floor.</li>
+    <li><b>System chrome</b> (fullscreen toggle, sound-enable, connection dot) lives in one reserved 40px strip at the bottom edge, always in the same place, auto-dims after first interaction — never mixed into the content zones.</li>
+  </ul>
+</div>
+
+<!-- PRESET 1: Morning Arrival -->
+<div class="frame-wrap">
+  <div class="frame-label">Redesigned preset — Morning Arrival (daily)</div>
+  <div class="frame-sub">Was: heading + oversized message card + 3 stacked timer boxes bleeding to the canvas edge + an unrelated always-on noise HUD floating top-left. Now: title zone, one main message, one combined timer-sequence card, one status card for music — 4 slots, nothing else can be added.</div>
+  <div class="board theme-calm">
+    <div class="scale">
+      <div class="zone zone-title card" style="background:transparent;">
+        <div class="title-text">Good Morning</div>
+      </div>
+      <div class="zone zone-main card" style="position:relative;">
+        <div class="accent-bar" style="background:#2fae7a;"></div>
+        <div class="main-heading">Welcome to the New Classroom!</div>
+        <div class="main-body">
+          ✓ Return your Friday Folder to the back bin.<br>
+          ✓ Morning Work — Handwriting, pages ______<br>
+          ✓ Stay seated and work quietly.<br>
+          ✓ Sharpen pencils before we begin.
+        </div>
+      </div>
+      <div class="zone zone-rail-1 card" style="text-align:center;">
+        <div class="timer-num">24:12</div>
+        <div class="timer-label">Step 1 of 3 · Quiet Morning Work</div>
+      </div>
+      <div class="zone zone-rail-2 card">
+        <div class="status-row">🎵 Classroom Music — Calm Morning Mix</div>
+      </div>
+      <div class="zone zone-system system-strip">
+        <span>⛶ Fullscreen</span><span>🔊 Sound</span><span>● Synced</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PRESET 2: Math Workshop -->
+<div class="frame-wrap">
+  <div class="frame-label">Redesigned preset — Math Workshop (instruction)</div>
+  <div class="frame-sub">Was: title, a small objective card, one timer, and roughly 55% of the screen left completely empty. Now: the main zone uses its full column width and vertical rhythm; the second rail slot is intentionally left unused (allowed — it's a slot, not a requirement) rather than the layout drifting to whatever fits.</div>
+  <div class="board theme-focus">
+    <div class="scale">
+      <div class="zone zone-title card" style="background:transparent;">
+        <div class="title-text">Math Workshop</div>
+      </div>
+      <div class="zone zone-main card" style="position:relative;">
+        <div class="accent-bar" style="background:#3ddc97;"></div>
+        <div class="main-heading">Objective</div>
+        <div class="main-body">I can solve problems and explain my strategy clearly.</div>
+      </div>
+      <div class="zone zone-rail-1 card" style="text-align:center;">
+        <div class="timer-num">5:00</div>
+        <div class="timer-label">Math Sprint</div>
+      </div>
+      <div class="zone zone-rail-2" style="border:2px dashed #333a48; border-radius:20px; display:flex; align-items:center; justify-content:center; color:#565f70; font-size:20px;">
+        empty slot — available for a second widget
+      </div>
+      <div class="zone zone-system system-strip">
+        <span>⛶ Fullscreen</span><span>🔊 Sound</span><span>● Synced</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PRESET 3: Assessment Mode -->
+<div class="frame-wrap">
+  <div class="frame-label">Redesigned preset — Assessment Mode (assessment)</div>
+  <div class="frame-sub">Was: the template's own copy says "No music or images," yet the always-on Noise Defense HUD still rendered on top of it in the current app — a real, verified contradiction (see audit). Now: because the status/game widget is an explicit per-screen zone occupant, not a global overlay, "distraction-free" is enforced by construction — there is nothing else it's possible to add beyond the 3 slots this preset intentionally uses.</div>
+  <div class="board theme-clean">
+    <div class="scale">
+      <div class="zone zone-title card" style="background:transparent;">
+        <div class="title-text">Assessment</div>
+      </div>
+      <div class="zone zone-main card" style="position:relative;">
+        <div class="accent-bar" style="background:#2f6fed;"></div>
+        <div class="main-heading">Assessment Expectations</div>
+        <div class="main-body">Work silently. Eyes on your own work. Raise your hand for help.</div>
+      </div>
+      <div class="zone zone-rail-1 card" style="text-align:center;">
+        <div class="timer-num">5:00</div>
+        <div class="timer-label">Exit Ticket</div>
+      </div>
+      <div class="zone zone-rail-2" style="border:2px dashed #d8dde6; border-radius:20px; display:flex; align-items:center; justify-content:center; color:#9aa1ad; font-size:20px;">
+        empty slot — deliberately unused, not "distraction-free" by accident
+      </div>
+      <div class="zone zone-system system-strip" style="opacity:.3;">
+        <span>⛶ Fullscreen</span><span>🔊 Sound</span><span>● Synced</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PRESET 4: Owen's real morning board — free placement + group-as-one-occupant -->
+<div class="frame-wrap">
+  <div class="frame-label">4th worked example (new) — a teacher-saved screen using free placement + a widget group</div>
+  <div class="frame-sub">
+    This is not a built-in preset — it's Owen's own real morning board (message widget, 3 timers, and a music card), shown here as a saved screen (see the redesign doc's 2.4) to prove the cap-removal decision holds for a real case, not just a hypothetical. Note two things the earlier 3 presets couldn't show: (1) the message card is <b>off the default main-zone grid line</b>, nudged down slightly by the teacher and still valid because nothing overlaps; (2) the 3 timers are one <b>group</b> — one occupant of rail-1 — leaving rail-2 free for the music card. Occupant count: 3 (message, timer-group, music), not "4 slots, already full."
+  </div>
+  <div class="board theme-calm grid-bg">
+    <div class="scale">
+      <div class="zone zone-title card" style="background:transparent;">
+        <div class="title-text">Good Morning</div>
+      </div>
+      <div class="zone zone-main card" style="position:relative; top: 310px; height: 700px;">
+        <span class="offgrid-badge">✓ off default grid line — still valid, no overlap</span>
+        <div class="accent-bar" style="background:#2fae7a;"></div>
+        <div class="main-heading">Welcome to the New Classroom!</div>
+        <div class="main-body">
+          ✓ Return your Friday Folder to the back bin.<br>
+          ✓ Morning Work — Handwriting, pages ______<br>
+          ✓ Stay seated and work quietly.
+        </div>
+      </div>
+      <div class="group-frame zone-rail-1">
+        <span class="group-tag">✥ Timer group — 1 occupant (3 timers inside)</span>
+        <div class="mini-timer"><b>24:12</b><span>Step 1 · Quiet Morning Work</span></div>
+        <div class="mini-timer"><b>05:00</b><span>Step 2 · Math Sprint</span></div>
+        <div class="mini-timer"><b>10:00</b><span>Step 3 · Clean-Up</span></div>
+      </div>
+      <div class="zone zone-rail-2 card">
+        <div class="status-row">🎵 Classroom Music — Calm Morning Mix</div>
+      </div>
+      <div class="zone zone-system system-strip">
+        <span>⛶ Fullscreen</span><span>🔊 Sound</span><span>● Synced</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

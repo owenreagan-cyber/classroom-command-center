@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Command Center — on-canvas editing model</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: #0f1116;
+    color: #e7e9ee;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    padding: 32px;
+  }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  p.lead { color: #9aa1ad; margin: 0 0 24px; max-width: 980px; line-height: 1.5; }
+  .frame-label { font-size: 13px; font-weight: 600; color: #8fd3ff; margin: 34px 0 10px; text-transform: uppercase; letter-spacing: .05em; }
+  .frame-sub { font-size: 12.5px; color: #767c88; margin-bottom: 14px; max-width: 900px; }
+
+  .board {
+    position: relative;
+    width: 1120px;
+    height: 630px;
+    background: linear-gradient(160deg,#fff3c4,#ffe08a);
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid #2c303a;
+  }
+  .obj {
+    position: absolute;
+    border-radius: 14px;
+    background: rgba(255,255,255,.6);
+    color:#1c2230;
+    padding: 18px 20px;
+  }
+  .obj h3 { margin:0 0 6px; font-size: 20px; }
+  .obj p { margin:0; font-size:14px; }
+
+  .selected {
+    outline: 3px solid #2b6ef2;
+    outline-offset: 3px;
+  }
+  .handle {
+    position:absolute; width:14px; height:14px; background:#2b6ef2; border:2px solid white; border-radius:3px;
+  }
+  .h-nw{top:-10px;left:-10px;cursor:nwse-resize;} .h-ne{top:-10px;right:-10px;cursor:nesw-resize;}
+  .h-sw{bottom:-10px;left:-10px;cursor:nesw-resize;} .h-se{bottom:-10px;right:-10px;cursor:nwse-resize;}
+
+  .toolbelt {
+    position:absolute; top:-46px; left:0; display:flex; gap:6px;
+  }
+  .tbtn {
+    width:34px; height:34px; border-radius:8px; background:#1b1e26; border:1px solid #2c303a;
+    display:flex; align-items:center; justify-content:center; font-size:15px; color:#e7e9ee;
+  }
+  .tbtn.danger { background:#3a2230; border-color:#5a2f43; }
+
+  .quickedit {
+    position:absolute; background:#181b22; border:1px solid #2c303a; border-radius:10px;
+    padding:10px; width: 260px; box-shadow: 0 10px 30px rgba(0,0,0,.4);
+  }
+  .quickedit label { font-size:11px; text-transform:uppercase; color:#8fa3ff; letter-spacing:.05em; }
+  .quickedit textarea { width:100%; margin-top:6px; background:#0f1116; border:1px solid #2c303a; border-radius:6px; color:#e7e9ee; font-size:13px; padding:8px; resize:none; }
+
+  .callout {
+    background:#181b22; border:1px solid #23262f; border-radius:10px; padding:14px 16px;
+    font-size: 13.5px; line-height:1.6; color:#c7cbd4; max-width: 420px;
+  }
+  .row { display:flex; gap:28px; align-items:flex-start; flex-wrap:wrap; }
+  code { background:#0f1116; padding:1px 6px; border-radius:4px; font-size:12px; }
+
+  /* snap grid, shown under free-placement frames */
+  .grid-bg {
+    background-image:
+      linear-gradient(rgba(255,255,255,.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.06) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+  .blocked {
+    border: 3px solid #ff6b81 !important; background: rgba(255,107,129,.22) !important;
+    box-shadow: 0 0 0 6px rgba(255,107,129,.14) !important;
+  }
+  .wysiwyg-badge {
+    display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:700;
+    text-transform:uppercase; letter-spacing:.05em; color:#7fd88a; background:rgba(127,216,138,.12);
+    border:1px solid rgba(127,216,138,.35); border-radius:20px; padding:4px 10px; margin-bottom:10px;
+  }
+  .group-frame {
+    position:absolute; border-radius:18px; border:2px dashed rgba(43,110,242,.7);
+    background: rgba(43,110,242,.06);
+  }
+  .group-frame .group-tag {
+    position:absolute; top:-28px; left:0; font-size:11.5px; font-weight:700; color:#8fa3ff;
+    background:#12141a; border:1px solid #2c303a; border-radius:6px; padding:3px 8px;
+  }
+  .mini-timer {
+    background: rgba(255,255,255,.7); border-radius:10px; padding:8px 10px; margin: 6px 8px; color:#1c2230;
+  }
+  .mini-timer b { font-size:18px; display:block; }
+  .mini-timer span { font-size:11px; }
+</style>
+</head>
+<body>
+
+<h1>Command Center — on-canvas editing (dnd-kit)</h1>
+<p class="lead">
+  Replaces the current flow (select → open the 772-line Inspector → find a size preset dropdown →
+  no on-canvas delete or resize handle at all) with direct manipulation on the widget itself.
+  Built on <code>dnd-kit</code> (already a dependency per the product-direction doc — just needs
+  touch support added and a small resize-handle component paired with it) — additive to the existing
+  canvas, not a rewrite. This editor is <b>WYSIWYG</b>: everything below is rendered true-to-scale,
+  at the same relative size/position as it would appear on <code>/display</code> — the teacher edits
+  a pixel-exact copy of the classroom TV, not an abstracted diagram of it. Feel is deliberately close
+  to classroomscreen.com's direct-manipulation canvas (see the redesign doc's Part 2.0 research) —
+  but this remains the <code>/control</code>-only copy; students on <code>/display</code> never see
+  this editing chrome.
+</p>
+
+<div class="frame-label">1 — Selected widget: inline toolbelt + corner resize handles</div>
+<div class="frame-sub">Tap/click once to select. No Inspector panel opens for this — everything you need for a structural edit is right on the widget.</div>
+<div><span class="wysiwyg-badge">✓ WYSIWYG — matches /display exactly</span></div>
+<div class="board">
+  <div class="obj" style="left:80px; top:80px; width:480px; height:420px;" >
+    <h3>Welcome to the New Classroom!</h3>
+    <p>Good Morning! Please complete your morning routines...</p>
+  </div>
+  <div class="obj selected" style="left:660px; top:80px; width:340px; height:180px;">
+    <div class="toolbelt">
+      <div class="tbtn" title="Move (drag anywhere on the card)">✥</div>
+      <div class="tbtn" title="Duplicate">⧉</div>
+      <div class="tbtn" title="Lock in place">🔒</div>
+      <div class="tbtn danger" title="Delete">🗑</div>
+    </div>
+    <div class="handle h-nw"></div><div class="handle h-ne"></div>
+    <div class="handle h-sw"></div><div class="handle h-se"></div>
+    <h3>24:12</h3>
+    <p>Quiet Morning Work — drag a corner to resize, drag the card to move, tap 🗑 to delete.</p>
+  </div>
+</div>
+
+<div class="frame-label">2 — Quick edit: content changes without leaving the canvas</div>
+<div class="frame-sub">Double-tap (or an "✎ Edit text" button in the toolbelt) opens a small inline popover anchored to the widget — for content only (text, timer minutes, image source). The Inspector is not gone; it becomes this, scoped to one widget's own settings, not a 6-section always-open panel for structural moves.</div>
+<div class="board">
+  <div class="obj" style="left:80px; top:80px; width:480px; height:420px; opacity:.5;">
+    <h3>Welcome to the New Classroom!</h3>
+  </div>
+  <div class="obj selected" style="left:660px; top:220px; width:340px; height:180px;">
+    <h3>24:12</h3>
+    <p>Quiet Morning Work</p>
+  </div>
+  <div class="quickedit" style="left:660px; top:60px;">
+    <label>Timer label</label>
+    <textarea rows="1">Quiet Morning Work</textarea>
+    <label style="margin-top:8px; display:block;">Duration (minutes)</label>
+    <textarea rows="1">25</textarea>
+  </div>
+</div>
+
+<div class="frame-label">3 — Free placement on a snap grid: default zone highlight, plus automatic overlap prevention</div>
+<div class="frame-sub">
+  Widgets are <b>not</b> confined to the 5 zone rects — a teacher can drag anywhere there's room on the underlying grid, and the drag snaps to the nearest grid line. Dropping near an empty <i>default</i> zone slot for that widget type still highlights and offers to snap to it (left panel below) — that's a helpful default, not a limit. What <b>is</b> a hard rule: dragging over a spot that would overlap another widget or group is blocked/nudged in real time (right panel below) — this, not confinement to 4 boxes, is what makes "no two widgets can overlap" a structural guarantee.
+</div>
+<div class="row" style="gap:24px; align-items:stretch;">
+  <div>
+    <div class="frame-sub" style="margin-bottom:6px;"><b>Dropping in an empty default slot — allowed, snaps in</b></div>
+    <div class="board grid-bg" style="width:540px;">
+      <div class="obj" style="left:40px; top:60px; width:260px; height:300px;">
+        <h3>Welcome to the New Classroom!</h3>
+      </div>
+      <div class="obj" style="left:320px; top:60px; width:180px; height:110px; border:2px dashed #2b6ef2; background:rgba(43,110,242,.18); box-shadow: 0 0 0 6px rgba(43,110,242,.12);">
+        <p style="color:#2b6ef2; font-weight:700;">Drop here — snaps to grid, Rail-1 default</p>
+      </div>
+      <div class="obj" style="left:320px; top:190px; width:180px; height:110px; opacity:.4; border:2px dashed #767c88; background:transparent;">
+        <p>Rail-2 — empty</p>
+      </div>
+    </div>
+  </div>
+  <div>
+    <div class="frame-sub" style="margin-bottom:6px;"><b>Dragging over an occupied widget — blocked, nudged back</b></div>
+    <div class="board grid-bg" style="width:540px;">
+      <div class="obj" style="left:40px; top:60px; width:260px; height:300px;">
+        <h3>Welcome to the New Classroom!</h3>
+      </div>
+      <div class="obj" style="left:320px; top:60px; width:180px; height:110px;">
+        <p><b>24:12</b> Quiet Morning Work</p>
+      </div>
+      <div class="obj blocked" style="left:300px; top:120px; width:180px; height:110px;">
+        <p style="color:#ff6b81; font-weight:700;">⛔ Can't drop here — overlaps the timer. Release nudges back to the nearest open grid cell.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="frame-label" style="margin-top:40px;">4 — Widget group: several widgets, one draggable occupant</div>
+<div class="frame-sub">
+  Owen's real morning board — a message widget, 3 timers, and a music card — is the concrete case this supports. The 3 timers below are grouped: dragging, dropping, and the overlap check all treat the dashed outline as <b>one rectangle</b> occupying one rail slot, even though a teacher can still tap into any single timer inside it to edit that timer's own minutes. This directly replaces the old hard "4 widgets per screen" cap (see the redesign doc, decision #4) — the group is what counts as an occupant, not its member widgets.
+</div>
+<div class="board grid-bg">
+  <div class="obj" style="left:80px; top:80px; width:480px; height:420px;">
+    <h3>Welcome to the New Classroom!</h3>
+  </div>
+  <div class="group-frame" style="left:660px; top:80px; width:340px; height:420px;">
+    <span class="group-tag">✥ Timer group — 1 occupant, drag the outline to move all 3</span>
+    <div class="mini-timer"><b>24:12</b><span>Step 1 · Quiet Morning Work</span></div>
+    <div class="mini-timer"><b>05:00</b><span>Step 2 · Math Sprint</span></div>
+    <div class="mini-timer"><b>10:00</b><span>Step 3 · Clean-Up</span></div>
+  </div>
+  <div class="obj" style="left:80px; top:530px; width:480px; height:80px; text-align:center;">
+    <p>🎵 Classroom Music — Calm Morning Mix (a separate, second occupant)</p>
+  </div>
+</div>
+
+<div class="row" style="margin-top:32px;">
+  <div class="callout">
+    <b>What moved where</b><br>
+    Move → drag anywhere on the widget (touch + mouse), free placement on the snap grid, not confined to a fixed zone.<br>
+    Resize → drag a corner handle (min/max clamped per widget type's floor, not per a fixed zone box).<br>
+    Delete → 🗑 in the inline toolbelt, or a Delete-key shortcut.<br>
+    Duplicate → ⧉ in the toolbelt.<br>
+    Group → drag one widget onto another of a groupable type (e.g. timer onto timer) to combine them into one occupant; drag the group outline to move all members together.<br>
+    Content edit (text/timer minutes/image) → double-tap → inline popover.<br>
+    Widget-specific settings that don't fit inline (e.g. noise-game mode/level) → a short single-purpose sheet, not the 772-line Inspector.
+  </div>
+  <div class="callout">
+    <b>What this removes</b><br>
+    The always-open, 6-section, scroll-heavy Inspector for routine moves.<br>
+    The size-preset-only dropdown (freeform resize now exists).<br>
+    Mouse-only drag (<code>onMouseDown</code>/<code>mousemove</code> today, no touch) — becomes pointer-events based, works on iPad.<br>
+    The duplicate "Send to Display" button question — one button, in the always-visible top bar (see control-home mockup).<br>
+    The hard 4-widget-per-screen cap — replaced by "no overlap," enforced by the grid + collision check, with groups counting as one occupant (see the redesign doc, decision #4).<br>
+    Any gap between what the editor shows and what the TV shows — the canvas above is WYSIWYG, not an abstracted mini-map.
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,3 +1,18 @@
+/**
+ * @deprecated This file is deprecated in favor of
+ * `src/features/clean-board/templatePacks.ts`, which is the current preset
+ * system driving `/board-lab` → `/display`. This older `boardPresets.ts` /
+ * `BoardPresetPanel` system collides on preset naming (e.g. "Assessment
+ * Mode" exists in both, pointing at two unrelated screens) — see
+ * `docs/design/command-center-redesign.md` (Part 1B / decision log) for the
+ * full audit of this collision.
+ *
+ * Do not add new presets here. This file will be removed during the
+ * Board/Scene/Widget model-consolidation stage of the Command Center
+ * redesign (see the staged build plan in the doc above); until then it is
+ * left in place, unmodified in behavior, purely to avoid breaking the
+ * existing "Board Control" dock tool ahead of that consolidation.
+ */
 import type {
   BoardPreset,
   HomeroomContent,
