@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Noise Game — /display full-screen mission mode, all states (Calm Mode)</title>
+<style>
+  :root{ --n:#34d399; --o:#f472b6; --s:#3b82f6; --e:#f59e0b; --villain:#a855f7; --allmight:#fbbf24; --aizawa:#94a3b8; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:#16181d; color:#e7e9ee; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; padding:32px; }
+  h1 { font-size:22px; margin:0 0 4px; }
+  p.lead { color:#9aa1ad; max-width:1000px; line-height:1.55; margin:0 0 28px; }
+  .frame-wrap { margin-bottom: 40px; }
+  .frame-label { font-size:13px; font-weight:700; color:#8fd3ff; text-transform:uppercase; letter-spacing:.05em; margin-bottom:6px; }
+  .frame-sub { font-size:12.5px; color:#767c88; margin-bottom:10px; max-width:900px; }
+
+  .board { position:relative; width:1120px; height:630px; border-radius:14px; overflow:hidden; border:1px solid #2c303a; box-shadow:0 10px 40px rgba(0,0,0,.35); }
+  .scale { position:absolute; inset:0; transform-origin:top left; transform:scale(0.5833); width:1920px; height:1080px; }
+  .mission-bg { position:absolute; inset:0; background:linear-gradient(160deg,#20232c,#15171c); }
+
+  .topbar { position:absolute; top:0; left:0; right:0; padding:36px 64px; display:flex; justify-content:space-between; align-items:center; }
+  .topbar .title { font-size:34px; font-weight:900; letter-spacing:.04em; text-transform:uppercase; }
+  .topbar .timer { font-size:26px; font-weight:700; color:#c7cbd4; }
+  .calm-badge-lg { font-size:16px; font-weight:800; padding:8px 18px; border-radius:20px; border:2px solid #565f70; color:#c7cbd4; background:#1c1f27; text-transform:uppercase; letter-spacing:.05em; }
+  .protocol-badge-lg { font-size:22px; font-weight:800; padding:12px 26px; border-radius:30px; border:3px solid #3b82f6; color:#bfdcff; background:rgba(59,130,246,.15); }
+
+  .tower-stage { position:absolute; top:210px; left:64px; right:64px; display:flex; gap:28px; }
+  .tower-lg { flex:1; border-radius:26px; padding:26px 12px; text-align:center; border:3px solid #333844; background:#1c1f27; }
+  .tower-lg .letter { font-size:64px; font-weight:900; display:block; }
+  .tower-lg .name { font-size:20px; color:#c7cbd4; margin-top:4px; display:block; font-weight:700; }
+  .tower-lg .hpbar { height:20px; border-radius:10px; background:#0f1116; margin-top:20px; overflow:hidden; }
+  .tower-lg .hpfill { height:100%; border-radius:10px; }
+  .tower-lg .hptext { font-size:20px; margin-top:10px; color:#e7e9ee; font-weight:800; }
+  .tower-lg.n { border-color: var(--n); } .tower-lg.n .hpfill { background:var(--n); }
+  .tower-lg.o { border-color: var(--o); } .tower-lg.o .hpfill { background:var(--o); }
+  .tower-lg.i { border-color: #7c93d6; background:linear-gradient(135deg,#3b3f66,#5a2b2b); } .tower-lg.i .hpfill { background:linear-gradient(90deg,#60a5fa,#f87171); }
+  .tower-lg.s { border-color: var(--s); } .tower-lg.s .hpfill { background:var(--s); }
+  .tower-lg.e { border-color: var(--e); } .tower-lg.e .hpfill { background:var(--e); }
+  .tower-lg.active { box-shadow:0 0 0 5px #fff; }
+  .tower-lg.active::after { content:"ACTIVE"; display:block; font-size:14px; letter-spacing:.14em; color:#fff; margin-top:8px; font-weight:900; }
+  .tower-lg.fallen { border-color:#3a3d45; background:#111318; opacity:.5; filter:grayscale(1); }
+  .tower-lg.fallen .name::after { content:" · crumbled"; }
+  .tower-lg.fallen .hpfill { background:#3a3d45 !important; }
+
+  .pressure-stage { position:absolute; top:560px; left:64px; right:64px; }
+  .pressure-label-lg { display:flex; justify-content:space-between; font-size:20px; color:#c7cbd4; text-transform:uppercase; letter-spacing:.06em; margin-bottom:10px; font-weight:800; }
+  .pressure-bar-lg { position:relative; height:44px; border-radius:22px; background:#0f1116; border:2px solid #2c303a; overflow:hidden; }
+  .pressure-fill-lg { height:100%; border-radius:22px; background:linear-gradient(90deg,#34d399,#f59e0b,#ef4444); }
+  .pressure-tick-lg { position:absolute; top:-4px; bottom:-4px; width:3px; background:#fff; opacity:.6; left:75%; }
+
+  .bubble-lg { position:absolute; bottom:70px; left:50%; transform:translateX(-50%); width:1100px; border-radius:22px; padding:24px 30px; font-size:26px; font-weight:700; border:3px solid; display:flex; gap:18px; align-items:center; text-align:left; }
+  .bubble-lg .avatar { width:56px; height:56px; border-radius:16px; flex:0 0 auto; display:flex; align-items:center; justify-content:center; font-size:24px; font-weight:900; }
+  .bubble-lg.hero { background:rgba(52,211,153,.12); border-color:var(--n); color:#d3fbe9; }
+  .bubble-lg.hero .avatar { background:var(--n); color:#06251a; }
+  .bubble-lg.villain { background:rgba(168,85,247,.12); border-color:var(--villain); color:#f1e3ff; }
+  .bubble-lg.villain .avatar { background:var(--villain); color:#1e0a2e; }
+  .bubble-lg.narrator-gold { background:rgba(251,191,36,.12); border-color:var(--allmight); color:#fff3d6; }
+  .bubble-lg.narrator-gold .avatar { background:var(--allmight); color:#3a2900; }
+  .bubble-lg.narrator-gray { background:rgba(148,163,184,.12); border-color:var(--aizawa); color:#e6e9ee; }
+  .bubble-lg.narrator-gray .avatar { background:var(--aizawa); color:#1c2027; }
+
+  .banner-fault-lg { position:absolute; top:0; left:0; right:0; padding:34px 64px; background:rgba(148,86,90,.85); display:flex; align-items:center; justify-content:space-between; gap:30px; }
+  .banner-fault-lg .t1 { font-size:36px; font-weight:900; letter-spacing:.04em; text-transform:uppercase; }
+  .banner-fault-lg .t2 { font-size:22px; opacity:.9; margin-top:6px; }
+  .banner-fault-lg button { background:#fff; color:#5b1f22; font-weight:800; border:none; border-radius:16px; padding:16px 30px; font-size:22px; }
+
+  .takeover-lg { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; flex-direction:column; text-align:center; }
+  .takeover-lg h1 { font-size:88px; margin:0 0 16px; letter-spacing:.02em; }
+  .takeover-lg p { font-size:32px; margin:0; opacity:.92; max-width:1400px; }
+  .takeover-fall-calm { background:linear-gradient(160deg,#2a2126,#181316); }
+  .takeover-alldown-calm { background:linear-gradient(160deg,#241f2c,#171319); }
+  .takeover-win-calm { background:linear-gradient(160deg,#2b2717,#1a1710); }
+
+  .calib-ring-static-lg { width:140px; height:140px; border-radius:50%; border:12px solid #2c303a; border-top-color:#3b82f6; margin:0 auto 28px; }
+</style>
+</head>
+<body>
+
+<h1>Noise Game — full-screen mission mode, every state (Calm Mode)</h1>
+<p class="lead">
+  Same 10 states as <code>tv-fullscreen-mission-mode.html</code>, Calm Mode treatment: no screen-flash, no
+  screen-shake, no pulsing glow — big informational moments (Tower Fall, All Towers Down, Mission Complete)
+  still get a full-screen card so the class can read what happened, but it appears and holds calmly instead
+  of a violent transition. Logic underneath is identical either way.
+</p>
+
+<!-- 1. IDLE -->
+<div class="frame-wrap">
+  <div class="frame-label">1 · Idle</div>
+  <div class="board"><div class="scale">
+    <div class="mission-bg"></div>
+    <div class="topbar"><div><div class="title">Hero Academy Defense</div></div><span class="calm-badge-lg">Calm Mode</span></div>
+    <div class="tower-stage">
+      <div class="tower-lg n"><span class="letter">N</span><span class="name">Deku</span><div class="hpbar"><div class="hpfill" style="width:100%"></div></div><div class="hptext">100/100</div></div>
+      <div class="tower-lg o"><span class="letter">O</span><span class="name">Uraraka</span><div class="hpbar"><div class="hpfill" style="width:100%"></div></div><div class="hptext">100/100</div></div>
+      <div class="tower-lg i"><span class="letter">I</span><span class="name">Todoroki</span><div class="hpbar"><div class="hpfill" style="width:100%"></div></div><div class="hptext">100/100</div></div>
+      <div class="tower-lg s"><span class="letter">S</span><span class="name">Iida</span><div class="hpbar"><div class="hpfill" style="width:100%"></div></div><div class="hptext">100/100</div></div>
+      <div class="tower-lg e"><span class="letter">E</span><span class="name">Bakugo</span><div class="hpbar"><div class="hpfill" style="width:100%"></div></div><div class="hptext">100/100</div></div>
+    </div>
+    <div class="pressure-stage"><div class="pressure-label-lg"><span>Villain Pressure</span><span>0%</span></div><div class="pressure-bar-lg"><div class="pressure-fill-lg" style="width:0%"></div><div class="pressure-tick-lg"></div></div></div>
+  </div></div>
+</div>
+
+<!-- 2. CALIBRATING -->
+<div class="frame-wrap">
+  <div class="frame-label">2 · Calibrating</div>
+  <div class="board"><div class="scale">
+    <div class="mission-bg"></div>
+    <div class="topbar"><div><div class="title">Hero Academy Defense</div></div><span class="calm-badge-lg">Calm Mode</span></div>
+    <div style="position:absolute; top:340px; left:0; right:0; text-align:center;">
+      <div class="calib-ring-static-lg"></div>
+      <div style="font-size:32px;font-weight:800;color:#bfdcff;">Reading the room — please stay quiet</div>
+    </div>
+    <div class="bubble-lg narrator-gray"><div class="avatar">Az</div><div>"Calibrating. Stay quiet a moment longer."</div></div>
+  </div></div>
+</div>
+
+<!-- 3. CALM -->
+<div class="frame-wrap">
+  <div class="frame-label">3 · Calm (session running, room quiet)</div>
+  <div class="board"><div class="scale">
+    <div class="mission-bg"></div>
+    <div class="topbar"><div><div class="title">Hero Academy Defense</div><div class="timer">Mission time · 12:04</div></div><div class="protocol-badge-lg">🤐 Patrol</div></div>
+    <div class="tower-stage">
+      <div class="tower-lg n active"><span class="letter">N</span><span class="name">Deku</span><div class="hpbar"><div class="hpfill" style="width:100%"></div></div><div class="hptext">100/100</div></div>
+      <div class="tower-lg o"><span class="letter">O</span><span class="name">Uraraka</span><div class="hpbar"><div class="hpfill" style="width:100%"></div></div><div class="hptext">100/100</div></div>
+      <div class="tower-lg i"><span class="letter">I</span><span class="name">Todoroki</span><div class="hpbar"><div class="hpfill" style="width:100%"></div></div><div class="hptext">100/100</div></div>
+      <div class="tower-lg s"><span class="letter">S</span><span class="name">Iida</span><div class="hpbar"><div class="hpfill" style="width:100%"></div></div><div class="hptext">100/100</div></div>
+      <div class="tower-lg e"><span class="letter">E</span><span class="name">Bakugo</span><div class="hpbar"><div class="hpfill" style="width:100%"></div></div><div class="hptext">100/100</div></div>
+    </div>
+    <div class="pressure-stage"><div class="pressure-label-lg"><span>Villain Pressure</span><span>4%</span></div><div class="pressure-bar-lg"><div class="pressure-fill-lg" style="width:4%"></div><div class="pressure-tick-lg"></div></div></div>
+  </div></div>
+</div>
+
+<!-- 4. PRESSURE RISING -->
+<div class="frame-wrap">
+  <div class="frame-label">4 · Pressure rising (Warning) — static amber border, no pulse</div>
+  <div class="board"><div class="scale">
+    <div class="mission-bg" style="border:6px solid #f59e0b;"></div>
+    <div class="topbar"><div><div class="title">Hero Academy Defense</div><div class="timer">Mission time · 12:41</div></div><div class="protocol-badge-lg">🤐 Patrol</div></div>
+    <div class="tower-stage">
+      <div class="tower-lg n active"><span class="letter">N</span><span class="name">Deku</span><div class="hpbar"><div class="hpfill" style="width:100%"></div></div><div class="hptext">100/100</div></div>
+      <div class="tower-lg o"><span class="letter">O</span><span class="name">Uraraka</span><div class="hpbar"><div class="hpfill" style="width:100%"></div></div><div class="hptext">100/100</div></div>
+      <div class="tower-lg i"><span class="letter">I</span><span class="name">Todoroki</span><div class="hpbar"><div class="hpfill" style="width:100%"></div></div><div class="hptext">100/100</div></div>
+      <div class="tower-lg s"><span class="letter">S</span><span class="name">Iida</span><div class="hpbar"><div class="hpfill" style="width:100%"></div></div><div class="hptext">100/100</div></div>
+      <div class="tower-lg e"><span class="letter">E</span><span class="name">Bakugo</span><div class="hpbar"><div class="hpfill" style="width:100%"></div></div><div class="hptext">100/100</div></div>
+    </div>
+    <div class="pressure-stage"><div class="pressure-label-lg" style="color:#fbbf24;"><span>⚠ Villain Pressure — Warning</span><span>82%</span></div><div class="pressure-bar-lg"><div class="pressure-fill-lg" style="width:82%"></div><div class="pressure-tick-lg"></div></div></div>
+    <div class="bubble-lg villain"><div class="avatar">Sh</div><div>"Mmm... it's building nicely..."</div></div>
+  </div></div>
+</div>
+
+<!-- 5. STRIKE -->
+<div class="frame-wrap">
+  <div class="frame-label">5 · Strike — static red border, no screen flash</div>
+  <div class="board"><div class="scale">
+    <div class="mission-bg" style="border:6px solid #ef4444;"></div>
+    <div class="topbar"><div><div class="title">Hero Academy Defense</div><div class="timer">Mission time · 12:52</div></div><div class="protocol-badge-lg">🤐 Patrol</div></div>
+    <div class="tower-stage">
+      <div class="tower-lg n active" style="border-color:#ef4444;"><span class="letter">N</span><span class="name">Deku</span><div class="hpbar"><div class="hpfill" style="width:75%;background:#ef4444;"></div></div><div class="hptext">75/100</div></div>
+      <div class="tower-lg o"><span class="letter">O</span><span class="name">Uraraka</span><div class="hpbar"><div class="hpfill" style="width:100%"></div></div><div class="hptext">100/100</div></div>
+      <div class="tower-lg i"><span class="letter">I</span><span class="name">Todoroki</span><div class="hpbar"><div class="hpfill" style="width:100%"></div></div><div class="hptext">100/100</div></div>
+      <div class="tower-lg s"><span class="letter">S</span><span class="name">Iida</span><div class="hpbar"><div class="hpfill" style="width:100%"></div></div><div class="hptext">100/100</div></div>
+      <div class="tower-lg e"><span class="letter">E</span><span class="name">Bakugo</span><div class="hpbar"><div class="hpfill" style="width:100%"></div></div><div class="hptext">100/100</div></div>
+    </div>
+    <div class="pressure-stage"><div class="pressure-label-lg" style="color:#ef4444;"><span>Strike — pressure reset</span><span>0%</span></div><div class="pressure-bar-lg"><div class="pressure-fill-lg" style="width:0%"></div><div class="pressure-tick-lg"></div></div></div>
+    <div class="bubble-lg villain"><div class="avatar">Sh</div><div>"There it is. One line, weaker."</div></div>
+  </div></div>
+</div>
+
+<!-- 6. TOWER FALLEN -->
+<div class="frame-wrap">
+  <div class="frame-label">6 · Tower fallen (decay) — calm full-screen card, no shake</div>
+  <div class="board"><div class="scale">
+    <div class="mission-bg takeover-fall-calm"></div>
+    <div class="takeover-lg">
+      <h1 style="color:#f3c9c9;">Tower Down</h1>
+      <p>N — Deku's post has fallen. Uraraka is now the active line.</p>
+    </div>
+    <div class="bubble-lg narrator-gold"><div class="avatar">AM</div><div>"A setback, not the end! The next line stands ready!"</div></div>
+  </div></div>
+</div>
+
+<!-- 7. RECOVERY -->
+<div class="frame-wrap">
+  <div class="frame-label">7 · Recovery — static soft border, no pulsing glow</div>
+  <div class="board"><div class="scale">
+    <div class="mission-bg" style="border:6px solid var(--n);"></div>
+    <div class="topbar"><div><div class="title">Hero Academy Defense</div><div class="timer">Mission time · 16:02</div></div><div class="protocol-badge-lg">🤐 Patrol</div></div>
+    <div class="tower-stage">
+      <div class="tower-lg fallen"><span class="letter">N</span><span class="name">Deku</span><div class="hpbar"><div class="hpfill" style="width:0%"></div></div><div class="hptext">0/100</div></div>
+      <div class="tower-lg o active" style="border-color:var(--n);"><span class="letter">O</span><span class="name">Uraraka</span><div class="hpbar"><div class="hpfill" style="width:58%"></div></div><div class="hptext">58/100 ▲ healing</div></div>
+      <div class="tower-lg i"><span class="letter">I</span><span class="name">Todoroki</span><div class="hpbar"><div class="hpfill" style="width:100%"></div></div><div class="hptext">100/100</div></div>
+      <div class="tower-lg s"><span class="letter">S</span><span class="name">Iida</span><div class="hpbar"><div class="hpfill" style="width:100%"></div></div><div class="hptext">100/100</div></div>
+      <div class="tower-lg e"><span class="letter">E</span><span class="name">Bakugo</span><div class="hpbar"><div class="hpfill" style="width:100%"></div></div><div class="hptext">100/100</div></div>
+    </div>
+    <div class="bubble-lg hero"><div class="avatar">Ur</div><div>"Ooh, I can feel it lightening up already!"</div></div>
+  </div></div>
+</div>
+
+<!-- 8. ALL TOWERS DOWN -->
+<div class="frame-wrap">
+  <div class="frame-label">8 · All towers down (Villain Alert) — calm full-screen card</div>
+  <div class="board"><div class="scale">
+    <div class="mission-bg takeover-alldown-calm"></div>
+    <div class="takeover-lg">
+      <h1 style="color:#dcc9f0;">Villain Alert</h1>
+      <p>Every line has fallen. Pressure is frozen — repair at least one Guardian to get back in the fight.</p>
+    </div>
+    <div class="bubble-lg villain"><div class="avatar">Sh</div><div>"All of them... down. Was that so hard?"</div></div>
+  </div></div>
+</div>
+
+<!-- 9. MISSION COMPLETE -->
+<div class="frame-wrap">
+  <div class="frame-label">9 · Mission complete</div>
+  <div class="board"><div class="scale">
+    <div class="mission-bg takeover-win-calm"></div>
+    <div class="takeover-lg">
+      <h1 style="color:#f0dfa0;">Mission Complete</h1>
+      <p>1 strike this mission · 4 of 5 Guardians standing. Full class report available on /control.</p>
+    </div>
+    <div class="bubble-lg narrator-gold"><div class="avatar">AM</div><div>"Mission complete! Every Guardian is proud of this room today!"</div></div>
+  </div></div>
+</div>
+
+<!-- 10. MIC BLOCKED -->
+<div class="frame-wrap">
+  <div class="frame-label">10 · Mic blocked (fault state) — unchanged by Calm Mode</div>
+  <div class="board"><div class="scale">
+    <div class="mission-bg"></div>
+    <div class="banner-fault-lg">
+      <div><div class="t1">🎙️ Microphone unavailable</div><div class="t2">Noise Defense is paused — towers are frozen. Grant microphone access to resume.</div></div>
+      <button>Retry</button>
+    </div>
+    <div class="tower-stage" style="top:280px; opacity:.7;">
+      <div class="tower-lg n"><span class="letter">N</span><span class="name">Deku</span><div class="hpbar"><div class="hpfill" style="width:75%"></div></div><div class="hptext">75/100</div></div>
+      <div class="tower-lg o"><span class="letter">O</span><span class="name">Uraraka</span><div class="hpbar"><div class="hpfill" style="width:100%"></div></div><div class="hptext">100/100</div></div>
+      <div class="tower-lg i"><span class="letter">I</span><span class="name">Todoroki</span><div class="hpbar"><div class="hpfill" style="width:100%"></div></div><div class="hptext">100/100</div></div>
+      <div class="tower-lg s"><span class="letter">S</span><span class="name">Iida</span><div class="hpbar"><div class="hpfill" style="width:100%"></div></div><div class="hptext">100/100</div></div>
+      <div class="tower-lg e"><span class="letter">E</span><span class="name">Bakugo</span><div class="hpbar"><div class="hpfill" style="width:100%"></div></div><div class="hptext">100/100</div></div>
+    </div>
+  </div></div>
+</div>
+
+</body>
+</html>

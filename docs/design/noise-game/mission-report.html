@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Noise Game — end-of-session mission report</title>
+<style>
+  :root{ --n:#34d399; --o:#f472b6; --s:#3b82f6; --e:#f59e0b; --villain:#a855f7; --allmight:#fbbf24; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:#0f1116; color:#e7e9ee; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; padding:32px; display:flex; flex-direction:column; align-items:center; }
+  h1 { font-size:22px; margin:0 0 4px; align-self:flex-start; }
+  p.lead { color:#9aa1ad; margin:0 0 28px; max-width:900px; line-height:1.5; align-self:flex-start; }
+
+  .report { width: 880px; background:#14161c; border:1px solid #262a33; border-radius:18px; padding:36px 40px; box-shadow:0 10px 40px rgba(0,0,0,.4); }
+  .report-head { display:flex; justify-content:space-between; align-items:flex-start; border-bottom:1px solid #23262f; padding-bottom:18px; margin-bottom:22px; }
+  .report-head h2 { font-size:24px; margin:0 0 4px; }
+  .report-head .meta { font-size:13px; color:#9aa1ad; }
+  .rank-badge { text-align:center; background:linear-gradient(160deg,#3a2f0e,#1c1710); border:2px solid var(--allmight); border-radius:14px; padding:10px 20px; }
+  .rank-badge .rank { font-size:34px; font-weight:900; color:#fde68a; line-height:1; }
+  .rank-badge .rank-label { font-size:10px; text-transform:uppercase; letter-spacing:.08em; color:#c7ac5e; margin-top:2px; }
+
+  .grid { display:grid; grid-template-columns: repeat(4, 1fr); gap:12px; margin-bottom:22px; }
+  .stat { background:#181b22; border:1px solid #23262f; border-radius:12px; padding:14px; text-align:center; }
+  .stat .val { font-size:26px; font-weight:900; }
+  .stat .lbl { font-size:11px; color:#9aa1ad; text-transform:uppercase; letter-spacing:.05em; margin-top:2px; }
+
+  .section { margin-bottom:22px; }
+  .section h3 { font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:#8fd3ff; margin:0 0 10px; }
+
+  .tower-final-row { display:flex; gap:10px; }
+  .tower-final { flex:1; border-radius:12px; border:2px solid #333844; background:#1c1f27; padding:12px 6px; text-align:center; }
+  .tower-final .letter { font-size:20px; font-weight:900; display:block; }
+  .tower-final .name { font-size:10px; color:#9aa1ad; display:block; margin-top:2px; }
+  .tower-final .cond { font-size:10.5px; font-weight:800; margin-top:6px; }
+  .tower-final.intact { border-color:var(--n); } .tower-final.intact .cond { color:#a7f3d0; }
+  .tower-final.damaged { border-color:#f59e0b; } .tower-final.damaged .cond { color:#fde68a; }
+  .tower-final.fallen { border-color:#3a3d45; opacity:.55; filter:grayscale(1); } .tower-final.fallen .cond { color:#9aa1ad; }
+
+  .protocol-time-row { display:flex; gap:10px; }
+  .protocol-time { flex:1; background:#181b22; border:1px solid #23262f; border-radius:10px; padding:12px; }
+  .protocol-time .name { font-size:12px; font-weight:800; }
+  .protocol-time .bar { height:8px; border-radius:4px; background:#0f1116; margin:8px 0 6px; overflow:hidden; }
+  .protocol-time .fill { height:100%; }
+  .protocol-time .pct { font-size:11px; color:#9aa1ad; }
+
+  .penalty-card { background:linear-gradient(160deg,#1e2530,#161920); border:1px solid #23262f; border-radius:12px; padding:16px 18px; display:flex; justify-content:space-between; align-items:center; }
+  .penalty-card .formula { font-size:13px; color:#9aa1ad; }
+  .penalty-card .amount { font-size:24px; font-weight:900; color:#fde68a; }
+  .penalty-card .vis-chip { font-size:10px; padding:3px 8px; border-radius:6px; background:#23262f; color:#9aa1ad; margin-left:8px; }
+
+  .no-student-note { font-size:11.5px; color:#65a37a; background:rgba(52,211,153,.08); border:1px solid rgba(52,211,153,.3); border-radius:10px; padding:10px 14px; margin-top:6px; }
+  .actions { display:flex; gap:10px; margin-top:24px; justify-content:flex-end; }
+  .btn { padding:9px 16px; border-radius:9px; font-size:13px; font-weight:700; border:1px solid #2c303a; background:#1b1e26; color:#e7e9ee; }
+  .btn.primary { background:#2b6ef2; border-color:#2b6ef2; }
+</style>
+</head>
+<body>
+
+<h1>Noise Game — end-of-session mission report</h1>
+<p class="lead">
+  Generated when the teacher taps "End Mission" or a period naturally ends. <b>Class-level only</b> — every
+  metric here is a whole-room aggregate; there is no per-student data anywhere on this screen, matching the
+  fixed constraint carried through this entire feature.
+</p>
+
+<div class="report">
+  <div class="report-head">
+    <div>
+      <h2>Math Workshop — Mission Report</h2>
+      <div class="meta">Tuesday, September 24, 2026 · 9:15 AM – 9:52 AM (37 min)</div>
+    </div>
+    <div class="rank-badge"><div class="rank">B+</div><div class="rank-label">Focus Rank</div></div>
+  </div>
+
+  <div class="grid">
+    <div class="stat"><div class="val">1</div><div class="lbl">Tower fallen</div></div>
+    <div class="stat"><div class="val">3</div><div class="lbl">Strikes</div></div>
+    <div class="stat"><div class="val">2</div><div class="lbl">Recoveries completed</div></div>
+    <div class="stat"><div class="val">64%</div><div class="lbl">Time calm / recovering</div></div>
+  </div>
+
+  <div class="section">
+    <h3>Final tower condition</h3>
+    <div class="tower-final-row">
+      <div class="tower-final fallen"><span class="letter">N</span><span class="name">Deku</span><div class="cond">Crumbled</div></div>
+      <div class="tower-final damaged"><span class="letter">O</span><span class="name">Uraraka</span><div class="cond">58/100</div></div>
+      <div class="tower-final intact"><span class="letter">I</span><span class="name">Todoroki</span><div class="cond">100/100</div></div>
+      <div class="tower-final intact"><span class="letter">S</span><span class="name">Iida</span><div class="cond">100/100</div></div>
+      <div class="tower-final intact"><span class="letter">E</span><span class="name">Bakugo</span><div class="cond">100/100</div></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h3>Time in each voice protocol</h3>
+    <div class="protocol-time-row">
+      <div class="protocol-time"><div class="name">🤫 Stealth</div><div class="bar"><div class="fill" style="width:18%;background:#94a3b8;"></div></div><div class="pct">18% · 6.7 min</div></div>
+      <div class="protocol-time"><div class="name">🤐 Patrol</div><div class="bar"><div class="fill" style="width:61%;background:#3b82f6;"></div></div><div class="pct">61% · 22.6 min</div></div>
+      <div class="protocol-time"><div class="name">💬 Combat</div><div class="bar"><div class="fill" style="width:15%;background:#f59e0b;"></div></div><div class="pct">15% · 5.5 min</div></div>
+      <div class="protocol-time"><div class="name">📡 Jammer paused</div><div class="bar"><div class="fill" style="width:6%;background:#565f70;"></div></div><div class="pct">6% · 2.2 min</div></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h3>Penalty tally (enabled this session)</h3>
+    <div class="penalty-card">
+      <div class="formula">1 tower fallen × 2 <span class="vis-chip">teacher-only</span><span class="vis-chip">friendly wording</span></div>
+      <div class="amount">2 minutes of quiet lunch</div>
+    </div>
+  </div>
+
+  <div class="no-student-note">✓ This report contains no individual student data — class-level aggregates only.</div>
+
+  <div class="actions">
+    <button class="btn">Save to mission history</button>
+    <button class="btn primary">Close report</button>
+  </div>
+</div>
+
+</body>
+</html>
