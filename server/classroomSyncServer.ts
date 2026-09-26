@@ -35,10 +35,20 @@ import { sanitizeComposerAction, sanitizeRandomNumberAction } from '../src/lib/s
  *   - Prize Board (Press Your Luck): multi-store (phase/board/pool +
  *     `useSpinAnimation`'s client-side animation loop), real scope for a
  *     follow-up, not a quick add.
- *   - Noise meter: turns out NOT to be rendered on /display at all today —
- *     grepped DisplayOverlayHost.tsx and BoardHostDisplay.tsx, no noise
- *     import in the display path. Nothing to sync; flagging this as a real
- *     finding, not an oversight.
+ *   - Noise Defense (Hero Academy Defense System, `src/features/
+ *     noise-defense/`): STALE NOTE, corrected 2026-09-25 — this used to say
+ *     "not rendered on /display at all today, nothing to sync," which was
+ *     true when this file was written but no longer is: `/display`
+ *     (`BoardHostDisplay.tsx`) now mounts `NoiseDefenseHUD` directly. It's
+ *     still not wired into this sync protocol, though, and that remains a
+ *     deliberate deferral, not an oversight — see the "Known limitation"
+ *     note in `docs/architecture/noise-game-design.md`. Cross-device (a
+ *     paired `/control` on one device driving `/display`'s mic on another)
+ *     is real scope for redesign stage 1, not a quick add here; today the
+ *     whole feature (engine state, `jamReason`, opt-in, Jammer/Disengage)
+ *     only cross-tab-syncs same-device via `noiseGameStore.ts`'s own
+ *     `localStorage` + `storage`-event bridge, same pattern as
+ *     `qrCastStore.ts`/`stampStore.ts` — not this WebSocket server at all.
  *   - Morning Message / Now Showing, Stamps, QR Cast, Clean Board canvas
  *     itself: out of the explicitly-scoped "core" list for this stage.
  *

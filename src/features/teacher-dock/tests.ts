@@ -134,20 +134,33 @@ function testInactiveToolsHiddenFromLauncher() {
   console.log('  inactive tools hidden from launcher OK')
 }
 
-function testNoiseToolLaunchable() {
+/**
+ * "Noise Control" (the legacy, manual, no-microphone Noise Tower Defense
+ * widget) is retired from visibility per the noise-game design doc's
+ * "critical distinction" section -- superseded for real classroom use by
+ * the mic-driven Hero Academy Defense System (`src/features/noise-defense/`,
+ * mounted directly, not through this registry). It must still exist in the
+ * registry (so its id/panel stay resolvable for any stale persisted state)
+ * but must never be launchable or surfaced in the launcher again.
+ */
+function testNoiseToolRetiredFromLauncher() {
   const noise = getToolById('noise')
-  assert(Boolean(noise), 'noise tool must exist')
-  assert(noise!.status === 'docked', 'noise must be docked and launchable')
-  assert(isToolLaunchable(noise!.status), 'noise tool must be launchable')
+  assert(Boolean(noise), 'noise tool must still exist in the registry')
+  assert(noise!.status === 'inactive', 'noise must be marked inactive (retired)')
+  assert(!isToolLaunchable(noise!.status), 'noise tool must no longer be launchable')
   const launcher = getLauncherTools(getDefaultDockOrder(), [])
-  assert(launcher.some((tool) => tool.id === 'noise'), 'noise must appear in launcher')
-  console.log('  noise tool launchable OK')
+  assert(!launcher.some((tool) => tool.id === 'noise'), 'noise must not appear in the launcher')
+  console.log('  noise tool retired from launcher OK')
 }
 
-function testNoiseToolPanelRegistered() {
-  assert(REGISTERED_TOOL_PANEL_IDS.includes('noise'), 'noise panel registered')
-  assert(isToolLaunchable(getToolById('noise')!.status), 'noise must be launchable in registry')
-  console.log('  noise tool panel registered OK')
+function testNoiseToolPanelStillRegisteredButUnreachable() {
+  // The underlying panel component registration is left untouched (per the
+  // design doc: "do not delete the underlying legacy files") -- only the
+  // registry's `status` changed, so the panel id stays mapped even though
+  // nothing in the UI can launch it anymore.
+  assert(REGISTERED_TOOL_PANEL_IDS.includes('noise'), 'noise panel registration left in place')
+  assert(!isToolLaunchable(getToolById('noise')!.status), 'noise must not be launchable in registry')
+  console.log('  noise tool panel still registered but unreachable OK')
 }
 
 function testRegistryPrivacyOnDisplayRoute() {
@@ -239,12 +252,16 @@ function testActiveToolPersistence() {
   console.log('  active tool persistence OK')
 }
 
-function testNoiseActiveToolPersistence() {
+function testNoiseActiveToolFallsBackWhenRetired() {
+  // A stale persisted state pointing at the now-retired 'noise' tool must
+  // fall back to the default active tool, exactly like any other
+  // no-longer-launchable id -- confirms retirement takes effect through the
+  // persistence sanitizer, not just the launcher list.
   const saved = hydrateDockState({ activeToolId: 'noise' })
-  assert(saved.activeToolId === 'noise', 'noise activeToolId must hydrate when launchable')
+  assert(saved.activeToolId === 'dashboard', 'retired noise activeToolId must fall back to the default')
   const reloaded = parsePersistedDockState(serializeDockState(saved))
-  assert(reloaded.activeToolId === 'noise', 'noise active tool must survive JSON round-trip')
-  console.log('  noise active tool persistence OK')
+  assert(reloaded.activeToolId === 'dashboard', 'fallback must survive JSON round-trip')
+  console.log('  noise active tool falls back when retired OK')
 }
 
 function testInvalidToolIdsSanitizedOnHydrate() {
@@ -254,7 +271,7 @@ function testInvalidToolIdsSanitizedOnHydrate() {
     activeToolId: 'bogus',
   })
   assert(!saved.dockOrder.includes('not-a-tool' as ToolId), 'unknown order ids removed')
-  assert(saved.dockOrder.includes('noise'), 'launchable noise kept in order')
+  assert(!saved.dockOrder.includes('noise'), 'retired noise dropped from order, not kept')
   assert(saved.favoriteToolIds.includes('timers'), 'valid favorite kept')
   assert(saved.activeToolId === 'dashboard', 'invalid active tool falls back')
   console.log('  invalid tool ids sanitized on hydrate OK')
@@ -268,14 +285,14 @@ testDeviceAwareLaunchResolution()
 testDisplayNeverReceivesPrivateRegistry()
 testRegistryShape()
 testInactiveToolsHiddenFromLauncher()
-testNoiseToolLaunchable()
-testNoiseToolPanelRegistered()
+testNoiseToolRetiredFromLauncher()
+testNoiseToolPanelStillRegisteredButUnreachable()
 testRegistryPrivacyOnDisplayRoute()
 testAllActiveToolsHavePanels()
 testRequiredMigrationToolsPresent()
 testCollapsePersistence()
 testToolOrderPersistence()
 testActiveToolPersistence()
-testNoiseActiveToolPersistence()
+testNoiseActiveToolFallsBackWhenRetired()
 testInvalidToolIdsSanitizedOnHydrate()
 console.log('All teacher command dock tests passed.')

@@ -1,10 +1,12 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { BoardCanvas } from './BoardCanvas'
-import { loadHostDisplayState, projectHostDisplayPage } from './displayHost'
+import { loadHostDisplayState, projectHostDisplayPage, type HostDisplayState } from './displayHost'
+import { KEY_AUTOSAVE, KEY_STATE } from './storage/boardStorage'
 import { useWakeLock } from './useWakeLock'
 import { unlockSynthesizer } from '../../lib/audio/synthesizer'
 import { ProjectedStampCard } from '../../widgets/ProjectedStampCard'
 import { QRCodeWidget } from '../../widgets/QRCodeWidget'
+import { NoiseDefenseHUD } from '../noise-defense/NoiseDefenseHUD'
 import { DisplayOverlayHost } from './DisplayOverlayHost'
 import { DisplayFullscreenControl } from './DisplayFullscreenControl'
 import { useDisplaySyncClient } from '../../lib/sync/displaySyncClient'
@@ -35,12 +37,32 @@ import { SyncStatusDot } from '../../lib/sync/SyncStatusDot'
  * teacher explicitly activates them.
  */
 export function BoardHostDisplay() {
-  const resolved = useMemo(() => loadHostDisplayState(), [])
+  const [resolved, setResolved] = useState<HostDisplayState>(() => loadHostDisplayState())
   const page = useMemo(() => projectHostDisplayPage(resolved), [resolved])
   const [soundUnlocked, setSoundUnlocked] = useState(false)
 
   // Silent keep-awake (no toggle UI on the student display).
   useWakeLock(true)
+
+  // Live cross-tab scene sync (in-room-test brief, point 4): `/control` (or
+  // `/board-lab`) and `/display` are separate tabs sharing only
+  // localStorage, and this resolver previously ran exactly once at mount
+  // (`useMemo(..., [])`) -- an already-open `/display` tab never picked up
+  // a scene switch or a Display Mode change without a manual reload, which
+  // is exactly the gap that let a HUD-hiding screen switch (e.g. to
+  // Assessment Mode) leave the noise-defense HUD/mic running unseen. Mirrors
+  // the existing `storage`-event bridge already used by
+  // `displayComposerStore.ts`/`noiseGameStore.ts` -- `/board-lab`'s own tab
+  // (the writer) never needs this, since same-tab writes never fire
+  // `storage` there; only *other* tabs/devices sharing this origin do.
+  useEffect(() => {
+    function onStorage(event: StorageEvent) {
+      if (event.key !== KEY_STATE && event.key !== KEY_AUTOSAVE) return
+      setResolved(loadHostDisplayState())
+    }
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
+  }, [])
 
   // Cross-device sync (docs/architecture/cross-device-control.md):
   // best-effort, no-ops entirely if no classroom sync server is reachable.
@@ -67,6 +89,11 @@ export function BoardHostDisplay() {
 
       <ProjectedStampCard />
       <QRCodeWidget />
+      {/* Stage 0 — opt-in, per-screen (design-doc "STAGE 0"): the HUD itself
+          decides whether it's allowed to render at all for `displayModeId`,
+          structurally excluded for Assessment Mode regardless of any
+          per-screen toggle — see `hudGate.ts`. */}
+      <NoiseDefenseHUD displayModeId={resolved.displayModeId} />
 
       {/* Cast-to-display overlay pipeline (Prize Board, Random Number,
           Display Composer, Morning Message, Now Showing). */}

@@ -77,6 +77,17 @@ export function unlockSynthesizer(): void {
   getContext()
 }
 
+/**
+ * Exposes the same lazily-created, resume-on-gesture shared `AudioContext`
+ * to sibling synthesizer modules (e.g. the noise-defense game's SFX) so a
+ * second feature never has to spin up its own `AudioContext` or its own
+ * gesture-unlock banner — see `src/features/noise-defense/noiseGameSynthesizer.ts`.
+ * Returns `null` outside a browser or if `AudioContext` isn't available.
+ */
+export function getSharedAudioContext(): AudioContext | null {
+  return getContext()
+}
+
 /** Builds and schedules one tone, cleaning up its graph once it finishes. */
 function scheduleTone(ctx: AudioContext, note: SynthesizerNote, startAt: number): void {
   const osc = ctx.createOscillator()

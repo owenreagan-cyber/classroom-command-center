@@ -57,6 +57,7 @@
     "test:ai-prompt-engine": "bash scripts/test-ai-prompt-engine.sh",
     "test:qr-code": "bash scripts/test-qr-code.sh",
     "test:classroom-sync": "bash scripts/test-classroom-sync.sh",
+    "test:noise-defense": "bash scripts/test-noise-defense.sh",
     "smoke:classroom": "bash scripts/run-classroom-smoke.sh"
   },
   "dependencies": {

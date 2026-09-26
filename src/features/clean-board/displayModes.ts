@@ -17,7 +17,7 @@ import type {
  * mutates or duplicates board objects.
  */
 
-export interface DisplayModeConfig {
+interface DisplayModeConfigBase {
   id: DisplayModeId
   name: string
   description: string
@@ -31,6 +31,22 @@ export interface DisplayModeConfig {
   keepAwakeDefault: boolean
   recommendedSceneType?: SceneType
 }
+
+/**
+ * Noise Defense HUD opt-in gate (noise-game design-doc, Stage 0). This is a
+ * *structural* denylist, not just a default: `assessment`'s entry is typed
+ * to require the literal `false` for `noiseHudEligible`, so writing `true`
+ * there is a compile error, not a convention someone can violate by
+ * copy-pasting another mode's config. Every other mode is merely *eligible*
+ * -- a teacher still has to separately opt in per screen (a real,
+ * teacher-settable, default-off toggle lives in the noise-defense feature's
+ * own store, keyed by `DisplayModeId`; see
+ * `src/features/noise-defense/hudGate.ts`). Final HUD visibility is always
+ * `eligible && optedIn && sessionRunning` -- eligibility alone never shows it.
+ */
+export type DisplayModeConfig =
+  | (DisplayModeConfigBase & { id: 'assessment'; noiseHudEligible: false })
+  | (DisplayModeConfigBase & { id: Exclude<DisplayModeId, 'assessment'>; noiseHudEligible: boolean })
 
 export const DISPLAY_MODE_IDS: readonly DisplayModeId[] = [
   'morningArrival',
@@ -54,6 +70,7 @@ export const DISPLAY_MODES: Record<DisplayModeId, DisplayModeConfig> = {
     showImages: true,
     keepAwakeDefault: true,
     recommendedSceneType: 'arrival',
+    noiseHudEligible: true,
   },
   focus: {
     id: 'focus',
@@ -66,6 +83,7 @@ export const DISPLAY_MODES: Record<DisplayModeId, DisplayModeConfig> = {
     showImages: false,
     keepAwakeDefault: false,
     recommendedSceneType: 'math',
+    noiseHudEligible: true,
   },
   reading: {
     id: 'reading',
@@ -78,6 +96,7 @@ export const DISPLAY_MODES: Record<DisplayModeId, DisplayModeConfig> = {
     showImages: true,
     keepAwakeDefault: false,
     recommendedSceneType: 'reading',
+    noiseHudEligible: true,
   },
   transition: {
     id: 'transition',
@@ -90,6 +109,7 @@ export const DISPLAY_MODES: Record<DisplayModeId, DisplayModeConfig> = {
     showImages: false,
     keepAwakeDefault: false,
     recommendedSceneType: 'transition',
+    noiseHudEligible: true,
   },
   cleanup: {
     id: 'cleanup',
@@ -102,6 +122,7 @@ export const DISPLAY_MODES: Record<DisplayModeId, DisplayModeConfig> = {
     showImages: false,
     keepAwakeDefault: false,
     recommendedSceneType: 'packUp',
+    noiseHudEligible: true,
   },
   assessment: {
     id: 'assessment',
@@ -114,6 +135,11 @@ export const DISPLAY_MODES: Record<DisplayModeId, DisplayModeConfig> = {
     showImages: false,
     keepAwakeDefault: false,
     recommendedSceneType: 'custom',
+    // Structurally excluded, not just defaulted off -- see the
+    // `DisplayModeConfig` discriminated union above. This is not a value a
+    // future per-screen toggle flip can turn on for Assessment Mode; TS
+    // itself refuses `true` here.
+    noiseHudEligible: false,
   },
   custom: {
     id: 'custom',
@@ -124,6 +150,7 @@ export const DISPLAY_MODES: Record<DisplayModeId, DisplayModeConfig> = {
     showMessageCards: true,
     showImages: true,
     keepAwakeDefault: false,
+    noiseHudEligible: true,
   },
 }
 

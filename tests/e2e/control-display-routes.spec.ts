@@ -71,11 +71,16 @@ test.describe('Control / Display route split', () => {
     await expect(page.locator('[data-teacher-command-dock]')).toBeVisible()
   })
 
-  test('Noise Control tool appears in dock launcher', async ({ page }) => {
+  test('legacy Noise Control tool is retired from the dock launcher', async ({ page }) => {
+    // "Noise Control" is the legacy, manual, no-microphone Noise Tower
+    // Defense widget -- retired from visibility per the noise-game design
+    // doc's "critical distinction" section, superseded for real classroom
+    // use by the mic-driven Hero Academy Defense System (its own control
+    // panel, mounted directly, not through this dock/registry).
     await page.goto('/control')
     await enterEditMode(page)
     await expandDockLauncher(page)
-    await expect(page.getByRole('button', { name: 'Open Noise Control' })).toHaveCount(1)
+    await expect(page.getByRole('button', { name: 'Open Noise Control' })).toHaveCount(0)
   })
 })
 

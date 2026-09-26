@@ -29,8 +29,13 @@ import { migrateBoardState } from './boardMigrations'
  */
 
 const STORAGE_PREFIX = 'clean-board.board.'
-const KEY_STATE = `${STORAGE_PREFIX}state`
-const KEY_AUTOSAVE = `${STORAGE_PREFIX}autosave`
+/** Exported so a live cross-tab listener (`BoardHostDisplay.tsx`'s
+ * `storage`-event bridge, `NoiseDefenseControlPanel.tsx`'s render-time
+ * reads) can filter on exactly the keys this module writes, the same way
+ * `displayComposerStore.ts`/`noiseGameStore.ts` filter their own `storage`
+ * listeners by key. */
+export const KEY_STATE = `${STORAGE_PREFIX}state`
+export const KEY_AUTOSAVE = `${STORAGE_PREFIX}autosave`
 
 function getStore(): Storage | null {
   if (typeof window === 'undefined') return null

@@ -108,16 +108,14 @@ test.describe('Launch readiness — core teacher tools', () => {
     await expect(panel.getByRole('button', { name: 'Draw Number' })).toBeVisible()
   })
 
-  test('Noise Control panel renders on /control', async ({ page }) => {
+  test('legacy Noise Control tool is retired and never launchable on /control', async ({ page }) => {
+    // The legacy, manual, no-microphone Noise Tower Defense widget is
+    // retired from the launcher -- superseded by the mic-driven Hero
+    // Academy Defense System's own always-mounted control panel (a
+    // `[data-noise-defense-control-toggle]` badge, not a dock tool). This
+    // confirms the retirement holds even after entering edit mode.
     await page.goto('/control')
     await enterEditMode(page)
-    await openDockTool(page, 'Noise Control')
-
-    const panel = dockToolWorkspace(page, 'Noise Control')
-    await expect(panel.getByText('Voice Level & Traffic Light')).toBeVisible()
-    await expect(panel.getByRole('heading', { name: 'Homeroom' })).toBeVisible()
-    await expect(panel.getByRole('heading', { name: 'Math' })).toBeVisible()
-    await expect(panel.getByRole('heading', { name: 'Reading' })).toBeVisible()
-    await expect(panel.getByRole('button', { name: /0 Silent/i }).first()).toBeVisible()
+    await expect(page.locator('[data-dock-tool-card="noise"]')).toHaveCount(0)
   })
 })

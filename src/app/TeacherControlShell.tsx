@@ -12,6 +12,8 @@ import { useControlSyncClient } from '../lib/sync/controlSyncClient'
 import { PairingGate } from '../lib/sync/PairingGate'
 import { UnpairControl } from '../lib/sync/UnpairControl'
 import { ConnectionStatusIndicator } from '../lib/sync/ConnectionStatusIndicator'
+import { NoiseDefenseControlPanel } from '../features/noise-defense/NoiseDefenseControlPanel'
+import { useDisplayStudioUI } from '../features/display-studio/useDisplayStudioUI'
 import {
   getEffectiveBoardMode,
   shouldAllowStudioEditActions,
@@ -38,6 +40,7 @@ export function TeacherControlShell() {
       <>
         <PairingGate sync={sync} />
         <ConnectionStatusIndicator status={sync.connectionStatus} />
+        <NoiseDefenseControlPanel />
       </>
     )
   }
@@ -49,6 +52,18 @@ export function TeacherControlShell() {
       <ConnectionStatusIndicator status={sync.connectionStatus} />
     </>
   )
+}
+
+/** Hides the Noise Defense panel while Display Studio's Presenter Mode is
+ * active — Presenter Mode is a full-screen `fixed inset-0` focus view, and a
+ * floating panel sharing its top-right corner would otherwise intercept
+ * clicks meant for "Exit Presenter" (and generally has no business floating
+ * over a deliberately distraction-free view). Teach Mode has no presenter
+ * concept, so it renders the panel unconditionally instead of this gate. */
+function NoiseDefensePanelGate() {
+  const { presenterMode } = useDisplayStudioUI()
+  if (presenterMode) return null
+  return <NoiseDefenseControlPanel />
 }
 
 /** Full editor/dashboard workspace — dock sidebar, board, and display studio. */
@@ -210,6 +225,7 @@ function EditorModeShell() {
         </div>
         <DisplayStudio />
       </div>
+      <NoiseDefensePanelGate />
     </DisplayStudioUIProvider>
   )
 }

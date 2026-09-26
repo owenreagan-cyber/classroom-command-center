@@ -163,11 +163,22 @@ export const TEACHER_TOOL_REGISTRY: readonly ToolDefinition[] = [
     description: 'Daily brief templates and classroom job prompts.',
   },
   {
+    // Retired from the launcher (noise-game design-doc, "critical
+    // distinction" section): this is the legacy, manual, no-microphone
+    // "Noise Tower Defense" widget -- fully superseded for real classroom
+    // use by the mic-driven Hero Academy Defense System
+    // (`src/features/noise-defense/`, its own control panel mounted
+    // directly in `TeacherControlShell.tsx`/`TeachModeShell.tsx`, not this
+    // registry). `status: 'inactive'` hides it from every launcher/favorite/
+    // dock-order list (`getLauncherTools`/`isToolLaunchable`) without
+    // deleting the underlying `NoiseToolPanel.tsx`/`noiseTowers.ts` files or
+    // their registration in `toolPanelIds.ts`/`toolPanels/index.ts` -- those
+    // stay exactly as they were, just unreachable from the UI.
     id: 'noise',
     title: 'Noise Control',
     category: 'management',
     icon: '🔊',
-    status: 'docked',
+    status: 'inactive',
     permissions: ['teacher-only', 'control-route-only'],
     componentId: 'noise',
     description: 'Voice level towers and noise tracker reset.',

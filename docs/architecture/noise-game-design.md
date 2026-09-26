@@ -182,7 +182,7 @@ Same three explicit states as before — not yet requested (gesture button), den
 
 ### 4.1 Default: a docked HUD, not a permanent full-screen takeover (unchanged in principle)
 
-Docked HUD by default — five tower columns plus the pressure meter, in one screen corner, coexisting with board content. **Momentary full-screen takeovers** are reserved for the biggest, discrete events only: a **strike**, a **tower fall**, **"Regroup"** (all towers down, §0b #1), and **mission complete** — a brief auto-reverting flourish, then back to the dock (except Regroup, which holds until the teacher clears it via Manual Repair or Restore All, §3.6). (Previously this was tied to "any HP loss" during a sustained band; now it's tied to the new discrete events directly, which is a strictly smaller, more intentional set of moments.)
+Docked HUD by default — five tower columns plus the pressure meter, in one screen corner, coexisting with board content. **Momentary full-screen takeovers** are reserved for the biggest, discrete events only: a **tower fall**, **"Regroup"** (all towers down, §0b #1), and **mission complete** — a brief auto-reverting flourish, then back to the dock (except Regroup, which holds until the teacher clears it via Manual Repair or Restore All, §3.6). A **strike** is deliberately *not* on this list — it stays an in-HUD flash + tower flinch only (§4.3); a full-screen takeover is reserved for a tower actually falling, not for each individual hit along the way. (Previously this was tied to "any HP loss" during a sustained band; now it's tied to the new discrete events directly, which is a strictly smaller, more intentional set of moments.)
 
 ### 4.2 HUD contents
 
@@ -270,6 +270,8 @@ Ending a mission (teacher taps "End Mission," or a period naturally ends) shows 
 ## 7. Later stages, honestly scoped (unchanged from the prior revision)
 
 Per-period profiles, cross-device settings sync (a `noiseGame` sync channel so a teacher's iPad can reach a game running on the M1's `/display`), iPad mic support (local CA + HTTPS, §6.1 in the original numbering), and AI-generated quotes/voice (server-side only, explicit opt-in, cached not live-generated) remain later, honestly-scoped stages — none of this mechanics revision changes their staging or dependencies. Add to this list, confirmed (§0b #3): **the penalty formula (§5.3)** — fully specified as a design, but its build is deferred to a later stage, not part of this mechanics-revision build.
+
+> **Known limitation: same-device only.** The whole feature — session status, `jamReason`, per-screen HUD opt-in, Jammer/Disengage — only cross-tab-syncs on **one device**, via `noiseGameStore.ts`'s own `localStorage` + `storage`-event bridge (same pattern as `qrCastStore.ts`/`stampStore.ts`). It has no path through the Stage 2/3 cross-device pairing/WebSocket sync server (`server/classroomSyncServer.ts`) at all — that server's own scope comment explicitly defers "Noise Defense" the same way it defers Prize Board. Concretely: **an iPad `/control` paired to a Mac `/display` cannot drive Noise Defense yet** — the mic only ever runs on whichever machine has `/display` open, and none of `/control`'s Start/Jammer/Disengage/opt-in actions reach a `/display` on a different device. This is exactly the `noiseGame` sync channel named above (redesign stage 1) — until that's built, run `/control` and `/display` as two tabs on the *same* browser/device for this feature to work at all.
 
 ---
 
