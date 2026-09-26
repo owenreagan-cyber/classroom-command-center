@@ -1,11 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNoiseGameStore } from './noiseGameStore'
 import { TOWER_ORDER, VOICE_PROTOCOL_ORDER } from './types'
 import { HERO_ACADEMY_THEME } from './theme/heroAcademyTheme'
-import { MANUAL_BREAK_DAMAGE } from './constants'
+import { MANUAL_BREAK_DAMAGE, MIC_SILENT_WARNING_MS } from './constants'
 import { DISPLAY_MODE_IDS, getDisplayModeConfig } from '../clean-board/displayModes'
 import { loadHostDisplayState } from '../clean-board/displayHost'
-import { isNoiseHudAllowed } from './hudGate'
+import { isNoiseHudAllowed, shouldShowMicSilentWarning } from './hudGate'
 import type { TowerId, VoiceProtocol } from './types'
 
 function formatDb(value: number | null): string {
@@ -48,6 +48,37 @@ export function NoiseDefenseControlPanel() {
 
   const theme = HERO_ACADEMY_THEME
   const relativeDb = engineState.baselineDb === null ? null : engineState.lastDb - engineState.baselineDb
+
+  // In-room-test fix (2026-09-26): the engine only knows it's 'calibrating',
+  // not since when, so this tab tracks the wall-clock start itself and
+  // re-checks on an interval — the moment a real sample arrives
+  // (calibrationSamplesDb.length > 0, mirrored from /display via the store's
+  // storage-event sync), `shouldShowMicSilentWarning` flips back to false on
+  // its own with no separate dismiss action needed.
+  const [calibrationStartedAt, setCalibrationStartedAt] = useState<number | null>(null)
+  const [now, setNow] = useState(() => Date.now())
+
+  useEffect(() => {
+    if (engineState.status === 'calibrating') {
+      setCalibrationStartedAt((prev) => prev ?? Date.now())
+    } else {
+      setCalibrationStartedAt(null)
+    }
+  }, [engineState.status])
+
+  useEffect(() => {
+    if (engineState.status !== 'calibrating') return
+    const id = setInterval(() => setNow(Date.now()), 500)
+    return () => clearInterval(id)
+  }, [engineState.status])
+
+  const micSilentWarning = shouldShowMicSilentWarning(
+    engineState.status,
+    engineState.calibrationSamplesDb.length,
+    calibrationStartedAt,
+    now,
+    MIC_SILENT_WARNING_MS,
+  )
   const thresholdDb = engineState.config.protocolThresholdOffsetDb[engineState.protocol]
   const activeTower = engineState.towers.find((t) => t.hp > 0) ?? null
   const isRegroup = engineState.status === 'regroup'
@@ -199,9 +230,18 @@ export function NoiseDefenseControlPanel() {
             </button>
           </div>
 
-          {engineState.status === 'calibrating' && (
+          {engineState.status === 'calibrating' && !micSilentWarning && (
             <p className="text-center text-[10px] text-[#8fa3ff]">
               Keep the room quiet — sampling the baseline now.
+            </p>
+          )}
+
+          {micSilentWarning && (
+            <p
+              className="rounded-lg border border-rose-500/50 bg-rose-950/40 px-2 py-1.5 text-center text-[11px] font-bold text-rose-200"
+              data-noise-defense-mic-silent-warning
+            >
+              🎙️ Microphone isn't running on the display — tap 🎙️ on the TV screen
             </p>
           )}
 

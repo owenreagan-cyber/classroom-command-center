@@ -78,6 +78,14 @@ export const GAME_TICK_MS = 1000
  * seconds" range (§2.3). */
 export const CALIBRATION_DURATION_MS = 7000
 
+/** In-room-test fix (2026-09-26): if calibration has been running this long
+ * with zero samples collected, `/control` shows a clear "microphone isn't
+ * running on the display" message instead of silently leaving Baseline at
+ * "—" until the full `CALIBRATION_DURATION_MS` window times out. Well under
+ * that window, so there's time left for the teacher to react and tap the
+ * mic gesture on `/display` before this calibration attempt ends. */
+export const MIC_SILENT_WARNING_MS = 3000
+
 /** `AnalyserNode.fftSize` — 2048 is enough for RMS/level detection; no need
  * for full frequency-domain analysis in this build (§2.2). */
 export const ANALYSER_FFT_SIZE = 2048

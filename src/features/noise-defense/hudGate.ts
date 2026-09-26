@@ -63,3 +63,26 @@ export function decideScreenJamAction(
   }
   return 'none'
 }
+
+/**
+ * In-room-test fix (2026-09-26) — the pure "should /control show the
+ * 'microphone isn't running on the display' warning" decision, factored out
+ * so it's unit-testable without a browser/timer. `/control` supplies
+ * `calibrationStartedAtMs` itself (the engine has no such field — it only
+ * knows it's `'calibrating'`, not since when) and re-evaluates this on an
+ * interval while calibrating; the moment a real sample arrives
+ * (`calibrationSamplesCollected` becomes > 0), this flips back to `false` on
+ * its own, no separate "clear" action needed.
+ */
+export function shouldShowMicSilentWarning(
+  status: GameStatus,
+  calibrationSamplesCollected: number,
+  calibrationStartedAtMs: number | null,
+  nowMs: number,
+  thresholdMs: number,
+): boolean {
+  if (status !== 'calibrating') return false
+  if (calibrationStartedAtMs === null) return false
+  if (calibrationSamplesCollected > 0) return false
+  return nowMs - calibrationStartedAtMs >= thresholdMs
+}

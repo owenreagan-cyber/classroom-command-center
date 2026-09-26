@@ -1,4 +1,4 @@
-import { decideScreenJamAction, isNoiseHudAllowed } from './hudGate'
+import { decideScreenJamAction, isNoiseHudAllowed, shouldShowMicSilentWarning } from './hudGate'
 import { DISPLAY_MODE_IDS } from '../clean-board/displayModes'
 import type { DisplayModeId } from '../clean-board/types'
 import type { GameStatus } from './types'
@@ -126,6 +126,54 @@ function testNeverActsWithNoSessionRunning() {
   console.log('  PASS: the auto-jam decision never fires (engage or resume) while no session is running')
 }
 
+/**
+ * In-room-test fix (2026-09-26) -- the "microphone isn't running on the
+ * display" warning shown on `/control` when calibration gets no samples
+ * within a few seconds, instead of Baseline silently staying "—" until the
+ * full calibration window times out.
+ */
+function testMicSilentWarningOnlyDuringCalibrating() {
+  for (const status of ['idle', 'running', 'regroup', 'jammed', 'mic-denied', 'ended'] as GameStatus[]) {
+    assert(
+      shouldShowMicSilentWarning(status, 0, 1000, 10000, 3000) === false,
+      `must never show the mic-silent warning while ${status}, even with stale timing`,
+    )
+  }
+  console.log('  PASS: mic-silent warning never fires outside calibrating')
+}
+
+function testMicSilentWarningNeedsAStartTimestamp() {
+  assert(
+    shouldShowMicSilentWarning('calibrating', 0, null, 10000, 3000) === false,
+    'must not show the warning before a calibration start time is known',
+  )
+  console.log('  PASS: mic-silent warning needs a known calibration start time')
+}
+
+function testMicSilentWarningWaitsForTheThreshold() {
+  assert(
+    shouldShowMicSilentWarning('calibrating', 0, 1000, 1000, 3000) === false,
+    'must not show the warning the instant calibration begins',
+  )
+  assert(
+    shouldShowMicSilentWarning('calibrating', 0, 1000, 3999, 3000) === false,
+    'must not show the warning just under the threshold',
+  )
+  assert(
+    shouldShowMicSilentWarning('calibrating', 0, 1000, 4000, 3000) === true,
+    'must show the warning once the threshold has elapsed with zero samples',
+  )
+  console.log('  PASS: mic-silent warning waits for the configured threshold before firing')
+}
+
+function testMicSilentWarningClearsOnceASampleArrives() {
+  assert(
+    shouldShowMicSilentWarning('calibrating', 1, 1000, 10000, 3000) === false,
+    'a single collected sample must clear the warning even long after the threshold',
+  )
+  console.log('  PASS: mic-silent warning clears the instant a real sample has been collected')
+}
+
 testAbsentByDefaultEverywhere()
 testEligibleScreensCanBeOptedIn()
 testAssessmentModeStructurallyExcluded()
@@ -133,5 +181,9 @@ testOtherScreensOptInDoesNotLeakToAssessment()
 testSwitchingToHiddenScreenAutoEngages()
 testSwitchingBackAutoResumesOnlyAnAutoJam()
 testNeverActsWithNoSessionRunning()
+testMicSilentWarningOnlyDuringCalibrating()
+testMicSilentWarningNeedsAStartTimestamp()
+testMicSilentWarningWaitsForTheThreshold()
+testMicSilentWarningClearsOnceASampleArrives()
 
 console.log('Noise Defense HUD opt-in gate tests passed.')

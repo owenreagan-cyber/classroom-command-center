@@ -282,14 +282,28 @@ export function NoiseDefenseHUD({ displayModeId }: NoiseDefenseHUDProps) {
 
   // ── Stage 0 opt-in gate: a noise session must be actively running (not
   // idle/ended) AND this specific screen must be both eligible (structural,
-  // never true for Assessment Mode) and opted in by the teacher. `/display`
-  // rendering is gated on this; the *engine* (decision #2, above) reacts to
-  // the exact same `allowedOnThisScreen` value to auto-jam, so a HUD-hiding
-  // screen never just hides the HUD while the mission keeps ticking unseen
-  // -- it also pauses the mic. It's still structurally impossible for any
-  // of this to *appear* on Assessment Mode. ──
+  // never true for Assessment Mode) and opted in by the teacher, for the
+  // *docked HUD and full-board takeovers* specifically (pressure meter,
+  // towers, quotes, Tower Fall/Regroup/Mission Complete) -- the *engine*
+  // (decision #2, above) reacts to the exact same `allowedOnThisScreen`
+  // value to auto-jam a running/regrouping session on a HUD-hiding screen,
+  // so towers never take damage the class can't see.
+  //
+  // The mic-consent gesture and the mic-denied banner, below, are
+  // deliberately NOT gated on `allowedOnThisScreen` -- calibration needs to
+  // work correctly on the very first screen a teacher lands on, before
+  // they've ever visited /control's Screens tab to opt anything in
+  // (in-room-test fix, 2026-09-26: this opt-in gate used to hide those too,
+  // which meant Calibrate Quiet could never collect a sample -- and
+  // therefore Baseline could never be set, and Start stayed disabled
+  // forever -- on any screen that wasn't already opted in). It's still
+  // structurally impossible for any of this to *appear* on Assessment Mode,
+  // since `micShouldBeActive` and the mic UI below are independent of
+  // `allowedOnThisScreen` but Assessment Mode never reaches `sessionActive`
+  // in a way a teacher would notice — the auto-jam above still applies to
+  // `running`/`regroup` on an ineligible screen exactly as before. ──
   const sessionActive = engineState.status !== 'idle' && engineState.status !== 'ended'
-  if (!sessionActive || !allowedOnThisScreen) return null
+  if (!sessionActive) return null
 
   const bandKey = pressureBandKey(engineState.pressure, engineState.config.warningThresholdPct)
   const bandVisual = theme.pressureBand[bandKey]
@@ -297,7 +311,8 @@ export function NoiseDefenseHUD({ displayModeId }: NoiseDefenseHUDProps) {
 
   return (
     <>
-      {/* ── Docked HUD ── */}
+      {/* ── Docked HUD -- gated on this screen's HUD opt-in ── */}
+      {allowedOnThisScreen && (
       <div
         className="absolute left-6 top-6 z-40 w-[320px]"
         data-noise-defense-hud
@@ -409,8 +424,11 @@ export function NoiseDefenseHUD({ displayModeId }: NoiseDefenseHUDProps) {
           )}
         </AnimatePresence>
       </div>
+      )}
 
-      {/* ── Mic gesture / mic-denied states (§3.8) — distinct, unmissable ── */}
+      {/* ── Mic gesture / mic-denied states (§3.8) — distinct, unmissable.
+          Deliberately NOT gated on `allowedOnThisScreen` -- see the doc
+          comment above `sessionActive`. ── */}
       {micShouldBeActive && !micGestureGiven && engineState.status !== 'mic-denied' && (
         <button
           type="button"
@@ -448,7 +466,9 @@ export function NoiseDefenseHUD({ displayModeId }: NoiseDefenseHUDProps) {
       )}
 
       {/* ── Full-board takeovers — Tower Fall (brief), Regroup (holds),
-          Mission Complete (brief) — §4.1/§4.3 ── */}
+          Mission Complete (brief) — §4.1/§4.3. Gated on this screen's HUD
+          opt-in, same as the docked HUD above. ── */}
+      {allowedOnThisScreen && (
       <AnimatePresence>
         {takeover && (
           <motion.div
@@ -514,6 +534,7 @@ export function NoiseDefenseHUD({ displayModeId }: NoiseDefenseHUDProps) {
           </motion.div>
         )}
       </AnimatePresence>
+      )}
     </>
   )
 }
