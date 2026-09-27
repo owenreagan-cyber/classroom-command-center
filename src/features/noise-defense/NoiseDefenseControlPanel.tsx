@@ -87,7 +87,8 @@ export function NoiseDefenseControlPanel() {
   // scene/Display Mode writes never fire a same-tab `storage` event (only
   // *other* tabs get that), so a memoized read here would go stale exactly
   // when it matters most: this same tab switching scenes.
-  const allowedOnThisScreen = isNoiseHudAllowed(loadHostDisplayState().displayModeId, hudOptIn)
+  const currentDisplayModeId = loadHostDisplayState().displayModeId
+  const allowedOnThisScreen = isNoiseHudAllowed(currentDisplayModeId, hudOptIn)
   const disengageDisabled = isJammed && engineState.jamReason === 'auto' && !allowedOnThisScreen
 
   if (!expanded) {
@@ -393,6 +394,19 @@ export function NoiseDefenseControlPanel() {
             The HUD only ever appears on `/display` while a session is running AND the current screen
             is opted in below. Assessment Mode can never be opted in.
           </p>
+          {/* Real-room fix (2026-09-26, display-mode drift): the Display
+              Mode `/display` actually resolves to can silently differ from
+              whatever a teacher last selected (e.g. before this fix,
+              opening /board-lab even once, with no autosave yet, silently
+              flipped it to Custom) -- naming it here, next to the opt-in
+              checkboxes, makes that drift visible instead of only
+              discoverable by watching /display go dark. */}
+          <p
+            className="rounded-lg border border-[#2c303a] bg-[#1b1e26] px-2.5 py-1.5 text-[11px] font-semibold text-[#9aa1ad]"
+            data-noise-defense-current-display-mode
+          >
+            TV is showing: <span className="text-[#e7e9ee]">{getDisplayModeConfig(currentDisplayModeId).name}</span>
+          </p>
           <div className="space-y-1">
             {DISPLAY_MODE_IDS.map((id) => {
               const cfg = getDisplayModeConfig(id)
@@ -402,7 +416,7 @@ export function NoiseDefenseControlPanel() {
                   key={id}
                   className={`flex items-center justify-between rounded-lg border border-[#2c303a] bg-[#1b1e26] px-2.5 py-1.5 text-[11px] font-semibold ${
                     disabled ? 'text-[#4a4f5c]' : 'text-[#9aa1ad]'
-                  }`}
+                  } ${id === currentDisplayModeId ? 'ring-1 ring-[#2b6ef2]/60' : ''}`}
                 >
                   {cfg.name}
                   <input

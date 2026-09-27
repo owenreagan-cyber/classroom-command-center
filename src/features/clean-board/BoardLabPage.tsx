@@ -11,7 +11,8 @@ import { DEFAULT_BACKGROUND } from './backgrounds'
 import { pageHasKind, toSafeBoardPage } from './boardSafety'
 import { createImageObjectFromSafeImage, imageRejectMessage, readImageFileToSafeDataUrl } from './images'
 import { DEFAULT_MESSAGE_CARD_KIND, getMessageCardPreset } from './messageCards'
-import { DEFAULT_DISPLAY_MODE_ID, projectPageForDisplayMode } from './displayModes'
+import { projectPageForDisplayMode } from './displayModes'
+import { loadHostDisplayState } from './displayHost'
 import { DisplayModeSelector } from './DisplayModeSelector'
 import { createSeedBoard } from './seedBoard'
 import { SpotifyTeacherPanel } from './spotify/SpotifyTeacherPanel'
@@ -185,11 +186,17 @@ export function BoardLabPage() {
     return null
   })
 
-  // DB-4F — the currently-selected classroom display mode. Restored from the
-  // last autosave so the projection preference survives refresh; defaults to
-  // `custom` (teacher-controlled, show everything).
+  // DB-4F — the currently-selected classroom display mode. Real-room fix
+  // (2026-09-26, display-mode drift): seeded from whatever `/display` is
+  // ACTUALLY resolving to right now (`loadHostDisplayState`'s scene ->
+  // layout -> autosave -> default priority, the exact same resolver
+  // `/display` itself calls) rather than a hardcoded `custom` fallback --
+  // previously, opening this page with no autosave yet silently started
+  // this selector on `custom` even when `/display` was genuinely showing a
+  // different default (e.g. `morningArrival`), and the mount-autosave
+  // effect below used to immediately bake that drift in as fact.
   const [displayModeId, setDisplayModeId] = useState<DisplayModeId>(
-    () => loadAutosaveLayout()?.displayModeId ?? DEFAULT_DISPLAY_MODE_ID,
+    () => loadHostDisplayState().displayModeId,
   )
 
   const init = useSpotifyStore((s) => s.init)
@@ -221,7 +228,27 @@ export function BoardLabPage() {
   // Debounce-persist the current active page so the display survives refresh.
   // Only the teacher-authored page content is stored (objects + background +
   // name) — never tokens, account data, or transient UI state.
+  //
+  // Real-room fix (2026-09-26, display-mode drift): only writes once
+  // `activePage`/`displayModeId` actually differ from whatever was loaded at
+  // mount -- not just "skip the very first effect run," which would also
+  // skip a genuine change that happened to fire on the first render (and
+  // would write again if this component ever remounted without a real
+  // change). `activePage` objects are only ever replaced by reference on a
+  // real edit (`setDeck` always spreads immutably), so reference inequality
+  // here means "the teacher changed something," never a benign re-render.
+  // Before this fix, this effect fired (debounced 400ms) on every single
+  // visit to this page regardless of whether the teacher changed anything
+  // -- silently writing an autosave (and, before the seeding fix above, one
+  // stamped with the wrong `displayModeId`) just from opening the page,
+  // which then permanently outranked `/display`'s own true 'default'
+  // fallback.
+  const mountActivePageRef = useRef(activePage)
+  const mountDisplayModeIdRef = useRef(displayModeId)
   useEffect(() => {
+    const changedFromMount =
+      activePage !== mountActivePageRef.current || displayModeId !== mountDisplayModeIdRef.current
+    if (!changedFromMount) return
     const timer = setTimeout(() => {
       saveAutosaveLayout(layoutFromPage(activePage, activePage.title, displayModeId))
     }, 400)
