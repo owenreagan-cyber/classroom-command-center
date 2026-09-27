@@ -1,4 +1,12 @@
-import { DEFAULT_ENGINE_CONFIG, DEFAULT_VOICE_PROTOCOL, RMS_FLOOR } from './constants'
+import {
+  CALIBRATION_SILENCE_FLOOR_DB,
+  CALIBRATION_WARMUP_MS,
+  DEFAULT_ENGINE_CONFIG,
+  DEFAULT_VOICE_PROTOCOL,
+  IMPLAUSIBLE_BASELINE_DB,
+  MIN_CALIBRATION_SAMPLES,
+  RMS_FLOOR,
+} from './constants'
 import { TOWER_ORDER, createEmptyMissionStats } from './types'
 import type {
   EngineConfig,
@@ -40,6 +48,8 @@ export function createInitialEngineState(
     lastSampleAtMs: null,
     calmMode: false,
     calibrationSamplesDb: [],
+    calibrationStartedAtMs: null,
+    lastCalibrationRejected: false,
     preJamStatus: null,
     jamReason: null,
     jammedAtMs: null,
@@ -55,6 +65,11 @@ export function createInitialEngineState(
  * The calibrated baseline and Calm Mode preference are intentionally
  * preserved — a reset mid-period shouldn't force a recalibration, and Calm
  * Mode is a standing teacher preference, not per-mission state.
+ * `lastCalibrationRejected` is cleared, though (2026-09-26) — it's a stale
+ * verdict on a past calibration *attempt*, not part of the mission being
+ * reset, and leaving it true here would keep showing "Calibration heard
+ * silence" after a Reset even once a real baseline exists (e.g. rejected,
+ * then later recalibrated successfully, then Reset).
  */
 export function reset(state: TimedEngineState): TimedEngineState {
   return {
@@ -68,6 +83,7 @@ export function reset(state: TimedEngineState): TimedEngineState {
     recovering: false,
     warningArmed: false,
     lastSampleAtMs: null,
+    lastCalibrationRejected: false,
     preJamStatus: null,
     jamReason: null,
     jammedAtMs: null,
@@ -296,16 +312,45 @@ export function autoDisengageJammer(state: TimedEngineState, nowMs: number): Eng
 // Calibration (§2.3)
 // ─────────────────────────────────────────────────────────────────────────
 
-export function beginCalibration(state: TimedEngineState): TimedEngineState {
-  return { ...state, status: 'calibrating', calibrationSamplesDb: [] }
+export function beginCalibration(state: TimedEngineState, nowMs: number): TimedEngineState {
+  return {
+    ...state,
+    status: 'calibrating',
+    calibrationSamplesDb: [],
+    calibrationStartedAtMs: nowMs,
+    lastCalibrationRejected: false,
+  }
 }
 
+/**
+ * Feeds one raw mic sample into the in-progress calibration window. Always
+ * updates the live `lastRms`/`lastDb` readout (so the teacher's tuning
+ * panel reflects what the mic is hearing right now), but a sample is only
+ * added to the baseline sample set itself if it survives both filters
+ * (real-room fix, 2026-09-26 — see `constants.ts`):
+ *   - it arrived at least `CALIBRATION_WARMUP_MS` after this calibration
+ *     attempt began (the capture graph's first moments can read as silence
+ *     even in a normal room, before real audio data starts flowing), and
+ *   - it's louder than `CALIBRATION_SILENCE_FLOOR_DB` (the analyser's
+ *     digital floor, never a real room reading).
+ */
 export function ingestCalibrationSample(
   state: TimedEngineState,
   rms: number,
+  atMs: number,
 ): TimedEngineState {
   if (state.status !== 'calibrating') return state
   const db = rmsToDb(rms)
+
+  const elapsedSinceStart =
+    state.calibrationStartedAtMs === null ? Infinity : atMs - state.calibrationStartedAtMs
+  const isWarmupSample = elapsedSinceStart < CALIBRATION_WARMUP_MS
+  const isDigitalFloorSample = db <= CALIBRATION_SILENCE_FLOOR_DB
+
+  if (isWarmupSample || isDigitalFloorSample) {
+    return { ...state, lastRms: rms, lastDb: db }
+  }
+
   return {
     ...state,
     lastRms: rms,
@@ -314,18 +359,65 @@ export function ingestCalibrationSample(
   }
 }
 
-/** Averages the collected calibration window into a baseline and returns to
- * `idle`, ready for Start. No-ops (returns state unchanged, no event) if no
- * samples were collected. */
+function median(values: number[]): number {
+  const sorted = [...values].sort((a, b) => a - b)
+  const mid = Math.floor(sorted.length / 2)
+  return sorted.length % 2 === 0
+    ? (sorted[mid - 1]! + sorted[mid]!) / 2
+    : sorted[mid]!
+}
+
+/**
+ * Takes the median of the collected (already-filtered) calibration window
+ * as the baseline and returns to `idle`, ready for Start — median rather
+ * than mean so a handful of surviving low outliers (e.g. warmup samples
+ * that landed just above the filters' cutoffs) can't drag a real baseline
+ * down the way an average would.
+ *
+ * Rejects the attempt (`baselineDb` untouched, `lastCalibrationRejected:
+ * true`, no `Start` unlock) rather than accepting a bad baseline, in either
+ * of two cases (real-room fix, 2026-09-26): too few samples survived the
+ * warmup/digital-floor filters (`MIN_CALIBRATION_SAMPLES`) to trust at all,
+ * or the resulting median is still implausibly quiet for an occupied room
+ * (`IMPLAUSIBLE_BASELINE_DB`).
+ */
 export function finishCalibration(state: TimedEngineState): EngineTickResult {
-  if (state.calibrationSamplesDb.length === 0) {
-    return { state: { ...state, status: 'idle' }, events: [] }
+  if (state.calibrationSamplesDb.length < MIN_CALIBRATION_SAMPLES) {
+    return {
+      state: {
+        ...state,
+        status: 'idle',
+        calibrationSamplesDb: [],
+        calibrationStartedAtMs: null,
+        lastCalibrationRejected: true,
+      },
+      events: [{ type: 'calibrationRejected' }],
+    }
   }
-  const mean =
-    state.calibrationSamplesDb.reduce((sum, db) => sum + db, 0) /
-    state.calibrationSamplesDb.length
+
+  const baseline = median(state.calibrationSamplesDb)
+  if (baseline <= IMPLAUSIBLE_BASELINE_DB) {
+    return {
+      state: {
+        ...state,
+        status: 'idle',
+        calibrationSamplesDb: [],
+        calibrationStartedAtMs: null,
+        lastCalibrationRejected: true,
+      },
+      events: [{ type: 'calibrationRejected' }],
+    }
+  }
+
   return {
-    state: { ...state, status: 'idle', baselineDb: mean, calibrationSamplesDb: [] },
+    state: {
+      ...state,
+      status: 'idle',
+      baselineDb: baseline,
+      calibrationSamplesDb: [],
+      calibrationStartedAtMs: null,
+      lastCalibrationRejected: false,
+    },
     events: [{ type: 'calibrationComplete' }],
   }
 }

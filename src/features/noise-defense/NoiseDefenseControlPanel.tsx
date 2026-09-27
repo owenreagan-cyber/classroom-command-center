@@ -49,22 +49,16 @@ export function NoiseDefenseControlPanel() {
   const theme = HERO_ACADEMY_THEME
   const relativeDb = engineState.baselineDb === null ? null : engineState.lastDb - engineState.baselineDb
 
-  // In-room-test fix (2026-09-26): the engine only knows it's 'calibrating',
-  // not since when, so this tab tracks the wall-clock start itself and
-  // re-checks on an interval — the moment a real sample arrives
-  // (calibrationSamplesDb.length > 0, mirrored from /display via the store's
-  // storage-event sync), `shouldShowMicSilentWarning` flips back to false on
-  // its own with no separate dismiss action needed.
-  const [calibrationStartedAt, setCalibrationStartedAt] = useState<number | null>(null)
+  // In-room-test fix (2026-09-26): re-checked on an interval while
+  // calibrating so the mic-silent warning can appear without waiting on a
+  // store update -- the moment a real sample arrives (calibrationSamplesDb
+  // grows, mirrored from /display via the store's storage-event sync),
+  // `shouldShowMicSilentWarning` flips back to false on its own with no
+  // separate dismiss action needed. `calibrationStartedAtMs` now comes
+  // straight from the engine (set by `beginCalibration`) rather than being
+  // approximated locally -- authoritative even if this tab mounts mid
+  // already-in-progress calibration (e.g. a `/control` refresh).
   const [now, setNow] = useState(() => Date.now())
-
-  useEffect(() => {
-    if (engineState.status === 'calibrating') {
-      setCalibrationStartedAt((prev) => prev ?? Date.now())
-    } else {
-      setCalibrationStartedAt(null)
-    }
-  }, [engineState.status])
 
   useEffect(() => {
     if (engineState.status !== 'calibrating') return
@@ -75,7 +69,7 @@ export function NoiseDefenseControlPanel() {
   const micSilentWarning = shouldShowMicSilentWarning(
     engineState.status,
     engineState.calibrationSamplesDb.length,
-    calibrationStartedAt,
+    engineState.calibrationStartedAtMs,
     now,
     MIC_SILENT_WARNING_MS,
   )
@@ -242,6 +236,21 @@ export function NoiseDefenseControlPanel() {
               data-noise-defense-mic-silent-warning
             >
               🎙️ Microphone isn't running on the display — tap 🎙️ on the TV screen
+            </p>
+          )}
+
+          {/* Real-room fix (2026-09-26): calibration DID hear the mic, but
+              every sample was filtered out as startup silence / the digital
+              floor, or the resulting baseline was still implausibly quiet
+              (engine.ts's finishCalibration). Baseline stays null and Start
+              stays disabled -- distinct from micSilentWarning above, which
+              fires mid-calibration when no sample has arrived at all. */}
+          {engineState.status === 'idle' && engineState.lastCalibrationRejected && (
+            <p
+              className="rounded-lg border border-rose-500/50 bg-rose-950/40 px-2 py-1.5 text-center text-[11px] font-bold text-rose-200"
+              data-noise-defense-calibration-rejected
+            >
+              🎙️ Calibration heard silence — make sure the mic is on, then calibrate again.
             </p>
           )}
 

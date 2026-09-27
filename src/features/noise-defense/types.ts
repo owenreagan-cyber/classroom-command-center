@@ -162,8 +162,22 @@ export interface TimedEngineState {
    * the engine (not just the display layer) so tests and other consumers
    * can see it's an orthogonal concern from `status`. */
   calmMode: boolean
-  /** Scratch accumulator used only while `status === 'calibrating'`. */
+  /** Scratch accumulator used only while `status === 'calibrating'` — only
+   * samples that survived the startup-silence/digital-floor filters (see
+   * `engine.ts`'s `ingestCalibrationSample`), not every raw sample. */
   calibrationSamplesDb: number[]
+  /** Wall-clock ms the current calibration attempt began, set by
+   * `beginCalibration`; `null` outside calibration. Used to ignore samples
+   * in the first `CALIBRATION_WARMUP_MS` of a fresh mic stream (real-room
+   * fix, 2026-09-26 — see `constants.ts`). */
+  calibrationStartedAtMs: number | null
+  /** Set true only when the most recent calibration attempt was rejected
+   * for hearing (near-)silence — either too few samples survived the
+   * warmup/digital-floor filters, or the resulting baseline was still
+   * implausibly quiet (`IMPLAUSIBLE_BASELINE_DB`). Cleared the instant a
+   * new calibration begins or one succeeds; drives `/control`'s "heard
+   * silence" message (real-room fix, 2026-09-26). */
+  lastCalibrationRejected: boolean
   /** What to resume into when the Comms Jammer disengages — only meaningful
    * while `status === 'jammed'`. */
   preJamStatus: 'running' | 'regroup' | null
@@ -214,6 +228,7 @@ export type EngineEvent =
   | { type: 'jammerDisengaged'; manual: boolean }
   | { type: 'jammerReasonChanged'; jamReason: 'auto' | 'manual' }
   | { type: 'calibrationComplete' }
+  | { type: 'calibrationRejected' }
   | { type: 'missionComplete'; clean: boolean }
 
 export interface EngineTickResult {

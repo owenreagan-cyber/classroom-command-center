@@ -90,7 +90,7 @@ export const useNoiseGameStore = create<NoiseGameStore>()(
       },
       resetGame: () => set({ engine: engine.reset(get().engine) }),
 
-      beginCalibration: () => set({ engine: engine.beginCalibration(get().engine) }),
+      beginCalibration: () => set({ engine: engine.beginCalibration(get().engine, Date.now()) }),
       finishCalibration: () => {
         const { state } = engine.finishCalibration(get().engine)
         set({ engine: state })
@@ -99,7 +99,7 @@ export const useNoiseGameStore = create<NoiseGameStore>()(
       ingestSample: (rms, atMs) => {
         const current = get().engine
         if (current.status === 'calibrating') {
-          set({ engine: engine.ingestCalibrationSample(current, rms) })
+          set({ engine: engine.ingestCalibrationSample(current, rms, atMs) })
           return
         }
         if (current.status === 'running' || current.status === 'regroup') {

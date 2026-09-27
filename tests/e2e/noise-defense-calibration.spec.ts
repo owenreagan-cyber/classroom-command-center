@@ -21,45 +21,30 @@
  * the fix (the mic-gesture button never appears on `/display`) and pass
  * after it.
  *
+ * `--use-fake-device-for-media-stream` alone captures literal digital
+ * silence (measured -120 dB, RMS 0) — which the real-room calibration fix
+ * (2026-09-26) now correctly rejects as implausible, so this test also
+ * feeds a real synthetic "room" via `--use-file-for-fake-audio-capture`
+ * pointed at `tests/fixtures/fake-room-noise.wav` (a ~-48 dBFS 300Hz tone,
+ * matching the real incident's actual room level) so calibration has
+ * something genuinely plausible to measure.
+ *
  * Run: npm run test:e2e -- tests/e2e/noise-defense-calibration.spec.ts
  */
 
-import { test, expect, type Page } from '@playwright/test'
+import path from 'node:path'
+import { test, expect } from '@playwright/test'
+import { readEngine } from './helpers/noise-defense-e2e'
 
 test.use({
   launchOptions: {
-    args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'],
+    args: [
+      '--use-fake-ui-for-media-stream',
+      '--use-fake-device-for-media-stream',
+      `--use-file-for-fake-audio-capture=${path.resolve(process.cwd(), 'tests/fixtures/fake-room-noise.wav')}`,
+    ],
   },
 })
-
-const NOISE_GAME_STORAGE_KEY = 'classroom-command-center-noise-defense'
-
-interface PersistedNoiseGameState {
-  state?: {
-    engine?: {
-      status?: string
-      baselineDb?: number | null
-      missionStats?: { startedAtMs?: number | null }
-    }
-  }
-}
-
-async function readEngine(page: Page): Promise<{
-  status: string | undefined
-  baselineDb: number | null | undefined
-  startedAtMs: number | null | undefined
-}> {
-  return page.evaluate((key) => {
-    const raw = localStorage.getItem(key)
-    if (!raw) return { status: undefined, baselineDb: undefined, startedAtMs: undefined }
-    const parsed = JSON.parse(raw) as PersistedNoiseGameState
-    return {
-      status: parsed.state?.engine?.status,
-      baselineDb: parsed.state?.engine?.baselineDb,
-      startedAtMs: parsed.state?.engine?.missionStats?.startedAtMs,
-    }
-  }, NOISE_GAME_STORAGE_KEY)
-}
 
 test.describe('Noise Defense — real Calibrate Quiet flow (no seeding)', () => {
   test('Calibrate Quiet sets a Baseline and unlocks Start on a totally fresh session', async ({ page, context }) => {
@@ -101,7 +86,12 @@ test.describe('Noise Defense — real Calibrate Quiet flow (no seeding)', () => 
       .poll(async () => (await readEngine(page)).baselineDb, { timeout: 9000 })
       .not.toBeNull()
 
+    const { baselineDb } = await readEngine(page)
+    expect(baselineDb).toBeGreaterThan(-55)
+    expect(baselineDb).toBeLessThan(-40)
+
     await expect(page.locator('[data-noise-defense-readout="baseline"]')).not.toHaveText('—')
+    await expect(page.locator('[data-noise-defense-calibration-rejected]')).toHaveCount(0)
 
     const startButton = page.locator('[data-noise-defense-action="start"]')
     await expect(startButton).toBeEnabled()

@@ -1,15 +1,27 @@
-import { DEFAULT_ENGINE_CONFIG, DEFAULT_VOICE_PROTOCOL } from './constants'
+import {
+  CALIBRATION_SILENCE_FLOOR_DB,
+  CALIBRATION_WARMUP_MS,
+  DEFAULT_ENGINE_CONFIG,
+  DEFAULT_VOICE_PROTOCOL,
+  IMPLAUSIBLE_BASELINE_DB,
+  MIN_CALIBRATION_SAMPLES,
+  SAMPLE_INTERVAL_MS,
+} from './constants'
 import {
   applyManualBreak,
   applyManualRepair,
   applyRestoreAll,
   autoDisengageJammer,
   autoEngageJammer,
+  beginCalibration,
   createInitialEngineState,
   disengageJammer,
   end,
   engageJammer,
+  finishCalibration,
+  ingestCalibrationSample,
   ingestSample,
+  reset,
   rmsToDb,
   setMicDenied,
   setProtocol,
@@ -553,6 +565,144 @@ function testMissionCompleteCleanTiering() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
+// Calibration: real-room fix (2026-09-26) -- ignore mic startup silence and
+// the digital floor, require a minimum number of valid samples, use the
+// median, and reject an implausibly quiet result outright.
+// ─────────────────────────────────────────────────────────────────────────
+
+/** Absolute RMS for a target dB level (inverse of rmsToDb). */
+function rmsAtDb(db: number): number {
+  return Math.pow(10, db / 20)
+}
+
+/** Feeds one calibration sample every `SAMPLE_INTERVAL_MS`, starting right
+ * after `beginCalibration`'s own timestamp, for `count` samples at `db`. */
+function feedCalibrationSamples(
+  state: TimedEngineState,
+  db: number,
+  count: number,
+  startAtMs: number,
+): TimedEngineState {
+  let s = state
+  for (let i = 0; i < count; i++) {
+    s = ingestCalibrationSample(s, rmsAtDb(db), startAtMs + i * SAMPLE_INTERVAL_MS)
+  }
+  return s
+}
+
+function testCalibrationIgnoresStartupSilenceAndReadsTheRealRoom() {
+  // Real incident: mic startup silence measured -120 dB (the digital
+  // floor); the actual room was ~-48 dB.
+  let state = beginCalibration(createInitialEngineState(config), 0)
+
+  // Digital-floor samples throughout the warmup window (t=0..750ms, all
+  // under CALIBRATION_WARMUP_MS=1000) -- must never reach the sample set.
+  state = feedCalibrationSamples(state, -120, 4, 0)
+  assert(0 === state.calibrationSamplesDb.length, 'warmup-window digital-floor samples must not be collected')
+
+  // Real room noise from just after the warmup window through the rest of
+  // the calibration duration.
+  state = feedCalibrationSamples(state, -48, 20, CALIBRATION_WARMUP_MS + 50)
+  assert(20 === state.calibrationSamplesDb.length, 'every post-warmup, above-floor sample must be collected')
+
+  const { state: finished } = finishCalibration(state)
+  assert(-48 === finished.baselineDb, 'baseline must land on the real room level, not the startup silence')
+  assert(false === finished.lastCalibrationRejected, 'a good calibration must not be flagged rejected')
+  assert(0 === finished.calibrationSamplesDb.length, 'sample scratch buffer must be cleared after finishing')
+  assert(null === finished.calibrationStartedAtMs, 'calibration start time must be cleared after finishing')
+  console.log('  PASS: calibration ignores mic startup silence (warmup + digital floor) and reads the real room')
+}
+
+function testCalibrationRejectsAllSilence() {
+  let state = beginCalibration(createInitialEngineState(config), 0)
+  // Digital-floor silence for the whole window, well past the warmup cutoff
+  // too -- every sample is still at the digital floor, so none are ever
+  // collected regardless of timing.
+  state = feedCalibrationSamples(state, CALIBRATION_SILENCE_FLOOR_DB - 5, 30, 0)
+  assert(0 === state.calibrationSamplesDb.length, 'all-digital-floor samples must never be collected')
+
+  const { state: finished, events } = finishCalibration(state)
+  assert(null === finished.baselineDb, 'an all-silence calibration must never set a baseline')
+  assert(true === finished.lastCalibrationRejected, 'an all-silence calibration must be flagged rejected')
+  assert(
+    events.some((e) => e.type === 'calibrationRejected'),
+    'an all-silence calibration must emit calibrationRejected',
+  )
+  console.log('  PASS: an all-silence calibration is rejected, Baseline stays unset')
+}
+
+function testCalibrationRejectsTooFewValidSamples() {
+  // Enough real-room samples to be non-empty, but fewer than
+  // MIN_CALIBRATION_SAMPLES.
+  let state = beginCalibration(createInitialEngineState(config), 0)
+  const tooFew = MIN_CALIBRATION_SAMPLES - 1
+  state = feedCalibrationSamples(state, -48, tooFew, CALIBRATION_WARMUP_MS + 50)
+  assert(tooFew === state.calibrationSamplesDb.length, 'setup: fewer than the minimum must have been collected')
+
+  const { state: finished } = finishCalibration(state)
+  assert(null === finished.baselineDb, 'too few valid samples must never set a baseline')
+  assert(true === finished.lastCalibrationRejected, 'too few valid samples must be flagged rejected')
+  console.log('  PASS: a calibration with too few valid samples is rejected even if some samples arrived')
+}
+
+function testCalibrationRejectsAnImplausiblyQuietResult() {
+  // Enough valid samples (past both filters), but the room itself reads
+  // implausibly quiet -- e.g. the real incident's -91 dB baseline, which is
+  // above the -100 dB digital floor (so not filtered per-sample) but still
+  // below IMPLAUSIBLE_BASELINE_DB (-85 dB).
+  const quietButNotDigitalFloor = IMPLAUSIBLE_BASELINE_DB - 6
+  assert(
+    quietButNotDigitalFloor > CALIBRATION_SILENCE_FLOOR_DB,
+    'setup: this test level must survive the per-sample digital-floor filter',
+  )
+  let state = beginCalibration(createInitialEngineState(config), 0)
+  state = feedCalibrationSamples(state, quietButNotDigitalFloor, MIN_CALIBRATION_SAMPLES + 5, CALIBRATION_WARMUP_MS + 50)
+  assert(state.calibrationSamplesDb.length >= MIN_CALIBRATION_SAMPLES, 'setup: enough samples must have been collected')
+
+  const { state: finished } = finishCalibration(state)
+  assert(null === finished.baselineDb, 'an implausibly quiet result must never be accepted as a baseline')
+  assert(true === finished.lastCalibrationRejected, 'an implausibly quiet result must be flagged rejected')
+  console.log('  PASS: an implausibly quiet calibration result (enough samples, still too quiet) is rejected')
+}
+
+function testCalibrationUsesMedianNotMean() {
+  // A handful of low outliers that survive both filters (just above the
+  // digital floor, well past warmup) must not drag the baseline down the
+  // way a mean would -- the median should sit on the room level instead.
+  let state = beginCalibration(createInitialEngineState(config), 0)
+  state = feedCalibrationSamples(state, -48, 15, CALIBRATION_WARMUP_MS + 50)
+  state = feedCalibrationSamples(state, CALIBRATION_SILENCE_FLOOR_DB + 1, 3, CALIBRATION_WARMUP_MS + 50 + 15 * SAMPLE_INTERVAL_MS)
+
+  const mean =
+    state.calibrationSamplesDb.reduce((sum, db) => sum + db, 0) / state.calibrationSamplesDb.length
+  const { state: finished } = finishCalibration(state)
+
+  assert(-48 === finished.baselineDb, 'the median must sit on the dominant room level, ignoring a minority of low outliers')
+  assert(finished.baselineDb! > mean, 'the median result must be higher (less falsely-strike-prone) than the mean would be here')
+  console.log('  PASS: calibration uses the median, not the mean, so a minority of low outliers cannot drag it down')
+}
+
+function testResetClearsLastCalibrationRejected() {
+  const rejectedState: TimedEngineState = { ...createInitialEngineState(config), lastCalibrationRejected: true }
+  const afterReset = reset(rejectedState)
+  assert(
+    afterReset.lastCalibrationRejected === false,
+    'reset() must clear a stale lastCalibrationRejected verdict, or "Calibration heard silence" would keep showing after a Reset',
+  )
+  console.log('  PASS: reset() clears lastCalibrationRejected')
+}
+
+function testBeginCalibrationClearsLastCalibrationRejected() {
+  const rejectedState: TimedEngineState = { ...createInitialEngineState(config), lastCalibrationRejected: true }
+  const afterBegin = beginCalibration(rejectedState, 0)
+  assert(
+    afterBegin.lastCalibrationRejected === false,
+    'beginCalibration() must clear a previous attempt\'s rejected verdict as soon as a new attempt starts',
+  )
+  console.log('  PASS: beginCalibration() clears lastCalibrationRejected')
+}
+
+// ─────────────────────────────────────────────────────────────────────────
 // Sanity check on the level math itself.
 // ─────────────────────────────────────────────────────────────────────────
 function testRmsToDbSanity() {
@@ -580,6 +730,13 @@ testDisengageEnginewiseRefusesToResumeBehindAHiddenScreen()
 testManualOverridesExact()
 testMicDeniedPausesCleanly()
 testMissionCompleteCleanTiering()
+testCalibrationIgnoresStartupSilenceAndReadsTheRealRoom()
+testCalibrationRejectsAllSilence()
+testCalibrationRejectsTooFewValidSamples()
+testCalibrationRejectsAnImplausiblyQuietResult()
+testCalibrationUsesMedianNotMean()
+testResetClearsLastCalibrationRejected()
+testBeginCalibrationClearsLastCalibrationRejected()
 testRmsToDbSanity()
 testDefaultProtocolConstant()
 
